@@ -1,0 +1,34 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.venv/
+venv/
+pip-wheel-metadata/
+.pytest_cache/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+
+# --- Large datasets / models (do not upload) ---
+enwik8
+enwik8.zip
+gpt2_models/
+gpt2_medium_models/
+qwen25_05b_models/
+
+# --- Experiment intermediate artifacts ---
+data/
+data_exp3/
+*.gpz
+*.qwz
+*.dec.txt
+*_log.txt
+*_err.txt
+test_decoded.txt
+test_only.qwz
+results_GPTzip-medium.csv.bak2
+

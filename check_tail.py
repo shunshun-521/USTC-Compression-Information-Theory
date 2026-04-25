@@ -1,0 +1,6 @@
+﻿raw = open("data/enwik8_1KB.txt","rb").read()
+dec = open("data/enwik8_1KB.dec.txt","rb").read()
+print(f"原始: {len(raw)} B")
+print(f"解压: {len(dec)} B")
+print(f"前 {len(raw)} 字节是否相同: {raw == dec[:len(raw)]}")
+print(f"多出来的尾部内容 (repr): {repr(dec[len(raw):])}")
