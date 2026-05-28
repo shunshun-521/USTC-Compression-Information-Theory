@@ -25,6 +25,7 @@ def validate_encoder():
 
 
 def validate_sc():
+    """N=64 噪声less + 高信噪比；长码长建议用 SCL 获得更低 FER。"""
     N, K = 64, 32
     info, _, _ = ga_construction(N, K, 2.5)
     frozen = np.ones(N, dtype=bool)
