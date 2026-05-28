@@ -79,7 +79,17 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         m = m_new
 
     llr_means = m
-    info_indices = np.argsort(llr_means)[-K:]
+
+    # Bhattacharyya 参数（与 GA 设计信噪比一致），选取最可靠的 K 个比特信道
+    z0 = np.exp(-1.0 / (sigma ** 2))
+    z = np.array([z0], dtype=np.float64)
+    for _ in range(n):
+        z_new = np.empty(2 * len(z), dtype=np.float64)
+        z_new[0::2] = 2.0 * z - z ** 2
+        z_new[1::2] = z ** 2
+        z = np.clip(z_new, 0.0, 1.0)
+
+    info_indices = np.argsort(z)[:K]
     info_indices = np.sort(info_indices)
     all_idx = np.arange(N)
     frozen_mask = np.ones(N, dtype=bool)

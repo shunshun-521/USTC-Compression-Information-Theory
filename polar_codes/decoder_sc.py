@@ -13,6 +13,27 @@ def f_operation(La, Lb):
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
+def _logdomain_sum(x, y):
+    """对数域加法（数值稳定）"""
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
+def f_boxplus(La, Lb):
+    """精确 box-plus f 运算（用于 SC 主译码路径）"""
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    if La.ndim == 0:
+        return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+    out = np.empty_like(La)
+    for i in range(La.size):
+        out.flat[i] = _logdomain_sum(La.flat[i] + Lb.flat[i], 0.0) - _logdomain_sum(
+            La.flat[i], Lb.flat[i]
+        )
+    return out
+
+
 def g_operation(La, Lb, u_hat):
     """g 运算：u=0 -> La+Lb; u=1 -> Lb-La"""
     return (1 - 2 * u_hat) * La + Lb
