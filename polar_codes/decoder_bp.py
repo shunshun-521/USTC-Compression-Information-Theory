@@ -20,6 +20,10 @@ class BPDecoder:
     def _f_min_sum(self, a, b):
         return self.alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
+    def _lr(self, L, i, j):
+        """L 消息列索引保护（j+1 不超过 n）"""
+        return L[i, min(j + 1, self.n)]
+
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         n, N = self.n, self.N
@@ -37,20 +41,20 @@ class BPDecoder:
                 s = 2 ** (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = self._f_min_sum(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1]
+                        R[i, j] + self._lr(L, i + s, j), self._lr(L, i, j)
                     )
                     L[i + s, j - 1] = self._f_min_sum(
-                        R[i, j], L[i, j + 1]
-                    ) + L[i + s, j + 1]
+                        R[i, j], self._lr(L, i, j)
+                    ) + self._lr(L, i + s, j)
 
             for j in range(1, n + 1):
                 s = 2 ** (j - 1)
                 for i in range(0, N, 2 * s):
                     R[i, j] = self._f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j - 1]
+                        R[i + s, j] + self._lr(L, i + s, j), R[i, j - 1]
                     )
                     R[i + s, j] = self._f_min_sum(
-                        R[i, j - 1], L[i, j + 1]
+                        R[i, j - 1], self._lr(L, i, j)
                     ) + R[i + s, j]
 
             u_hat = np.zeros(N, dtype=int)
