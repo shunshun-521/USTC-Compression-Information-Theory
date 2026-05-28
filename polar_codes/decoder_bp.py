@@ -35,8 +35,8 @@ class BPDecoder:
         num_iters = self.max_iter
 
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
-            for j in range(n, 0, -1):
+            # 右到左更新 L（列 j+1 不超过信道列 n）
+            for j in range(n - 1, 0, -1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _f_minsum(
@@ -47,7 +47,7 @@ class BPDecoder:
                     ) + L[i + s, j + 1]
 
             # 左到右更新 R
-            for j in range(1, n + 1):
+            for j in range(1, n):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     R[i, j] = _f_minsum(
