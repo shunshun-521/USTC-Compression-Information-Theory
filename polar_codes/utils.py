@@ -75,7 +75,7 @@ def compute_bpsk_capacity(eb_n0_db, rate):
     # 数值积分 E_y[log2(1 + exp(-2*snr*y))] for y~N(0,1) on channel output
     y = np.linspace(-10, 10, 20001)
     dy = y[1] - y[0]
-    integrand = np.log2(1.0 + np.exp(-2.0 * snr * y))
+    integrand = np.log2(1.0 + np.exp(np.clip(-2.0 * snr * y, -500, 500)))
     py = np.exp(-0.5 * y**2) / np.sqrt(2.0 * np.pi)
     return 1.0 - np.sum(integrand * py) * dy
 
@@ -143,7 +143,11 @@ def save_frozen_set_info(N_list, K, design_eb_n0_db, save_path):
             )
             f.write("=" * 53 + "\n")
             f.write(f"Info indices (all {len(info_idx)}):\n")
-            f.write(np.array2string(info_idx, linewidth=120) + "\n")
+            f.write(
+                np.array2string(info_idx, max_line_width=120) + "\n"
+            )
             f.write(f"Frozen indices (all {len(frozen_idx)}):\n")
-            f.write(np.array2string(frozen_idx, linewidth=120) + "\n")
+            f.write(
+                np.array2string(frozen_idx, max_line_width=120) + "\n"
+            )
             f.write("-" * 53 + "\n")
