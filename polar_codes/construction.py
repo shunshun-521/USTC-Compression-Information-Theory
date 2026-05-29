@@ -8,8 +8,6 @@ import numpy as np
 def phi(x):
     """
     GA 中的 phi 函数近似（x > 0）
-    phi(x) = e^{-0.4527 * x^0.86 + 0.0218},  0 < x < 10
-    phi(x) = sqrt(pi/x) * e^{-x/4} * (1 - 10/(7x)), x >= 10
     """
     x = np.asarray(x, dtype=np.float64)
     out = np.empty_like(x)
@@ -18,20 +16,16 @@ def phi(x):
     out[mask_small] = np.exp(-0.4527 * np.power(x[mask_small], 0.86) + 0.0218)
     xl = x[mask_large]
     out[mask_large] = np.sqrt(np.pi / xl) * np.exp(-xl / 4.0) * (1.0 - 10.0 / (7.0 * xl))
-    # x <= 0 时 phi 无定义，返回 1（饱和）
     out[x <= 0] = 1.0
     return out
 
 
 def phi_inv(y):
-    """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
-    """
+    """phi 函数的数值逆（二分法）"""
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
     y = np.atleast_1d(y)
     y = np.clip(y, 1e-12, 1.0 - 1e-12)
-
     lo = np.zeros_like(y)
     hi = np.full_like(y, 100.0)
     for _ in range(60):
@@ -43,20 +37,19 @@ def phi_inv(y):
     return float(result[0]) if scalar else result
 
 
+def logQ_Borjesson(x):
+    """Borjesson 近似 Q 函数对数，用于 GA 信道排序"""
+    a, b = 0.339, 5.510
+    half_log2pi = 0.5 * np.log(2 * np.pi)
+    x = np.asarray(x, dtype=np.float64)
+    x = np.abs(x)
+    y = -np.log((1 - a) * x + a * np.sqrt(b + x * x)) - (x * x / 2) - half_log2pi
+    return np.log(1 - np.exp(y))
+
+
 def ga_construction(N, K, design_eb_n0_db, rate=None):
     """
-    高斯近似构造极化码。
-
-    参数：
-        N: 码长（必须是 2 的幂）
-        K: 信息位数
-        design_eb_n0_db: 设计信噪比 Eb/N0（dB）
-        rate: 码率 R=K/N，若为 None 则自动计算
-
-    返回：
-        info_indices: 长度为 K 的数组，信息位在 u 向量中的索引（从 0 开始）
-        frozen_indices: 长度为 N-K 的数组，冻结位索引
-        llr_means: 长度为 N 的数组，每个极化信道的等效 LLR 均值
+    高斯近似构造极化码（与标准 GA 密度演化一致）。
     """
     if rate is None:
         rate = K / N
@@ -64,24 +57,32 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     if 2**n != N:
         raise ValueError(f"N={N} must be a power of 2")
 
-    sigma = 1.0 / np.sqrt(2.0 * rate) * 10 ** (-design_eb_n0_db / 20.0)
-    m0 = 2.0 / (sigma ** 2)
+    # 归一化 E_b/N_0（线性）: 4 * R * 10^{Eb/10}
+    eb_no_linear = 10 ** (design_eb_n0_db / 10.0) * rate
+    z0 = 4.0 * eb_no_linear
 
-    m = np.array([m0], dtype=np.float64)
-    for _ in range(n):
-        half = len(m)
-        m_new = np.zeros(2 * half, dtype=np.float64)
-        ph = phi(m)
-        m_new[0::2] = phi_inv(1.0 - (1.0 - ph) ** 2)
-        m_new[1::2] = 2.0 * m
-        m = m_new
+    z = np.zeros((N, n + 1), dtype=np.float64)
+    z[:, 0] = z0
 
-    llr_means = m
-    info_indices = np.argsort(-llr_means)[:K]
-    info_indices = np.sort(info_indices)
-    frozen_mask = np.ones(N, dtype=bool)
-    frozen_mask[info_indices] = False
-    frozen_indices = np.where(frozen_mask)[0]
+    for j in range(1, n + 1):
+        u = 2**j
+        for t in range(0, N, u):
+            for s in range(u // 2):
+                k = t + s
+                z_top = z[k, j - 1]
+                z_bottom = z[k + u // 2, j - 1]
+                ph_t = phi(z_top)
+                ph_b = phi(z_bottom)
+                z[k, j] = phi_inv(1.0 - (1.0 - ph_t) * (1.0 - ph_b))
+                z[k + u // 2, j] = z_top + z_bottom
+
+    llr_means = z[:, n]
+    m_score = np.array(
+        [logQ_Borjesson(0.707 * np.sqrt(llr_means[i])) for i in range(N)]
+    )
+    frozen_indices = np.argsort(m_score, kind="mergesort")[K:]
+    frozen_indices = np.sort(frozen_indices)
+    info_indices = np.setdiff1d(np.arange(N), frozen_indices)
 
     return info_indices, frozen_indices, llr_means
 

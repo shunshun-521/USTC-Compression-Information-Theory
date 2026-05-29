@@ -72,8 +72,8 @@ class _Path:
     __slots__ = ("L", "B", "pm", "u_hat")
 
     def __init__(self, N, n):
-        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
-        self.B = np.full((N, n + 1), np.nan, dtype=np.float64)
+        self.L = np.zeros((N, n + 1), dtype=np.float64)
+        self.B = np.zeros((N, n + 1), dtype=np.float64)
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=np.int8)
 
@@ -162,6 +162,7 @@ class SCLDecoder:
         new_p = _Path(self.N, self.n)
         new_p.L = path.L.copy()
         new_p.B = path.B.copy()
+        # 未写入的 B 节点保持 0（等效于已译比特为 0）
         new_p.pm = path.pm
         new_p.u_hat = path.u_hat.copy()
         return new_p

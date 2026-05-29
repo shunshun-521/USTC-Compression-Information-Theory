@@ -6,11 +6,28 @@ import numpy as np
 import math
 
 
+def _logdomain_sum(x, y):
+    """log(exp(x)+exp(y))，数值稳定，向量化"""
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    larger = np.maximum(x, y)
+    smaller = np.minimum(x, y)
+    return larger + np.log1p(np.exp(smaller - larger))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算（box-plus 近似）：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    box-plus（f 运算）的 LLR 域实现：
+    f(La,Lb) = logdomain_sum(La+Lb,0) - logdomain_sum(La,Lb)
+    支持向量化
     """
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, np.zeros_like(La)) - _logdomain_sum(La, Lb)
+
+
+def f_operation_min_sum(La, Lb):
+    """min-sum 近似（仅用于对照）"""
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
@@ -80,8 +97,8 @@ def sc_decode(llr_ch, frozen_bits):
 
     decode_order, llr_layers, bit_layers = precompute_sc_indices(N)
 
-    L = np.full((N, n + 1), np.nan, dtype=np.float64)
-    B = np.full((N, n + 1), np.nan, dtype=np.float64)
+    L = np.zeros((N, n + 1), dtype=np.float64)
+    B = np.zeros((N, n + 1), dtype=np.float64)
     L[:, 0] = llr_ch
     u_hat = np.zeros(N, dtype=np.int8)
 

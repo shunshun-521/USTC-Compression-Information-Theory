@@ -24,7 +24,7 @@ def run_unit_tests():
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
     G = generator_matrix(4)
-    assert np.array_equal(x, (u @ G) % 2), f"编码器错误: {x}"
+    assert np.array_equal(x, (u @ G) % 2), f"编码器错误: got {x}, expected u@G={(u @ G) % 2}"
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
