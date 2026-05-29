@@ -2,6 +2,8 @@
 极化码 SCL（串行抵消列表）译码器
 支持 CRC 辅助（CA-SCL）
 """
+import copy
+
 import numpy as np
 from encoder import bit_reversed_index
 from decoder_sc import (
@@ -59,24 +61,19 @@ def _pm_penalty(llr, bit):
 
 
 class _Path:
-    __slots__ = ("L", "B", "pm", "parent", "active")
+    __slots__ = ("L", "B", "pm")
 
-    def __init__(self, N, n, llr_ch, parent=None):
-        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
-        self.B = np.full((N, n + 1), np.nan, dtype=np.float64)
-        if parent is None:
-            self.L[:, 0] = llr_ch.copy()
-            self.pm = 0.0
-        else:
-            self.L = parent.L.copy()
-            self.B = parent.B.copy()
-            self.pm = parent.pm
-        self.parent = parent
-        self.active = True
+    def __init__(self, L, B, pm=0.0):
+        self.L = L
+        self.B = B
+        self.pm = pm
+
+    def copy(self):
+        return _Path(self.L.copy(), self.B.copy(), self.pm)
 
 
 class SCLDecoder:
-    """SCL 译码器（Lazy Copy：路径分裂时复制 LLR/比特数组）"""
+    """SCL 译码器（路径分裂时复制 LLR/比特平面）"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -89,65 +86,62 @@ class SCLDecoder:
         )
 
     def _update_llrs(self, path, l):
+        L, B = path.L, path.B
         for s in range(self.n - _active_llr_level(l, self.n), self.n):
             block_size = 2 ** (s + 1)
             branch_size = block_size // 2
             for j in range(l, self.N, block_size):
                 if j % block_size < branch_size:
-                    path.L[j, s + 1] = upper_llr(path.L[j, s], path.L[j + branch_size, s])
+                    L[j, s + 1] = upper_llr(L[j, s], L[j + branch_size, s])
                 else:
-                    top_bit = int(path.B[j - branch_size, s + 1])
-                    path.L[j, s + 1] = lower_llr(
-                        path.L[j, s], path.L[j - branch_size, s], top_bit
-                    )
+                    top_bit = int(B[j - branch_size, s + 1])
+                    L[j, s + 1] = lower_llr(L[j, s], L[j - branch_size, s], top_bit)
 
     def _update_bits(self, path, l):
         if l < self.N / 2:
             return
+        B = path.B
         for s in range(self.n, self.n - _active_bit_level(l, self.n), -1):
             block_size = 2 ** s
             branch_size = block_size // 2
             for j in range(l, -1, -block_size):
                 if j % block_size >= branch_size:
-                    path.B[j - branch_size, s - 1] = int(path.B[j, s]) ^ int(
-                        path.B[j - branch_size, s]
-                    )
-                    path.B[j, s - 1] = path.B[j, s]
+                    B[j - branch_size, s - 1] = int(B[j, s]) ^ int(B[j - branch_size, s])
+                    B[j, s - 1] = B[j, s]
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        paths = [_Path(self.N, self.n, llr_ch)]
+        L0 = np.full((self.N, self.n + 1), np.nan, dtype=np.float64)
+        B0 = np.full((self.N, self.n + 1), np.nan, dtype=np.float64)
+        L0[:, 0] = llr_ch
+        paths = [_Path(L0, B0, 0.0)]
 
         for i in range(self.N):
             l = bit_reversed_index(i, self.n)
-            candidates = []
+            new_paths = []
 
             for path in paths:
-                if not path.active:
-                    continue
                 self._update_llrs(path, l)
                 llr = path.L[l, self.n]
 
                 if l in self.frozen_set:
-                    new_pm = path.pm + _pm_penalty(llr, 0)
-                    path.pm = new_pm
+                    path.pm += _pm_penalty(llr, 0)
                     path.B[l, self.n] = 0
                     self._update_bits(path, l)
-                    candidates.append(path)
+                    new_paths.append(path)
                 else:
                     for bit in (0, 1):
-                        child = _Path(self.N, self.n, llr_ch, parent=path)
-                        child.pm = path.pm + _pm_penalty(llr, bit)
+                        child = path.copy()
+                        child.pm += _pm_penalty(llr, bit)
                         child.B[l, self.n] = bit
                         self._update_bits(child, l)
-                        candidates.append(child)
+                        new_paths.append(child)
 
-            candidates.sort(key=lambda p: p.pm)
-            paths = candidates[: self.list_size]
-            if not paths:
-                paths = [_Path(self.N, self.n, llr_ch)]
+            new_paths.sort(key=lambda p: p.pm)
+            paths = new_paths[: self.list_size]
 
-        u_hat = paths[0].B[:, self.n].astype(int)
+        paths.sort(key=lambda p: p.pm)
+        best = paths[0]
 
         if self.crc_length > 0 and len(self.info_indices) >= self.crc_length:
             valid = []
@@ -156,10 +150,10 @@ class SCLDecoder:
                 if crc_check(info, self.crc_length):
                     valid.append(p)
             if valid:
-                valid.sort(key=lambda p: p.pm)
-                u_hat = valid[0].B[:, self.n].astype(int)
+                best = valid[0]
 
-        return u_hat, paths[0].pm
+        u_hat = best.B[:, self.n].astype(int)
+        return u_hat, best.pm
 
 
 def scl_equals_sc(N, frozen_bits, trials=20):
