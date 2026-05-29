@@ -27,7 +27,6 @@ class BPDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, n = self.N, self.n
 
-        # L[i,j], R[i,j]: i=节点索引, j=列 (0..n)
         L = np.zeros((N, n + 1))
         R = np.zeros((N, n + 1))
         L[:, n] = llr_ch[self.rev]
@@ -36,31 +35,32 @@ class BPDecoder:
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            # 右 -> 左更新 L
+            # 右 -> 左更新 L（列 n 为信道观测）
             for j in range(n, 0, -1):
                 step = 2 ** (j - 1)
+                jc = min(j + 1, n)
                 for i in range(0, N, 2 * step):
                     s = step
                     L[i, j - 1] = self._f_min_sum(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1]
+                        R[i, j] + L[i + s, jc], L[i, jc]
                     )
                     L[i + s, j - 1] = self._f_min_sum(
-                        R[i, j], L[i, j + 1]
-                    ) + L[i + s, j + 1]
+                        R[i, j], L[i, jc]
+                    ) + L[i + s, jc]
 
             # 左 -> 右更新 R
             for j in range(1, n + 1):
                 step = 2 ** (j - 1)
+                jc = min(j + 1, n)
                 for i in range(0, N, 2 * step):
                     s = step
                     R[i, j] = self._f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j - 1]
+                        R[i + s, j] + L[i + s, jc], R[i, j - 1]
                     )
                     R[i + s, j] = self._f_min_sum(
-                        R[i, j - 1], L[i, j + 1]
+                        R[i, j - 1], L[i, jc]
                     ) + R[i + s, j]
 
-            # 早停
             u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
             u_hat[total < 0] = 1

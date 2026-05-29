@@ -2,6 +2,7 @@
 实验二：SCL 译码及 CRC 辅助
 """
 import os
+import shutil
 import sys
 
 import numpy as np
@@ -114,7 +115,6 @@ if __name__ == "__main__":
     # 规范文件名：SCL L=8 结果
     for L in L_LIST:
         if L == 8:
-            import shutil
             shutil.copy(
                 f"results/exp2_scl_L8_N{N}_R0.5.csv",
                 "results/exp2_scl_N512_R0.5.csv",
