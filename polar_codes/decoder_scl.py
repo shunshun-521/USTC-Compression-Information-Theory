@@ -6,7 +6,13 @@ import math
 
 import numpy as np
 
-from decoder_sc import _f_boxplus, _prepare_llr, g_operation, sc_decode
+from decoder_sc import (
+    _prepare_llr,
+    _update_bit_layers,
+    _update_llr_layers,
+    precompute_sc_indices,
+    sc_decode,
+)
 
 
 def _crc_polynomial(crc_length):
@@ -44,49 +50,32 @@ def crc_check(bits, crc_length=8):
     )
 
 
-def _pm_penalty(llr, u_bit):
-    llr = np.clip(llr, -30.0, 30.0)
-    return float(np.log1p(np.exp(-(1 - 2 * u_bit) * llr)))
+class Path:
+    """SCL 路径（Lazy Copy）"""
 
+    __slots__ = ("P", "C", "pm", "u_hat", "_owned")
 
-def _list_decode_node(llr_node, frozen_node, list_size):
-    """递归 SCL 列表译码"""
-    n = len(llr_node)
-    if n == 1:
-        if frozen_node[0]:
-            return [(np.array([0], dtype=int), np.array([0.0]), 0.0)]
-        llr = llr_node[0]
-        paths = [
-            (np.array([0], dtype=int), np.array([0.0]), _pm_penalty(llr, 0)),
-            (np.array([1], dtype=int), np.array([1.0]), _pm_penalty(llr, 1)),
-        ]
-        return sorted(paths, key=lambda x: x[2])[:list_size]
+    def __init__(self, n, N):
+        self.P = np.zeros((n + 1, N), dtype=np.float64)
+        self.C = np.zeros((n + 1, N), dtype=int)
+        self.pm = 0.0
+        self.u_hat = np.zeros(N, dtype=int)
+        self._owned = True
 
-    half = n // 2
-    llr_left = llr_node[:half]
-    llr_right = llr_node[half:]
-    llr_f = _f_boxplus(llr_left, llr_right)
+    def fork(self):
+        new = Path.__new__(Path)
+        new.P = self.P
+        new.C = self.C
+        new.pm = self.pm
+        new.u_hat = self.u_hat.copy()
+        new._owned = False
+        return new
 
-    left_paths = _list_decode_node(llr_f, frozen_node[:half], list_size)
-
-    all_paths = []
-    for u_left, u_left_up, pm_left in left_paths:
-        llr_g = g_operation(llr_left, llr_right, u_left_up)
-        right_paths = _list_decode_node(llr_g, frozen_node[half:], list_size)
-        for u_right, u_right_up, pm_right in right_paths:
-            u_hat = np.concatenate([u_left, u_right])
-            u_up = np.concatenate(
-                [
-                    np.bitwise_xor(u_left_up.astype(int), u_right_up.astype(int)).astype(
-                        float
-                    ),
-                    u_right_up,
-                ]
-            )
-            all_paths.append((u_hat, u_up, pm_left + pm_right))
-
-    all_paths.sort(key=lambda x: x[2])
-    return [(u, up, pm) for u, up, pm in all_paths[:list_size]]
+    def ensure_owned(self):
+        if not self._owned:
+            self.P = self.P.copy()
+            self.C = self.C.copy()
+            self._owned = True
 
 
 class SCLDecoder:
@@ -99,54 +88,53 @@ class SCLDecoder:
         self.list_size = list_size
         self.crc_length = crc_length
         self.info_indices = np.where(~self.frozen_bits)[0]
+        self.llr_layer_vec, self.bit_layer_vec = precompute_sc_indices(N)
+
+    def _pm_penalty(self, llr, u_bit):
+        llr = np.clip(llr, -30.0, 30.0)
+        hard = 0 if llr >= 0 else 1
+        return 0.0 if u_bit == hard else abs(llr)
 
     def decode(self, llr_ch):
-        if self.list_size == 1:
-            u_hat = sc_decode(llr_ch, self.frozen_bits)
-            return u_hat, 0.0
+        if self.list_size == 1 and self.crc_length == 0:
+            return sc_decode(llr_ch, self.frozen_bits), 0.0
 
         llr = _prepare_llr(llr_ch)
-        paths = _list_decode_node(llr, self.frozen_bits, self.list_size)
+        paths = [Path(self.n, self.N)]
+        paths[0].P[self.n, :] = llr
+
+        for phi in range(self.N):
+            new_paths = []
+            for path in paths:
+                path.ensure_owned()
+                _update_llr_layers(path.P, path.C, self.llr_layer_vec[phi], self.N)
+                llr_root = path.P[0, 0]
+
+                if self.frozen_bits[phi]:
+                    cand = path.fork()
+                    cand.ensure_owned()
+                    cand.pm += self._pm_penalty(llr_root, 0)
+                    cand.u_hat[phi] = 0
+                    cand.C[0, 0] = 0
+                    _update_bit_layers(cand.C, self.bit_layer_vec[phi], self.N)
+                    new_paths.append(cand)
+                else:
+                    for u_bit in (0, 1):
+                        cand = path.fork()
+                        cand.ensure_owned()
+                        cand.pm += self._pm_penalty(llr_root, u_bit)
+                        cand.u_hat[phi] = u_bit
+                        cand.C[0, 0] = u_bit
+                        _update_bit_layers(cand.C, self.bit_layer_vec[phi], self.N)
+                        new_paths.append(cand)
+
+            new_paths.sort(key=lambda p: p.pm)
+            paths = new_paths[: self.list_size]
 
         if self.crc_length > 0:
-            valid = []
-            for u_hat, _, pm in paths:
-                info = u_hat[self.info_indices]
-                if crc_check(info, self.crc_length):
-                    valid.append((u_hat, pm))
-            if valid:
-                u_hat, pm = min(valid, key=lambda x: x[1])
-            else:
-                u_hat, _, pm = paths[0]
+            valid = [p for p in paths if crc_check(p.u_hat[self.info_indices], self.crc_length)]
+            best = min(valid if valid else paths, key=lambda p: p.pm)
         else:
-            u_hat, _, pm = paths[0]
+            best = min(paths, key=lambda p: p.pm)
 
-        return u_hat.copy(), pm
-
-
-if __name__ == "__main__":
-    from construction import ga_construction
-    from encoder import polar_encode
-    from channel import bpsk_modulate, compute_llr, eb_n0_to_sigma
-
-    N, K = 64, 32
-    info_idx, _, _ = ga_construction(N, K, 2.5)
-    frozen_bits = np.ones(N, dtype=bool)
-    frozen_bits[info_idx] = False
-
-    sigma = eb_n0_to_sigma(10.0, K / N)
-    mismatches = 0
-    for _ in range(30):
-        u = np.zeros(N, dtype=int)
-        u[info_idx] = np.random.randint(0, 2, K)
-        x = polar_encode(u)
-        y = bpsk_modulate(x) + np.random.normal(0, sigma, N)
-        llr = compute_llr(y, sigma)
-        u_sc = sc_decode(llr, frozen_bits)
-        u_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
-        if not np.array_equal(u_sc, u_scl):
-            mismatches += 1
-    print(f"L=1 SCL vs SC mismatches: {mismatches}/30")
-
-    u_scl8, _ = SCLDecoder(N, frozen_bits, list_size=8).decode(llr)
-    print("SCL L=8 ok, u_hat shape", u_scl8.shape)
+        return best.u_hat.copy(), best.pm
