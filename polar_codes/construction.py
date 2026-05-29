@@ -27,6 +27,7 @@ def phi(x):
 def phi_inv(y):
     """
     phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 在 x>0 上单调递减，二分 accordingly。
     """
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
@@ -36,8 +37,8 @@ def phi_inv(y):
     for _ in range(60):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
+        lo = np.where(pm > y, mid, lo)
+        hi = np.where(pm <= y, mid, hi)
     result = (lo + hi) / 2.0
     return float(result[0]) if scalar else result
 
@@ -73,7 +74,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
             m_new[2 * i + 1] = 2.0 * m[i]
         m = m_new
 
-    llr_means = np.maximum(m, 1e-12)
+    llr_means = m
     info_indices = np.argsort(llr_means)[-K:]
     info_indices = np.sort(info_indices)
     all_idx = np.arange(N)

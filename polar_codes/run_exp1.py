@@ -48,6 +48,15 @@ def run_unit_tests():
             errors += 1
     assert errors == 0, f"SC 无损验证失败: {errors}/100 帧错误"
 
+    info_idx_256, _, _ = ga_construction(256, 128, 2.5)
+    assert info_idx_256[0] >= 50, (
+        f"GA构造错误：第一个信息位索引={info_idx_256[0]}，应≥50"
+    )
+    assert list(info_idx_256[:5]) == [55, 59, 61, 62, 63], (
+        f"GA构造前5个信息位错误: {info_idx_256[:5].tolist()}"
+    )
+    print(f"GA构造验证通过，前5个信息位: {info_idx_256[:5].tolist()}")
+
     llr_one = compute_llr(bpsk_modulate(polar_encode(u)), sigma)
     uh_sc = sc_decode(llr_one, frozen_bits)
     uh_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr_one)

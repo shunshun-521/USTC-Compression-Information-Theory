@@ -8,12 +8,8 @@ from encoder import polar_encode
 from channel import hard_decision_llr
 
 
-def _minsum_f(a, b, alpha):
-    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
-
-
 class BPDecoder:
-    """BP 译码器"""
+    """BP 译码器（L/R 分层消息，列 0 为信源端，列 n 为信道端）"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -21,7 +17,10 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self.LARGE = 1e6
+        self.LARGE = 1e10
+
+    def _f(self, a, b):
+        return self.alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
@@ -37,35 +36,38 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                rcol = min(j + 1, n)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _minsum_f(
-                        R[i, j] + L[i + s, j], L[i, rcol], self.alpha
-                    )
-                    L[i + s, j - 1] = _minsum_f(
-                        R[i, j], L[i, rcol], self.alpha
-                    ) + L[i + s, rcol]
+            # R：从左到右（信源 → 信道）
+            for stage in range(n):
+                step = 1 << stage
+                for base in range(0, N, 2 * step):
+                    for j in range(base, base + step):
+                        R[j, stage + 1] = self._f(
+                            R[j, stage] + R[j + step, stage],
+                            L[j + step, stage + 1],
+                        )
+                        R[j + step, stage + 1] = self._f(
+                            R[j, stage], L[j, stage + 1]
+                        ) + R[j + step, stage]
 
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
-                rcol = min(j + 1, n)
-                for i in range(0, N, 2 * s):
-                    R[i, j] = _minsum_f(
-                        R[i + s, j] + L[i + s, rcol], R[i, j - 1], self.alpha
-                    )
-                    R[i + s, j] = _minsum_f(
-                        R[i, j - 1], L[i, rcol], self.alpha
-                    ) + R[i + s, j - 1]
+            # L：从右到左（信道 → 信源）
+            for stage in range(n - 1, -1, -1):
+                step = 1 << stage
+                for base in range(0, N, 2 * step):
+                    for j in range(base, base + step):
+                        L[j, stage] = self._f(
+                            L[j, stage + 1],
+                            L[j + step, stage + 1] + R[j, stage + 1],
+                        )
+                        L[j + step, stage] = self._f(
+                            L[j, stage + 1], R[j + step, stage + 1]
+                        ) + L[j + step, stage + 1]
 
             for i in range(N):
                 u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
-            x_hard = hard_decision_llr(llr_ch)
-            if np.array_equal(x_hat, x_hard):
+            if np.array_equal(x_hat, hard_decision_llr(llr_ch)):
                 num_iters = it
                 break
 
