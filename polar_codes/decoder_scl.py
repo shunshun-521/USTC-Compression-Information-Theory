@@ -111,6 +111,15 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        if self.list_size == 1:
+            from decoder_sc import sc_decode
+
+            frozen_bits = np.zeros(self.N, dtype=bool)
+            for idx in self.frozen_set:
+                frozen_bits[idx] = True
+            u_hat = sc_decode(llr_ch, frozen_bits)
+            return u_hat, 0.0
+
         L0 = np.full((self.N, self.n + 1), np.nan, dtype=np.float64)
         B0 = np.full((self.N, self.n + 1), np.nan, dtype=np.float64)
         L0[:, 0] = llr_ch
