@@ -11,7 +11,7 @@ def _f_min_sum(x, y, alpha):
 
 
 class BPDecoder:
-    """BP 译码器"""
+    """BP 译码器：列 0..n，列 n 为信道 LLR"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -43,21 +43,21 @@ class BPDecoder:
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _f_min_sum(
-                        R[i, j] + L[i + s, j], L[i, j + 1], alpha
+                        R[i, j] + L[i + s, j], L[i, j], alpha
                     )
-                    L[i + s, j - 1] = _f_min_sum(R[i, j], L[i, j + 1], alpha) + L[
-                        i + s, j + 1
-                    ]
+                    L[i + s, j - 1] = (
+                        _f_min_sum(R[i, j], L[i, j], alpha) + L[i + s, j]
+                    )
 
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
+            for j in range(0, n):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    R[i, j] = _f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j - 1], alpha
+                    R[i, j + 1] = _f_min_sum(
+                        R[i + s, j + 1] + L[i + s, j + 1], R[i, j], alpha
                     )
-                    R[i + s, j] = _f_min_sum(R[i, j - 1], L[i, j + 1], alpha) + R[
-                        i + s, j
-                    ]
+                    R[i + s, j + 1] = (
+                        _f_min_sum(R[i, j], L[i, j + 1], alpha) + R[i + s, j + 1]
+                    )
 
             u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
