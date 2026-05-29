@@ -36,7 +36,7 @@ MAX_ITER = int(os.environ.get("POLAR_BP_MAX_ITER", "30"))
 MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
 MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
 # BP 在 Python 实现中较慢，可通过 POLAR_BP_MAX_FRAMES 限制帧数
-BP_MAX_FRAMES = int(os.environ.get("POLAR_BP_MAX_FRAMES", "2000"))
+BP_MAX_FRAMES = int(os.environ.get("POLAR_BP_MAX_FRAMES", "300"))
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -76,16 +76,16 @@ if __name__ == "__main__":
             u_hat, num_iters = bp_decoder.decode(llr_ch)
             return u_hat, num_iters
 
-    r_bp = run_simulation(
-        N,
-        K,
-        EB_N0_RANGE,
-        bp_d,
-        "bp",
-        min(MAX_FRAMES, BP_MAX_FRAMES),
-        MIN_ERRORS,
-        info_indices=info_idx,
-    )
+        r_bp = run_simulation(
+            N,
+            K,
+            EB_N0_RANGE,
+            bp_d,
+            "bp",
+            min(MAX_FRAMES, BP_MAX_FRAMES),
+            MIN_ERRORS,
+            info_indices=info_idx,
+        )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
         save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
 
