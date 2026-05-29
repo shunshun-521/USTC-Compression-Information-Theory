@@ -4,6 +4,9 @@
 """
 import numpy as np
 
+from channel import eb_n0_to_sigma
+from encoder import bit_reversal_permutation
+
 
 def phi(x):
     """
@@ -54,7 +57,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     if rate is None:
         rate = K / N
     n = int(np.log2(N))
-    sigma = (1.0 / np.sqrt(2.0 * rate)) * (10.0 ** (-design_eb_n0_db / 20.0))
+    sigma = eb_n0_to_sigma(design_eb_n0_db, rate)
     m = np.array([2.0 / (sigma ** 2)], dtype=np.float64)
 
     for _ in range(n):
@@ -65,8 +68,9 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         m = m_new
 
     llr_means = m
-    info_indices = np.argsort(llr_means)[-K:]
-    info_indices = np.sort(info_indices)
+    perm = bit_reversal_permutation(N)
+    llr_br = llr_means[perm]
+    info_indices = np.sort(np.argsort(llr_br)[-K:])
     all_idx = np.arange(N)
     frozen_mask = np.ones(N, dtype=bool)
     frozen_mask[info_indices] = False
