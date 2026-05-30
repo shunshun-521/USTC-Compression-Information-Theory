@@ -66,8 +66,8 @@ for N in N_LIST:
     print(f"\n{'=' * 60}\nSC 仿真: N={N}, K={K}, R={RATE}\n{'=' * 60}")
 
     info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
-    frozen_bits = np.ones(N, dtype=int)
-    frozen_bits[info_idx] = 0
+    frozen_bits = np.ones(N, dtype=bool)
+    frozen_bits[info_idx] = False
 
     def decoder(llr_ch, fb=frozen_bits):
         return sc_decode(llr_ch, fb), None

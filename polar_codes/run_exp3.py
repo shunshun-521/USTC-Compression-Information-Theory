@@ -36,8 +36,8 @@ EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 for N in N_LIST:
     K = N // 2
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
-    frozen_bits = np.ones(N, dtype=int)
-    frozen_bits[info_idx] = 0
+    frozen_bits = np.ones(N, dtype=bool)
+    frozen_bits[info_idx] = False
 
     all_results = {}
 

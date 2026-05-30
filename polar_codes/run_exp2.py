@@ -37,8 +37,8 @@ MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
-frozen_bits = np.ones(N, dtype=int)
-frozen_bits[info_idx] = 0
+frozen_bits = np.ones(N, dtype=bool)
+frozen_bits[info_idx] = False
 
 all_results = {}
 
@@ -69,6 +69,8 @@ for L in L_LIST:
     label = f"SCL (L={L})"
     all_results[label] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+    if L == 8:
+        save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 

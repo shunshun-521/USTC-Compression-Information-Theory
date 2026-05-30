@@ -41,8 +41,8 @@ def run_simulation(
     k_info = K - crc_length
 
     info_idx, _, _ = ga_construction(N, K, design_eb_n0_db, rate)
-    frozen_bits = np.ones(N, dtype=int)
-    frozen_bits[info_idx] = 0
+    frozen_bits = np.ones(N, dtype=bool)
+    frozen_bits[info_idx] = False
 
     results = []
 
