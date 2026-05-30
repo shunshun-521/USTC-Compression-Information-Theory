@@ -39,17 +39,19 @@ class BPDecoder:
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            # 右到左更新 L（列 j = n-1 ... 0）
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    La = R[i, j] + L[i, j + 1]
-                    Lb = L[i + s, j + 1]
+                    La = R[i, j] + L[i + s, j + 1]
+                    Lb = L[i, j + 1]
                     L[i, j] = _minsum_f(La, Lb, self.alpha)
-                    L[i + s, j] = _minsum_f(R[i, j], L[i, j + 1], self.alpha) + L[i + s, j + 1]
+                    L[i + s, j] = _minsum_f(R[i, j], L[i, j + 1], self.alpha) + L[
+                        i + s, j + 1
+                    ]
 
-            # 左到右更新 R
-            for j in range(1, n + 1):
+            # 左到右更新 R（列 j = 1 ... n-1）
+            for j in range(1, n):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     R[i, j] = _minsum_f(
