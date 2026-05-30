@@ -155,10 +155,11 @@ class SCLDecoder:
         if self.crc_length > 0 and len(self.info_indices) >= self.crc_length:
             valid = []
             for p in paths:
-                info = p.B[:, self.n].astype(int)[self.info_indices]
-                if crc_check(info, self.crc_length):
+                info_bits = p.B[:, self.n].astype(int)[self.info_indices]
+                if crc_check(info_bits, self.crc_length):
                     valid.append(p)
             if valid:
+                valid.sort(key=lambda p: p.pm)
                 best = valid[0]
 
         u_hat = best.B[:, self.n].astype(int)

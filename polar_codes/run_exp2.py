@@ -22,6 +22,11 @@ os.makedirs("results", exist_ok=True)
 
 
 def run_unit_tests():
+    from decoder_scl import crc_encode, crc_check
+
+    info = np.ones(10, dtype=int)
+    assert crc_check(crc_encode(info, 8), 8), "CRC encode/check 不一致"
+
     N = 64
     frozen_bits = np.ones(N, dtype=bool)
     frozen_bits[: N // 2] = False

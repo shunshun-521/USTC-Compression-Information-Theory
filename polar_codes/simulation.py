@@ -45,12 +45,12 @@ def run_simulation(
 
         while num_frames < max_frames and num_errors < min_errors:
             u = np.zeros(N, dtype=int)
-            info_bits = rng.integers(0, 2, k_info)
+            info_raw = rng.integers(0, 2, k_info)
             if crc_length > 0:
-                payload = crc_encode(info_bits, crc_length)
-                u[info_indices[: len(payload)]] = payload
+                info_with_crc = crc_encode(info_raw, crc_length)
+                u[info_indices] = info_with_crc
             else:
-                u[info_indices[:k_info]] = info_bits
+                u[info_indices[:k_info]] = info_raw
 
             x = polar_encode(u)
             s = bpsk_modulate(x)

@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 import matplotlib
 
 matplotlib.use("Agg")
@@ -64,32 +63,34 @@ def load_results_csv(filepath):
     return results
 
 
+def bpsk_capacity(snr_lin):
+    """
+    BPSK-AWGN 信道容量（bits/channel use），自变量为线性 SNR。
+
+    SNR = 2R * Eb/N0（线性），与 channel.py 中 sigma 定义一致。
+    采用 AWGN 实信道容量 C = 0.5 * log2(1 + SNR)。
+    """
+    snr_lin = np.asarray(snr_lin, dtype=np.float64)
+    return 0.5 * np.log2(1.0 + snr_lin)
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """BPSK 离散输入信道容量（bits/channel use）"""
-    caps = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y ** 2)) * np.exp(-y ** 2) / np.sqrt(
-                np.pi
-            )
-
-        val, _ = integrate.quad(integrand, 0, np.inf, limit=200)
-        caps.append(1.0 - val)
-    return np.array(caps)
+    """由 Eb/N0 (dB) 计算 BPSK 信道容量"""
+    eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=np.float64)
+    snr_lin = (10.0 ** (eb_n0_db_list / 10.0)) * 2.0 * rate
+    return bpsk_capacity(snr_lin)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-15, 10), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-5, 5)):
     """找到使 BPSK 容量等于码率 R 的 Eb/N0（dB）"""
     lo, hi = eb_n0_range
     c_lo = compute_bpsk_capacity(np.array([lo]), rate)[0]
     c_hi = compute_bpsk_capacity(np.array([hi]), rate)[0]
-    if c_lo < rate:
+    if c_lo > rate:
         return lo
-    if c_hi > rate:
+    if c_hi < rate:
         return hi
-    for _ in range(50):
+    for _ in range(60):
         mid = (lo + hi) / 2.0
         c = compute_bpsk_capacity(np.array([mid]), rate)[0]
         if c < rate:
