@@ -146,6 +146,33 @@ class _SCDCore:
         return self.B[:, self.n].astype(int)
 
 
+def precompute_sc_indices(N):
+    """
+    预计算非递归 SC 译码辅助向量（llr_layer_vec / bit_layer_vec）。
+    当前 sc_decode 使用逐位倒序 SCD 实现，此函数供报告/扩展使用。
+    """
+    n = int(math.log2(N))
+    lambda_offset = [(1 << layer) - 1 for layer in range(n + 1)]
+    llr_layer_vec = []
+    bit_layer_vec = []
+    for phi in range(N):
+        layers_llr = []
+        psi = phi
+        while psi % 2 == 1:
+            layers_llr.append(int(math.log2(psi & -psi)))
+            psi >>= 1
+        llr_layer_vec.append(layers_llr)
+        layers_bit = []
+        if phi % 2 == 0:
+            psi2 = phi
+            while psi2 < N and psi2 % 2 == 0:
+                if psi2 > 0:
+                    layers_bit.append(int(math.log2(psi2 & -psi2)))
+                psi2 += 1
+        bit_layer_vec.append(layers_bit)
+    return lambda_offset, llr_layer_vec, bit_layer_vec
+
+
 def sc_decode(llr_ch, frozen_bits):
     """非递归 SC 译码（box-plus f 运算）。"""
     N = len(llr_ch)
