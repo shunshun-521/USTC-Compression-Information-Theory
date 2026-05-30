@@ -127,7 +127,7 @@ class SCLDecoder:
                     bit = 0
                     pm = path["pm"] + self._penalty(llr_bit, bit)
                     p2 = {
-                        "L": path["L"],
+                        "L": path["L"].copy(),
                         "B": path["B"].copy(),
                         "pm": pm,
                         "u": path["u"].copy(),
@@ -140,7 +140,7 @@ class SCLDecoder:
                     for bit in (0, 1):
                         pm = path["pm"] + self._penalty(llr_bit, bit)
                         p2 = {
-                            "L": path["L"],
+                            "L": path["L"].copy(),
                             "B": path["B"].copy(),
                             "pm": pm,
                             "u": path["u"].copy(),

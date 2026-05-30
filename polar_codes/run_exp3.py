@@ -29,13 +29,20 @@ def main():
     _unit_tests()
     os.makedirs("results", exist_ok=True)
 
-    N_LIST = [256, 512]
+    if os.environ.get("POLAR_QUICK"):
+        N_LIST = [256]
+    else:
+        N_LIST = [256, 512]
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50
     MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
     MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    EB_N0_RANGE = (
+        np.arange(1.5, 5.5, 0.5)
+        if os.environ.get("POLAR_QUICK")
+        else np.arange(1.0, 5.5, 0.25)
+    )
 
     for N in N_LIST:
         K = N // 2

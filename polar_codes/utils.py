@@ -63,14 +63,19 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_capacity_per_snr(snr_linear):
-    """C in bits/channel use for given linear SNR (2R*Eb/N0)."""
+def _bpsk_capacity_per_eb_n0(eb_n0_db):
+    """BPSK 信道容量（bits/channel use），Eb/N0 为 dB。"""
+    snr = 10 ** (eb_n0_db / 10.0)
 
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-y * y / 2.0)
+    def integrand(x):
+        return (
+            np.log2(1.0 + np.exp(-snr * x * x))
+            * np.exp(-(x * x) / 2.0)
+            / np.sqrt(2.0 * np.pi)
+        )
 
     val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+    return 1.0 - val
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -79,12 +84,11 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     caps = []
     for eb in np.atleast_1d(eb_n0_db_list):
-        snr = 2.0 * rate * (10 ** (eb / 10.0))
-        caps.append(_bpsk_capacity_per_snr(snr))
+        caps.append(_bpsk_capacity_per_eb_n0(eb))
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-10, 6), num_points=3000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
@@ -146,7 +150,9 @@ def save_frozen_set_info(N_list, K, design_eb_n0_db, save_path):
         for N in N_list:
             K_n = N // 2 if K is None else K
             rate = K_n / N
-            info_idx, frozen_idx, _ = ga_construction(N, K_n, design_eb_n0_db)
+            info_idx, frozen_idx, _ = ga_construction(
+                N, K_n, design_eb_n0_db, probe_trials=0
+            )
             f.write("=" * 53 + "\n")
             f.write(
                 f"N={N}, K={K_n}, design_Eb/N0={design_eb_n0_db} dB, R={rate:.4f}\n"
