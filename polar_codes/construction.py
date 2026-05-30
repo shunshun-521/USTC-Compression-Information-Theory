@@ -62,13 +62,13 @@ def ga_construction(N, K, design_eb_n0_db, rate=None, probe_trials=None):
 
     if probe_trials is None:
         if N <= 64:
-            probe_trials = 50
+            probe_trials = 40
         elif N <= 256:
-            probe_trials = 30
+            probe_trials = 25
         elif N <= 512:
-            probe_trials = 15
+            probe_trials = 12
         else:
-            probe_trials = 8
+            probe_trials = 6
 
     if probe_trials > 0:
         info_indices = _probe_info_indices(
