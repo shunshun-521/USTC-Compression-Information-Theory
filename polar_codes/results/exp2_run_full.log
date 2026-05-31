@@ -1,0 +1,54 @@
+实验二增量运行开始 2026-05-31 07:23:24 UTC
+单元测试通过。
+SC 基线 (L=1)
+  Eb/N0=2.00dB | BLER=1.1869e-01 | BER=2.6463e-02 | Errors=40 | Frames=337 | AvgTime=9.87ms
+  Eb/N0=2.50dB | BLER=2.9806e-02 | BER=4.4738e-03 | Errors=40 | Frames=1342 | AvgTime=9.95ms
+  Eb/N0=3.00dB | BLER=2.7500e-03 | BER=4.3555e-04 | Errors=11 | Frames=4000 | AvgTime=9.96ms
+  Eb/N0=3.50dB | BLER=7.5000e-04 | BER=1.1133e-04 | Errors=3 | Frames=4000 | AvgTime=9.83ms
+  Eb/N0=4.00dB | BLER=2.5000e-04 | BER=2.5391e-05 | Errors=1 | Frames=4000 | AvgTime=10.27ms
+  Eb/N0=4.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=10.39ms
+  Eb/N0=5.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=10.33ms
+实验二增量运行开始 2026-05-31 08:33:51 UTC
+单元测试通过。
+
+SCL 仿真: N=512, K=256, L=2
+  Eb/N0=2.00dB | BLER=3.9722e-02 | BER=7.3548e-03 | Errors=40 | Frames=1007 | AvgTime=22.55ms
+  Eb/N0=2.50dB | BLER=5.0000e-03 | BER=8.2324e-04 | Errors=20 | Frames=4000 | AvgTime=22.59ms
+  Eb/N0=3.00dB | BLER=7.5000e-04 | BER=8.0078e-05 | Errors=3 | Frames=4000 | AvgTime=22.59ms
+  Eb/N0=3.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=23.27ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=22.40ms
+  Eb/N0=4.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=22.79ms
+  Eb/N0=5.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=23.13ms
+单元测试通过。
+
+SCL 仿真: N=512, K=256, L=4
+  Eb/N0=2.00dB | BLER=2.7894e-02 | BER=4.0207e-03 | Errors=40 | Frames=1434 | AvgTime=42.07ms
+  Eb/N0=2.50dB | BLER=2.5000e-03 | BER=5.0391e-04 | Errors=10 | Frames=4000 | AvgTime=41.90ms
+  Eb/N0=3.00dB | BLER=2.5000e-04 | BER=1.5625e-05 | Errors=1 | Frames=4000 | AvgTime=41.40ms
+  Eb/N0=3.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=41.38ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=41.36ms
+  Eb/N0=4.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=41.75ms
+  Eb/N0=5.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=43.00ms
+单元测试通过。
+
+SCL 仿真: N=512, K=256, L=8
+  Eb/N0=2.00dB | BLER=2.3669e-02 | BER=3.4671e-03 | Errors=40 | Frames=1690 | AvgTime=90.65ms
+  Eb/N0=2.50dB | BLER=2.7500e-03 | BER=5.3906e-04 | Errors=11 | Frames=4000 | AvgTime=84.40ms
+  Eb/N0=3.00dB | BLER=2.5000e-04 | BER=1.5625e-05 | Errors=1 | Frames=4000 | AvgTime=84.78ms
+  Eb/N0=3.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=84.12ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=83.02ms
+  Eb/N0=4.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=82.75ms
+  Eb/N0=5.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.87ms
+=== CA-SCL 开始 2026-05-31 13:55:04 UTC ===
+单元测试通过。
+
+CA-SCL 仿真: N=512, K=256, L=8, CRC=8
+  Eb/N0=2.00dB | BLER=2.5000e-03 | BER=5.8266e-04 | Errors=10 | Frames=4000 | AvgTime=81.22ms
+  Eb/N0=2.50dB | BLER=2.5000e-04 | BER=1.4113e-05 | Errors=1 | Frames=4000 | AvgTime=83.70ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.24ms
+  Eb/N0=3.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.20ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.50ms
+  Eb/N0=4.50dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.56ms
+  Eb/N0=5.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=4000 | AvgTime=81.07ms
+单元测试通过。
+fig2 已更新。
