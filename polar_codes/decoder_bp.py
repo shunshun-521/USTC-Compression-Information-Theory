@@ -24,10 +24,7 @@ class BPDecoder:
         self.frozen_idx = np.where(self.frozen_bits)[0]
 
     def decode(self, llr_ch):
-        """
-        主译码函数。
-        返回：(u_hat, num_iters)
-        """
+        """主译码函数。返回：(u_hat, num_iters)"""
         N = self.N
         n = self.n
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
@@ -47,18 +44,18 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 2 ** j
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _f_min_sum(
-                        R[i, j] + L[i + s, j], L[i, j + 1], self.alpha
+                    L[i, j] = _f_min_sum(
+                        R[i, j] + L[i + s, j + 1], L[i, j + 1], self.alpha
                     )
-                    L[i + s, j - 1] = _f_min_sum(
+                    L[i + s, j] = _f_min_sum(
                         R[i, j], L[i, j + 1], self.alpha
                     ) + L[i + s, j + 1]
 
-            for j in range(0, n):
-                s = 2 ** (j)
+            for j in range(n):
+                s = 2 ** j
                 for i in range(0, N, 2 * s):
                     R[i, j + 1] = _f_min_sum(
                         R[i + s, j] + L[i + s, j + 1], R[i, j], self.alpha
@@ -72,7 +69,7 @@ class BPDecoder:
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)  # 与因子图域一致
+            hard_ch = (llr_ch < 0).astype(int)
             if np.array_equal(x_hat, hard_ch):
                 break
 
