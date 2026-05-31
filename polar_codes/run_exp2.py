@@ -152,10 +152,10 @@ def run_plots():
 
 STAGE_MAP = {
     "sc": ("sc", None),
-    "scl_L2": ("scl", 2),
-    "scl_L4": ("scl", 4),
-    "scl_L8": ("scl", 8),
-    "scl_L16": ("scl", 16),
+    "scl_l2": ("scl", 2),
+    "scl_l4": ("scl", 4),
+    "scl_l8": ("scl", 8),
+    "scl_l16": ("scl", 16),
     "cascl": ("cascl", None),
     "plots": ("plots", None),
 }
@@ -168,7 +168,7 @@ def main():
     info_idx, frozen_bits = _frozen_setup()
 
     if stage == "all":
-        stages = ["sc", "scl_L2", "scl_L4", "scl_L8", "scl_L16", "cascl", "plots"]
+        stages = ["sc", "scl_l2", "scl_l4", "scl_l8", "scl_l16", "cascl", "plots"]
     else:
         stages = [stage]
 

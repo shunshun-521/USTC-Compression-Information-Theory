@@ -35,37 +35,59 @@ run_stage() {
 }
 
 mkdir -p results
-echo "实验二增量运行开始 $(date -u '+%Y-%m-%d %H:%M:%S UTC')" | tee "$LOG"
+echo "实验二增量运行开始 $(date -u '+%Y-%m-%d %H:%M:%S UTC')" | tee -a "$LOG"
 
+START_FROM="${EXP2_START_FROM:-sc}"
+_started=false
+_should_run() {
+    if [ "$_started" = true ]; then return 0; fi
+    if [ "$1" = "$START_FROM" ]; then _started=true; return 0; fi
+    return 1
+}
+
+if _should_run sc; then
 run_stage sc \
     "实验二 SC 基线 (N=512, 快速模式)" \
     results/exp2_sc_N512_R0.5.csv results/exp2_run_full.log
+fi
 
-run_stage scl_L2 \
+if _should_run scl_l2; then
+run_stage scl_l2 \
     "实验二 SCL L=2 (N=512, 快速模式)" \
     results/exp2_scl_L2_N512_R0.5.csv results/exp2_run_full.log
+fi
 
-run_stage scl_L4 \
+if _should_run scl_l4; then
+run_stage scl_l4 \
     "实验二 SCL L=4 (N=512, 快速模式)" \
     results/exp2_scl_L4_N512_R0.5.csv results/exp2_run_full.log
+fi
 
-run_stage scl_L8 \
+if _should_run scl_l8; then
+run_stage scl_l8 \
     "实验二 SCL L=8 (N=512, 快速模式)" \
     results/exp2_scl_L8_N512_R0.5.csv results/exp2_scl_N512_R0.5.csv results/exp2_run_full.log
+fi
 
-run_stage scl_L16 \
+if _should_run scl_l16; then
+run_stage scl_l16 \
     "实验二 SCL L=16 (N=512, 快速模式)" \
     results/exp2_scl_L16_N512_R0.5.csv results/exp2_run_full.log
+fi
 
+if _should_run cascl; then
 run_stage cascl \
     "实验二 CA-SCL L=8 (N=512, 快速模式)" \
     results/exp2_cascl_L8_N512_R0.5.csv results/exp2_run_full.log
+fi
 
+if _should_run plots; then
 run_stage plots \
     "实验二 fig2 图表（含 L=16）" \
     results/fig2_scl_bler.png results/fig2_scl_bler.pdf \
     results/fig2_decode_time.png results/fig2_decode_time.pdf \
     results/exp2_run_full.log
+fi
 
 echo ""
 echo "========== 实验二全部完成 $(date -u '+%Y-%m-%d %H:%M:%S UTC') =========="
