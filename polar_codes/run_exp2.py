@@ -24,10 +24,13 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
+L_LIST = [int(x) for x in os.environ.get("POLAR_L_LIST", "2,4,8").split(",")]
 MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
 MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
-EB_N0_RANGE = np.arange(1.0, 10.5, 0.5)
+_eb_step = float(os.environ.get("POLAR_EB_STEP", "0.5"))
+_eb_start = float(os.environ.get("POLAR_EB_START", "1.0"))
+_eb_stop = float(os.environ.get("POLAR_EB_STOP", "10.5"))
+EB_N0_RANGE = np.arange(_eb_start, _eb_stop, _eb_step)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
