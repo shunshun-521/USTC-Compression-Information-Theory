@@ -114,7 +114,6 @@ def run_plots():
         "SCL (L=2)": f"results/exp2_scl_L2_N{N}_R0.5.csv",
         "SCL (L=4)": f"results/exp2_scl_L4_N{N}_R0.5.csv",
         "SCL (L=8)": f"results/exp2_scl_L8_N{N}_R0.5.csv",
-        "SCL (L=16)": f"results/exp2_scl_L16_N{N}_R0.5.csv",
         "CA-SCL (L=8, CRC=8)": f"results/exp2_cascl_L8_N{N}_R0.5.csv",
     }
     all_results = {}
@@ -168,7 +167,7 @@ def main():
     info_idx, frozen_bits = _frozen_setup()
 
     if stage == "all":
-        stages = ["sc", "scl_l2", "scl_l4", "scl_l8", "scl_l16", "cascl", "plots"]
+        stages = ["sc", "scl_l2", "scl_l4", "scl_l8", "cascl", "plots"]
     else:
         stages = [stage]
 

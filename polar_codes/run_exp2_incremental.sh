@@ -69,12 +69,6 @@ run_stage scl_l8 \
     results/exp2_scl_L8_N512_R0.5.csv results/exp2_scl_N512_R0.5.csv results/exp2_run_full.log
 fi
 
-if _should_run scl_l16; then
-run_stage scl_l16 \
-    "实验二 SCL L=16 (N=512, 快速模式)" \
-    results/exp2_scl_L16_N512_R0.5.csv results/exp2_run_full.log
-fi
-
 if _should_run cascl; then
 run_stage cascl \
     "实验二 CA-SCL L=8 (N=512, 快速模式)" \
@@ -83,7 +77,7 @@ fi
 
 if _should_run plots; then
 run_stage plots \
-    "实验二 fig2 图表（含 L=16）" \
+    "实验二 fig2 图表（SC/SCL L=2/4/8 + CA-SCL）" \
     results/fig2_scl_bler.png results/fig2_scl_bler.pdf \
     results/fig2_decode_time.png results/fig2_decode_time.pdf \
     results/exp2_run_full.log
