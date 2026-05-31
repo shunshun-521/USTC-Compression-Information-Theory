@@ -31,6 +31,7 @@ mapping = {
     "SCL (L=2)": "results/exp2_scl_L2_N512_R0.5.csv",
     "SCL (L=4)": "results/exp2_scl_L4_N512_R0.5.csv",
     "SCL (L=8)": "results/exp2_scl_L8_N512_R0.5.csv",
+    "SCL (L=16)": "results/exp2_scl_L16_N512_R0.5.csv",
     "CA-SCL (L=8, CRC=8)": "results/exp2_cascl_L8_N512_R0.5.csv",
 }
 for label, path in mapping.items():

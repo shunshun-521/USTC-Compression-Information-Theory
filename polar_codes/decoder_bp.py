@@ -1,78 +1,44 @@
 """
 极化码 BP（置信传播）译码器
-基于因子图，使用 min-sum 近似，含早停机制
+基于 Sionna PolarBPDecoder（sum-product），接口与 SC/SCL 一致
 """
 import numpy as np
+
+try:
+    import torch
+    from sionna.phy.fec.polar import PolarBPDecoder as _SionnaBP
+except ImportError as e:
+    raise ImportError(
+        "BP 译码需要 torch 与 sionna，请运行: pip install torch sionna"
+    ) from e
+
 from encoder import polar_encode
 
 
-def _f_min_sum(x, y, alpha):
-    return alpha * np.sign(x) * np.sign(y) * np.minimum(np.abs(x), np.abs(y))
-
-
 class BPDecoder:
-    """BP 译码器：列 0..n，列 n 为信道 LLR"""
+    """BP 译码器。输入 LLR 与 SC 相同（channel.compute_llr 输出）。"""
 
-    def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
+    def __init__(self, N, frozen_bits, max_iter=50, llr_max=19.3):
         self.N = N
         self.n = int(np.log2(N))
-        self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
-        self.frozen_idx = np.where(self.frozen_bits)[0]
+        fb = np.asarray(frozen_bits, dtype=int)
+        self.frozen_pos = np.where(fb == 1)[0] if fb.max() <= 1 else np.where(fb.astype(bool))[0]
+        self.info_pos = np.setdiff1d(np.arange(N), self.frozen_pos)
         self.max_iter = max_iter
-        self.alpha = alpha
-        self.large = 1e6
-
-    def _hard_llr(self, llr_ch):
-        return (llr_ch < 0).astype(int)
+        self._dec = _SionnaBP(self.frozen_pos, N, num_iter=max_iter)
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        n = self.n
-        N = self.N
-        alpha = self.alpha
+        # Sionna 输入为 logits，内部取负后与 compute_llr 约定对齐
+        llr_t = torch.tensor(-llr_ch, dtype=torch.float32).unsqueeze(0)
+        with torch.no_grad():
+            u_info = self._dec(llr_t).numpy().astype(int).flatten()
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_idx, 0] = self.large
+        u_hat = np.zeros(self.N, dtype=int)
+        u_hat[self.info_pos] = u_info
 
+        x_hard = (llr_ch < 0).astype(int)
         num_iters = self.max_iter
-        for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _f_min_sum(
-                        R[i, j] + L[i + s, j], L[i, j], alpha
-                    )
-                    L[i + s, j - 1] = (
-                        _f_min_sum(R[i, j], L[i, j], alpha) + L[i + s, j]
-                    )
-
-            for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    R[i, j + 1] = _f_min_sum(
-                        R[i + s, j + 1] + L[i + s, j + 1], R[i, j], alpha
-                    )
-                    R[i + s, j + 1] = (
-                        _f_min_sum(R[i, j], L[i, j + 1], alpha) + R[i + s, j + 1]
-                    )
-
-            u_hat = np.zeros(N, dtype=int)
-            total = L[:, 0] + R[:, 0]
-            u_hat[total >= 0] = 0
-            u_hat[total < 0] = 1
-            u_hat[self.frozen_idx] = 0
-
-            x_hat = polar_encode(u_hat)
-            if np.array_equal(x_hat, self._hard_llr(llr_ch)):
-                num_iters = it
-                break
-
-        u_hat = np.zeros(N, dtype=int)
-        total = L[:, 0] + R[:, 0]
-        u_hat[total >= 0] = 0
-        u_hat[total < 0] = 1
-        u_hat[self.frozen_idx] = 0
+        if np.array_equal(polar_encode(u_hat), x_hard):
+            num_iters = 1
         return u_hat, num_iters
