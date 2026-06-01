@@ -55,19 +55,35 @@ def _path_metric_update(pm, llr, u):
     return pm
 
 
+def _partial_u_up(u_segment):
+    """
+    由已判决的源比特段计算 SC g 节点所需的 u_up（与 sc_decode_recursive 一致）。
+    u_segment 长度为 2^layer。
+    """
+    u_segment = np.asarray(u_segment, dtype=int)
+    n = len(u_segment)
+    if n == 1:
+        return u_segment.copy()
+    half = n // 2
+    u1_up = _partial_u_up(u_segment[:half])
+    u2_up = _partial_u_up(u_segment[half:])
+    u1_xor = np.bitwise_xor(u1_up, u2_up)
+    return np.concatenate([u1_xor, u2_up])
+
+
 def _llr_at_phi(u_prefix, phi, llr_ch, frozen_bits, n):
     """递归计算第 phi 位的 LLR（已知 u_prefix[0:phi]）。"""
 
     def rec(node_llr, layer, offset, target_phi, u_pref):
-        size = 1 << layer
         if layer == 0:
             return float(node_llr[0])
-        half = size // 2
+        half = 1 << (layer - 1)
         llr_u = f_operation(node_llr[:half], node_llr[half:])
         if target_phi < offset + half:
             return rec(llr_u, layer - 1, offset, target_phi, u_pref)
         u_left = u_pref[offset : offset + half]
-        llr_d = g_operation(node_llr[:half], node_llr[half:], u_left)
+        u_left_up = _partial_u_up(u_left)
+        llr_d = g_operation(node_llr[:half], node_llr[half:], u_left_up)
         return rec(llr_d, layer - 1, offset + half, target_phi, u_pref)
 
     return rec(llr_ch.copy(), n, 0, phi, u_prefix)

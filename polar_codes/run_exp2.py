@@ -64,7 +64,7 @@ EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 if __name__ == "__main__":
     _unit_tests()
 
-    info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
+    info_idx, _, _ = ga_construction_for_simulation(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
 
