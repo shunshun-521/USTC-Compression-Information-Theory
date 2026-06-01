@@ -39,11 +39,15 @@ def _unit_tests():
             err += 1
     assert err == 0, f"SC 高信噪比测试失败: {err}"
 
-    scl = SCLDecoder(N, frozen_bits.astype(bool), list_size=1)
+    fb = frozen_bits.astype(bool)
+    scl1 = SCLDecoder(N, fb, list_size=1)
+    scl4 = SCLDecoder(N, fb, list_size=4)
     u = np.zeros(N, dtype=int)
     u[info_idx] = rng.integers(0, 2, K)
     llr = compute_llr(bpsk_modulate(polar_encode(u, info_idx)), 0.01)
-    assert np.array_equal(sc_decode(llr, frozen_bits.astype(bool)), scl.decode(llr)[0])
+    uh_sc = sc_decode(llr, fb)
+    assert np.array_equal(uh_sc, scl1.decode(llr)[0])
+    assert np.array_equal(uh_sc, scl4.decode(llr)[0])
     print("单元测试通过。")
 
 
