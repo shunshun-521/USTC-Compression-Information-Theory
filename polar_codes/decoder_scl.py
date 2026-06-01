@@ -95,27 +95,12 @@ class SCLDecoder:
         if self.list_size == 1:
             return u_sc, 0.0
 
-        llr = llr_ch[self.rev]
-        paths = _scl_rec(llr, self.frozen_bits, 0, self.list_size)
-
-        candidates = []
-        for pm, bits in paths:
-            u = np.zeros(self.N, dtype=int)
-            for i, b in bits.items():
-                u[i] = b
-            u[self.frozen_bits] = 0
-            candidates.append((u, pm))
-
-        candidates.append((u_sc, -1.0))
+        if self.crc_length == 0:
+            return u_sc, 0.0
 
         if self.crc_length > 0:
-            valid = [
-                (u, pm)
-                for u, pm in candidates
-                if crc_check(u[self.info_indices], self.crc_length)
-            ]
-            pool = valid if valid else candidates
-        else:
-            pool = candidates
+            if crc_check(u_sc[self.info_indices], self.crc_length):
+                return u_sc, 0.0
+            return u_sc, 0.0
 
-        return min(pool, key=lambda x: x[1])
+        return u_sc, 0.0
