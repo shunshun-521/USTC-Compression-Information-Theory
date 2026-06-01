@@ -1,0 +1,28 @@
+/workspace/polar_codes/utils.py:65: RuntimeWarning: overflow encountered in exp
+  return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+/workspace/polar_codes/utils.py:65: RuntimeWarning: invalid value encountered in scalar multiply
+  return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+/workspace/polar_codes/utils.py:67: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = integrate.quad(integrand, -np.inf, np.inf)
+N=512, BP 仿真
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9477e-01 | Errors=100 | Frames=100 | AvgTime=749.95ms | AvgIter=50.0
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9777e-01 | Errors=100 | Frames=100 | AvgTime=718.15ms | AvgIter=50.0
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9531e-01 | Errors=100 | Frames=100 | AvgTime=721.59ms | AvgIter=50.0
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9445e-01 | Errors=100 | Frames=100 | AvgTime=735.92ms | AvgIter=50.0
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9629e-01 | Errors=100 | Frames=100 | AvgTime=705.79ms | AvgIter=50.0
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9863e-01 | Errors=100 | Frames=100 | AvgTime=697.37ms | AvgIter=50.0
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9680e-01 | Errors=100 | Frames=100 | AvgTime=695.75ms | AvgIter=50.0
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.9184e-01 | Errors=100 | Frames=100 | AvgTime=698.26ms | AvgIter=50.0
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.8836e-01 | Errors=100 | Frames=100 | AvgTime=693.00ms | AvgIter=50.0
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.9195e-01 | Errors=100 | Frames=100 | AvgTime=695.66ms | AvgIter=50.0
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.9137e-01 | Errors=100 | Frames=100 | AvgTime=700.96ms | AvgIter=50.0
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.9551e-01 | Errors=100 | Frames=100 | AvgTime=706.62ms | AvgIter=50.0
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.9004e-01 | Errors=100 | Frames=100 | AvgTime=703.01ms | AvgIter=50.0
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.8707e-01 | Errors=100 | Frames=100 | AvgTime=701.19ms | AvgIter=50.0
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.8879e-01 | Errors=100 | Frames=100 | AvgTime=704.97ms | AvgIter=50.0
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.8387e-01 | Errors=100 | Frames=100 | AvgTime=699.26ms | AvgIter=50.0
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.8547e-01 | Errors=100 | Frames=100 | AvgTime=700.70ms | AvgIter=50.0
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.8281e-01 | Errors=100 | Frames=100 | AvgTime=696.25ms | AvgIter=50.0
+N=512 BP 补跑完成。
