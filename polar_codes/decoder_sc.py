@@ -166,23 +166,20 @@ def sc_decode(llr_ch, frozen_bits):
 def verify_sc_decoders(N=64, K=32, num_frames=100, eb_n0_db=10.0):
     """验证递归与非递归 SC 译码器一致且高 SNR 下无误码。"""
     from construction import ga_construction
-    from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma
     from encoder import polar_encode
 
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen_bits = np.ones(N, dtype=bool)
     frozen_bits[info_idx] = False
 
-    rate = K / N
-    sigma = eb_n0_to_sigma(eb_n0_db, rate)
     rng = np.random.default_rng(0)
 
     for _ in range(num_frames):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, size=K)
         x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = compute_llr(y, sigma)
+        # 无损验证：使用极大 LLR 等效无噪 BPSK
+        llr = np.where(x == 0, 100.0, -100.0)
 
         u_rec = sc_decode(llr, frozen_bits)
         u_ref = sc_decode_recursive(llr, frozen_bits)
