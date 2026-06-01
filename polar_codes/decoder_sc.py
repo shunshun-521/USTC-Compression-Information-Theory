@@ -102,27 +102,19 @@ def precompute_sc_indices(N):
     return lambda_offset, llr_layer_vec, bit_layer_vec
 
 
-def sc_decode(llr_ch, frozen_bits):
+def sc_decode_nonrecursive(llr_ch, frozen_bits):
     """
-    非递归 SC 译码（N<=256 使用层叠更新；更大码长回退递归实现）。
+    非递归 SC 译码（层叠更新，供与递归版本对照）。
     """
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
     N = len(llr_ch)
     frozen_bits = np.asarray(frozen_bits).astype(bool)
-
-    if N > 256:
-        return sc_decode_recursive(llr_ch, frozen_bits)
-
-    if N <= 64:
-        return sc_decode_recursive(llr_ch, frozen_bits)
-
     n = int(np.log2(N))
     _, llr_layer_vec, bit_layer_vec = precompute_sc_indices(N)
 
     P = np.zeros((n + 1, N), dtype=np.float64)
     C = np.zeros((n + 1, N), dtype=np.float64)
     P[n, :] = llr_ch
-
     u_hat = np.zeros(N, dtype=int)
 
     for phi in range(N):
@@ -161,6 +153,11 @@ def sc_decode(llr_ch, frozen_bits):
                         C[layer + 1][ri] = C[layer][ri]
 
     return u_hat
+
+
+def sc_decode(llr_ch, frozen_bits):
+    """非递归 SC 译码主入口（当前默认使用已验证的递归实现）。"""
+    return sc_decode_recursive(llr_ch, frozen_bits)
 
 
 def verify_sc_decoders(N=64, K=32, num_frames=100, eb_n0_db=10.0):

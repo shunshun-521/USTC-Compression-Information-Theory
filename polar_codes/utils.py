@@ -77,7 +77,7 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
   return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-15, 20), num_points=2000):
   """找到使 BPSK 容量等于码率 R 的 Eb/N0（dB）"""
   lo, hi = eb_n0_range
 
