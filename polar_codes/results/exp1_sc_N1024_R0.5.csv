@@ -1,0 +1,3 @@
+eb_n0_db,bler,ber,num_errors,num_frames,avg_decode_time_ms,avg_iters
+10.0000,1.000000e+00,3.281250e-02,5,5,6.702468,
+12.0000,1.666667e-01,4.687500e-03,5,30,6.626222,
