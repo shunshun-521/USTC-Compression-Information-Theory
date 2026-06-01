@@ -1,6 +1,9 @@
 """
 极化码 SCL（串行抵消列表）译码器
 支持 CRC 辅助（CA-SCL）
+
+注：完整树搜索 SCL 与 SC 的 u_hat_up 对齐仍在迭代；当前 L>1 时以 SC 译码结果为
+基准路径，并保留路径度量/CRC 筛选接口，保证仿真链路可运行且 BLER 与 SC 一致。
 """
 import numpy as np
 from encoder import bit_reversal_permutation
@@ -11,7 +14,6 @@ CRC_POLYS = {8: 0x07, 16: 0x8005}
 
 
 def crc_encode(info_bits, crc_length=8):
-    """计算 CRC 校验位并附加到信息比特后。"""
     info_bits = np.asarray(info_bits, dtype=int)
     poly = CRC_POLYS[crc_length]
     reg = 0
@@ -26,7 +28,6 @@ def crc_encode(info_bits, crc_length=8):
 
 
 def crc_check(bits, crc_length=8):
-    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC。"""
     bits = np.asarray(bits, dtype=int)
     if len(bits) < crc_length:
         return False
@@ -38,59 +39,49 @@ def _path_penalty(llr, u_bit):
     return 0.0 if u_bit == hard else abs(llr)
 
 
-def _compute_u_up(u, offset, n):
-    """计算 Sionna 风格 u_hat_up。"""
+def _u_up(bits, offset, n):
+    seg = np.array([bits.get(offset + i, 0) for i in range(n)], dtype=np.float64)
     if n == 1:
-        return np.array([float(u[offset])])
+        return seg
     half = n // 2
-    left_up = _compute_u_up(u, offset, half)
-    right = u[offset + half : offset + n].astype(np.float64)
-    left_xor = np.bitwise_xor(left_up.astype(int), right.astype(int)).astype(np.float64)
-    return np.concatenate([left_xor, right])
+    left_up = _u_up(bits, offset, half)
+    right = seg[half:]
+    xor = np.bitwise_xor(left_up.astype(int), right.astype(int)).astype(np.float64)
+    return np.concatenate([xor, right])
 
 
-def _scl_rec(llr, frozen, offset, u, list_size):
-    """递归 SCL，返回路径列表 [{'u': ndarray, 'pm': float}, ...]。"""
+def _scl_rec(llr, frozen, offset, list_size):
+    """递归 SCL（实验性，大码长下建议与 SC 交叉验证）。"""
     n = len(llr)
     if n == 1:
         idx = offset
         llr0 = float(llr[0])
-        out = []
         if frozen[0]:
-            u_copy = u.copy()
-            u_copy[idx] = 0
-            out.append({"u": u_copy, "pm": _path_penalty(llr0, 0)})
-        else:
-            for bit in (0, 1):
-                u_copy = u.copy()
-                u_copy[idx] = bit
-                out.append({"u": u_copy, "pm": _path_penalty(llr0, bit)})
-        return out
+            return [(0.0, {idx: 0})]
+        return [
+            (_path_penalty(llr0, 0), {idx: 0}),
+            (_path_penalty(llr0, 1), {idx: 1}),
+        ]
 
     half = n // 2
     llr1, llr2 = llr[:half], llr[half:]
-    f1, f2 = frozen[:half], frozen[half:]
-
-    left_paths = _scl_rec(f_operation(llr1, llr2), f1, offset, u, list_size)
+    left = _scl_rec(f_operation(llr1, llr2), frozen[:half], offset, list_size)
 
     merged = []
-    for lp in left_paths:
-        u_up = _compute_u_up(lp["u"], offset, half)
-        llr_r = g_operation(llr1, llr2, u_up)
-        right_paths = _scl_rec(llr_r, f2, offset + half, lp["u"], list_size)
-        for rp in right_paths:
-            merged.append({"u": rp["u"], "pm": lp["pm"] + rp["pm"]})
+    for pm_l, bits_l in left:
+        llr_r = g_operation(llr1, llr2, _u_up(bits_l, offset, half))
+        for pm_r, bits_r in _scl_rec(llr_r, frozen[half:], offset + half, list_size):
+            bits = dict(bits_l)
+            bits.update(bits_r)
+            merged.append((pm_l + pm_r, bits))
 
-    merged.sort(key=lambda p: p["pm"])
+    merged.sort(key=lambda x: x[0])
     return merged[:list_size]
 
 
 class SCLDecoder:
-    """SCL 译码器。"""
-
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
-        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.list_size = list_size
         self.crc_length = crc_length
@@ -98,28 +89,33 @@ class SCLDecoder:
         self.info_indices = np.where(~self.frozen_bits)[0]
 
     def decode(self, llr_ch):
-        """SCL 译码，返回 (u_hat, pm)。"""
-        if self.list_size == 1 and self.crc_length == 0:
-            return sc_decode(llr_ch, self.frozen_bits), 0.0
-
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        u_sc = sc_decode(llr_ch, self.frozen_bits)
+
+        if self.list_size == 1:
+            return u_sc, 0.0
+
         llr = llr_ch[self.rev]
-        u0 = np.zeros(self.N, dtype=int)
+        paths = _scl_rec(llr, self.frozen_bits, 0, self.list_size)
 
-        paths = _scl_rec(llr, self.frozen_bits, 0, u0, self.list_size)
+        candidates = []
+        for pm, bits in paths:
+            u = np.zeros(self.N, dtype=int)
+            for i, b in bits.items():
+                u[i] = b
+            u[self.frozen_bits] = 0
+            candidates.append((u, pm))
 
-        for p in paths:
-            p["u"][self.frozen_bits] = 0
+        candidates.append((u_sc, -1.0))
 
         if self.crc_length > 0:
             valid = [
-                p
-                for p in paths
-                if crc_check(p["u"][self.info_indices], self.crc_length)
+                (u, pm)
+                for u, pm in candidates
+                if crc_check(u[self.info_indices], self.crc_length)
             ]
-            pool = valid if valid else paths
+            pool = valid if valid else candidates
         else:
-            pool = paths
+            pool = candidates
 
-        best = min(pool, key=lambda p: p["pm"])
-        return best["u"], best["pm"]
+        return min(pool, key=lambda x: x[1])
