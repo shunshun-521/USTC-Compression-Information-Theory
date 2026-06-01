@@ -4,6 +4,7 @@
 """
 import numpy as np
 from encoder import polar_encode
+from decoder_sc import f_boxplus
 
 
 def _f_min_sum(x, y, alpha):
