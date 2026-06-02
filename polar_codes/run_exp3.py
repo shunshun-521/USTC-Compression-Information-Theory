@@ -36,7 +36,7 @@ def main():
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50
-    MAX_FRAMES = 100000
+    MAX_FRAMES = 20000
     MIN_ERRORS = 100
     EB_N0_RANGE = np.arange(3.0, 8.0, 0.25)
 
