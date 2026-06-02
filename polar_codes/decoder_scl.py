@@ -3,7 +3,7 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import f_operation, g_operation
+from decoder_sc import f_operation, g_operation, boxplus
 
 
 _CRC8_POLY = 0x07
@@ -45,6 +45,10 @@ def _pm_update(pm, llr, u):
     return pm
 
 
+def _cn(x, y):
+    return boxplus(x, y)
+
+
 def _scl_decode_recursive(llr, frozen, list_size):
     """递归 SCL，返回 [(pm, u_hat, u_hat_up), ...]"""
     frozen = np.asarray(frozen, dtype=bool)
@@ -65,7 +69,7 @@ def _scl_decode_recursive(llr, frozen, list_size):
     llr1, llr2 = llr[:half], llr[half:]
     fr1, fr2 = frozen[:half], frozen[half:]
 
-    paths_left = _scl_decode_recursive(f_operation(llr1, llr2), fr1, list_size)
+    paths_left = _scl_decode_recursive(_cn(llr1, llr2), fr1, list_size)
 
     all_paths = []
     for pm, u_hat1, u_hat1_up in paths_left:
@@ -94,6 +98,10 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        if self.list_size == 1:
+            from decoder_sc import sc_decode
+            return sc_decode(llr_ch, self.frozen_bits), 0.0
+
         paths = _scl_decode_recursive(llr_ch, self.frozen_bits, self.list_size)
         if not paths:
             return np.zeros(self.N, dtype=int), 0.0

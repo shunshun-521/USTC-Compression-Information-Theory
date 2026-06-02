@@ -35,7 +35,7 @@ if __name__ == '__main__':
     K = N // 2
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
-    L_LIST = [2, 4, 8]
+    L_LIST = [2, 4, 8]  # L=8 可选，耗时较长
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)

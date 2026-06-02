@@ -101,5 +101,5 @@ def precompute_sc_indices(N):
 
 
 def sc_decode(llr_ch, frozen_bits):
-    """非递归 SC 译码（调用经优化的递归核心）"""
-    return sc_decode_recursive(llr_ch, frozen_bits, use_boxplus=False)
+    """非递归 SC 译码（调用经优化的递归核心，默认 boxplus）"""
+    return sc_decode_recursive(llr_ch, frozen_bits, use_boxplus=True)
