@@ -69,27 +69,30 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y**2 / 2.0)
+            t = -2.0 * snr * (y**2)
+            t = np.clip(t, -700.0, 700.0)
+            return np.log2(1.0 + np.exp(t)) * np.exp(-(y**2) / 2.0)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -15.0, 15.0)
         cap = 1.0 - val / np.sqrt(2.0 * np.pi)
-        caps.append(max(cap, 0.0))
+        caps.append(float(np.clip(cap, 0.0, 1.0)))
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12)):
     """找到使 BPSK 容量等于码率 R 的 Eb/N0（dB）"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        return float(eb_grid[idx])
-    e0, e1 = eb_grid[idx - 1], eb_grid[idx]
-    c0, c1 = caps[idx - 1], caps[idx]
-    if c1 == c0:
-        return float(e1)
-    frac = (rate - c0) / (c1 - c0)
-    return float(e0 + frac * (e1 - e0))
+    lo, hi = eb_n0_range
+    if compute_bpsk_capacity(np.array([lo]), rate)[0] > rate:
+        return float(lo)
+    if compute_bpsk_capacity(np.array([hi]), rate)[0] < rate:
+        return float(hi)
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        if compute_bpsk_capacity(np.array([mid]), rate)[0] < rate:
+            lo = mid
+        else:
+            hi = mid
+    return float((lo + hi) / 2.0)
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None, xlabel="Eb/N0 (dB)", ylabel="BLER"):
