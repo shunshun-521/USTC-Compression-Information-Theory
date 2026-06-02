@@ -2,10 +2,8 @@
 极化码 BP（置信传播）译码器
 基于因子图，使用 min-sum 近似，含早停机制
 """
-import math
 import numpy as np
 from encoder import polar_encode
-from decoder_sc import f_operation
 
 
 class BPDecoder:
@@ -13,7 +11,7 @@ class BPDecoder:
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
-        self.n = int(math.log2(N))
+        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
@@ -24,9 +22,7 @@ class BPDecoder:
         return self.alpha * np.sign(x) * np.sign(y) * np.minimum(np.abs(x), np.abs(y))
 
     def decode(self, llr_ch):
-        """
-        BP 译码，返回 (u_hat, num_iters)。
-        """
+        """BP 译码，返回 (u_hat, num_iters)"""
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, n = self.N, self.n
 
@@ -41,23 +37,17 @@ class BPDecoder:
         num_iters = self.max_iter
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    La = R[i, j] + L[i, j + 1]
-                    Lb = L[i + s, j + 1]
-                    L[i, j] = self._f_ms(La, Lb)
+                    L[i, j] = self._f_ms(R[i, j] + L[i + s, j + 1], L[i, j + 1])
                     L[i + s, j] = self._f_ms(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
 
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
+            for j in range(n):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    Rb = R[i + s, j]
-                    Lb = L[i + s, j + 1]
-                    R[i, j] = self._f_ms(Rb + Lb, R[i, j - 1] if j > 1 else 0.0)
-                    R[i + s, j] = self._f_ms(
-                        R[i, j - 1] if j > 1 else 0.0, L[i, j + 1]
-                    ) + R[i + s, j]
+                    R[i, j + 1] = self._f_ms(R[i + s, j] + L[i + s, j + 1], R[i, j])
+                    R[i + s, j + 1] = self._f_ms(R[i, j], L[i, j + 1]) + R[i + s, j]
 
             total = L[:, 0] + R[:, 0]
             u_hat = (total < 0).astype(int)
