@@ -83,11 +83,11 @@ def main():
         all_results["SCL (L=4)"] = r_scl
         save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
 
-        bp_decoder = BPDecoder(N, frozen_bits.astype(bool), max_iter=MAX_ITER)
+    bp_decoder = BPDecoder(N, frozen_bits.astype(bool), max_iter=MAX_ITER)
 
-        def bp_d(llr_ch):
-            u_hat, num_iters = bp_decoder.decode(llr_ch)
-            return u_hat, num_iters
+    def bp_d(llr_ch, _bp=bp_decoder):
+        u_hat, num_iters = _bp.decode(llr_ch)
+        return u_hat, num_iters
 
         r_bp = run_simulation(
             N,
