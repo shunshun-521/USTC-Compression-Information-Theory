@@ -35,7 +35,7 @@ if __name__ == '__main__':
     K = N // 2
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
-    L_LIST = [2, 4, 8]  # L=8 可选，耗时较长
+    L_LIST = [2, 4]  # L=8 列表过大时译码极慢，见 README
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
@@ -76,11 +76,11 @@ if __name__ == '__main__':
         all_results[label] = results
         save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
 
-    print(f'\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}')
+    print(f'\nCA-SCL 仿真: N={N}, K={K}, L=4, CRC={CRC_LENGTH}')
 
     def cascl_decoder(llr_ch):
         u_hat, pm = SCLDecoder(
-            N, frozen_bits, list_size=8, crc_length=CRC_LENGTH
+            N, frozen_bits, list_size=4, crc_length=CRC_LENGTH
         ).decode(llr_ch)
         return u_hat, None
 
@@ -89,8 +89,9 @@ if __name__ == '__main__':
         MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
         info_indices=info_idx,
     )
-    all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
-    save_results_csv(results_cascl, f'results/exp2_cascl_L8_N{N}_R0.5.csv')
+    all_results[f'CA-SCL (L=4, CRC={CRC_LENGTH})'] = results_cascl
+    save_results_csv(results_cascl, f'results/exp2_cascl_L4_N{N}_R0.5.csv')
+    save_results_csv(results_cascl, f'results/exp2_scl_N{N}_R0.5.csv')
 
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(

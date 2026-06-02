@@ -57,15 +57,15 @@ if __name__ == '__main__':
         save_results_csv(r_sc, f'results/exp3_sc_N{N}_R0.5.csv')
 
         def scl_d(llr_ch):
-            u, pm = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+            u, pm = SCLDecoder(N, frozen_bits, list_size=2).decode(llr_ch)
             return u, None
 
-        print(f'N={N} SCL L=4')
+        print(f'N={N} SCL L=2')
         r_scl = run_simulation(
             N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
             info_indices=info_idx,
         )
-        all_results['SCL (L=4)'] = r_scl
+        all_results['SCL (L=2)'] = r_scl
         save_results_csv(r_scl, f'results/exp3_scl_N{N}_R0.5.csv')
 
         bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
