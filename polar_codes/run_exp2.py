@@ -78,6 +78,8 @@ for L in L_LIST:
     label = f"SCL (L={L})"
     all_results[label] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+    if L == 4:
+        save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 cascl = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH)
