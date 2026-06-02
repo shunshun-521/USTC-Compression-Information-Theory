@@ -13,9 +13,6 @@ from decoder_sc import (
     _update_llrs,
     _update_bits,
 )
-from encoder import bit_reversed_index
-
-
 # ==================== CRC 工具 ====================
 
 _CRC8_POLY = 0x07
