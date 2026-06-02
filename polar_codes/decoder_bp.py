@@ -8,7 +8,7 @@ from encoder import polar_encode
 
 
 class BPDecoder:
-    """BP 译码器（因子图列 0..n）。"""
+    """BP 译码器。L/R 数组形状 (N, n+1)，第 n 列为信道 LLR。"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -33,11 +33,13 @@ class BPDecoder:
         R[self.frozen_bits, 0] = self.large
 
         for it in range(self.max_iter):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_ms(R[i, j] + L[i + s, j + 1], L[i, j + 1])
-                    L[i + s, j - 1] = self._f_ms(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                    L[i, j] = self._f_ms(
+                        R[i, j + 1] + L[i + s, j + 1], L[i, j + 1]
+                    )
+                    L[i + s, j] = self._f_ms(R[i, j + 1], L[i, j + 1]) + L[i + s, j + 1]
 
             for j in range(0, n):
                 s = 1 << j
@@ -51,8 +53,7 @@ class BPDecoder:
             if self._early_stop(u_hat, llr_ch):
                 return u_hat, it + 1
 
-        u_hat = self._hard_decision(L, R)
-        return u_hat, self.max_iter
+        return self._hard_decision(L, R), self.max_iter
 
     def _hard_decision(self, L, R):
         total = L[:, 0] + R[:, 0]
