@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(__file__))
 
 from construction import ga_construction
-from channel import eb_n0_to_sigma
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from simulation import run_simulation
@@ -20,7 +19,7 @@ from utils import save_results_csv, plot_bler_curves, find_capacity_limit
 def run_unit_tests():
     """路径度量：L=1 的 SCL 应等价于 SC。"""
     from encoder import polar_encode
-    from channel import bpsk_modulate, awgn_channel, compute_llr
+    from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
@@ -55,6 +54,7 @@ def main():
     L_LIST = [2, 4, 8]
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
+    # 高 SNR 区段帧数需求大，低 SNR 快速达到 min_errors
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
@@ -87,6 +87,8 @@ def main():
         )
         all_results[f'SCL (L={L})'] = results
         save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+        if L == 4:
+            save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
@@ -103,17 +105,12 @@ def main():
     save_results_csv(results_cascl, f'results/exp2_cascl_L8_N{N}_R0.5.csv')
 
     shannon_db = find_capacity_limit(RATE)
-    plot_bler_curves(
-        all_results,
-        f'SCL vs SC BLER (N={N}, R={RATE})',
-        'results/fig2_scl_bler.png',
-        shannon_limit_db=shannon_db,
-    )
+    plot_bler_curves(all_results, f'SCL vs SC BLER (N={N}, R={RATE})',
+                     'results/fig2_scl_bler.png', shannon_limit_db=shannon_db)
 
     labels = list(all_results.keys())
-    avg_times = [
-        np.mean([r['avg_decode_time'] for r in v]) * 1000 for v in all_results.values()
-    ]
+    avg_times = [np.mean([r['avg_decode_time'] for r in v]) * 1000 for v in all_results.values()]
+
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.bar(labels, avg_times)
     ax.set_xlabel('Decoder')

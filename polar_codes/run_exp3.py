@@ -18,7 +18,7 @@ from utils import save_results_csv, plot_bler_curves, find_capacity_limit
 
 
 def run_unit_tests():
-    """编码器与 SC 快速校验。"""
+    """编码器校验。"""
     from encoder import polar_encode
 
     u = np.array([1, 0, 1, 1])
