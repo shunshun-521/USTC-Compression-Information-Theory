@@ -63,29 +63,33 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    采用数值稳定的 Hermite 积分形式。
     """
     from scipy import integrate
 
     caps = []
+    log2 = np.log(2.0)
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            # I(X;Y) 被积函数：log2(1 + exp(-2*snr*y^2)) 对实数 AWGN 常用形式
+            z = np.clip(-2.0 * snr * y * y, -60.0, 60.0)
+            return (np.log1p(np.exp(z)) / log2) * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        caps.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -15.0, 15.0, limit=200)
+        caps.append(max(0.0, 1.0 - val))
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=500):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
     idx = np.argmin(np.abs(caps - rate))
-    lo, hi = eb_grid[max(0, idx - 1)], eb_grid[min(num_points - 1, idx + 1)]
+    lo = eb_grid[max(0, idx - 1)]
+    hi = eb_grid[min(num_points - 1, idx + 1)]
     for _ in range(50):
         mid = (lo + hi) / 2.0
         c = compute_bpsk_capacity(np.array([mid]), rate)[0]
