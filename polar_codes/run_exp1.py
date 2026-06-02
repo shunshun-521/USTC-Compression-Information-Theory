@@ -46,7 +46,7 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 7.5, 0.25)  # 延伸至 7.25 dB 以观察 BLER 瀑布区
+EB_N0_RANGE = np.arange(0.0, 10.5, 0.25)  # 延伸至 10.25 dB 以观察 BLER 瀑布区
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")
 

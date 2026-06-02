@@ -53,16 +53,18 @@ def load_results_csv(filepath):
 
 
 def bpsk_capacity(eb_n0_db, rate):
-    """BPSK 离散输入信道容量（bits/channel use）"""
-    snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-    s = np.sqrt(snr)
+    """BPSK-AWGN 信道容量（bits/channel use，数值积分）"""
+    snr = 4.0 * rate * (10 ** (eb_n0_db / 10.0))
 
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-0.5 * y ** 2) / np.sqrt(2 * np.pi)
+    def integrand(z):
+        return (
+            np.exp(-0.5 * z ** 2) / np.sqrt(2 * np.pi)
+            * np.log2(1.0 + np.exp(-snr * z ** 2))
+        )
 
     from scipy import integrate
-    cap, _ = integrate.quad(integrand, -20, 20)
-    return 1.0 - cap
+    val, _ = integrate.quad(integrand, -15, 15)
+    return 1.0 - val
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
