@@ -55,16 +55,17 @@ def run_unit_tests():
 
 
 FAST = os.environ.get("POLAR_FAST", "0") == "1"
-MAX_FRAMES = 3000 if FAST else 100000
-MIN_ERRORS = 30 if FAST else 100
+MAX_FRAMES = 2000 if FAST else 100000
+MIN_ERRORS = 20 if FAST else 100
 EB_N0_RANGE = (
-    np.arange(0.0, 8.5, 0.5) if FAST else np.arange(0.0, 5.5, 0.25)
+    np.arange(0.0, 8.5, 1.0) if FAST else np.arange(0.0, 5.5, 0.25)
 )
+N_LIST_FAST = [256, 512]
 
 os.makedirs("results", exist_ok=True)
 run_unit_tests()
 
-N_LIST = [256, 512, 1024]
+N_LIST = N_LIST_FAST if FAST else [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 

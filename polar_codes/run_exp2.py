@@ -24,21 +24,23 @@ def run_unit_tests():
 
 
 FAST = os.environ.get("POLAR_FAST", "0") == "1"
-MAX_FRAMES = 3000 if FAST else 100000
-MIN_ERRORS = 30 if FAST else 100
+MAX_FRAMES = 200 if FAST else 100000
+MIN_ERRORS = 10 if FAST else 100
 EB_N0_RANGE = (
-    np.arange(1.0, 8.5, 0.5) if FAST else np.arange(1.0, 5.5, 0.25)
+    np.array([2.0, 4.0, 6.0, 8.0]) if FAST else np.arange(1.0, 5.5, 0.25)
 )
+L_LIST_FAST = [2, 4]
+RUN_CASCL = not FAST
 
 os.makedirs("results", exist_ok=True)
 run_unit_tests()
 
-N = 512
+N = 256 if FAST else 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
+L_LIST = L_LIST_FAST if FAST else [2, 4, 8]
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=bool)
@@ -56,7 +58,7 @@ results_sc = run_simulation(
 )
 all_results["SC (L=1)"] = results_sc
 save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
-save_results_csv(results_sc, "results/exp2_scl_N512_R0.5.csv")
+save_results_csv(results_sc, f"results/exp2_scl_N{N}_R0.5.csv")
 
 for L in L_LIST:
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
@@ -73,19 +75,20 @@ for L in L_LIST:
     all_results[f"SCL (L={L})"] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
 
-print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
-cascl = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH)
+if RUN_CASCL:
+    print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+    cascl = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH)
 
-def cascl_decoder(llr_ch):
-    u_hat, _ = cascl.decode(llr_ch)
-    return u_hat, None
+    def cascl_decoder(llr_ch):
+        u_hat, _ = cascl.decode(llr_ch)
+        return u_hat, None
 
-results_cascl = run_simulation(
-    N, K, EB_N0_RANGE, cascl_decoder, "scl", MAX_FRAMES, MIN_ERRORS,
-    crc_length=CRC_LENGTH, info_indices=info_idx, frozen_bits=frozen_bits.astype(int),
-)
-all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+    results_cascl = run_simulation(
+        N, K, EB_N0_RANGE, cascl_decoder, "scl", MAX_FRAMES, MIN_ERRORS,
+        crc_length=CRC_LENGTH, info_indices=info_idx, frozen_bits=frozen_bits.astype(int),
+    )
+    all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
+    save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
