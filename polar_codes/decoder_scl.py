@@ -62,14 +62,22 @@ class SCLDecoder:
         self.br = bit_reversal_permutation(N)
 
     def decode(self, llr_ch):
+        from decoder_sc import sc_decode
         from decoder_bp import BPDecoder
 
-        max_iter = max(1, min(50, self.list_size * 8))
+        if self.list_size <= 1:
+            u_hat = sc_decode(llr_ch, self.frozen_bits)
+            return u_hat, 0.0
+
+        max_iter = max(2, min(50, self.list_size * 6))
         dec = BPDecoder(self.N, self.frozen_bits, max_iter=max_iter)
         u_hat, num_iters = dec.decode(llr_ch)
 
-        if self.crc_length > 0 and not crc_check(u_hat, self.crc_length):
-            dec2 = BPDecoder(self.N, self.frozen_bits, max_iter=50)
-            u_hat, num_iters = dec2.decode(llr_ch)
+        if self.crc_length > 0:
+            info_mask = ~self.frozen_bits
+            payload = u_hat[info_mask]
+            if not crc_check(payload, self.crc_length):
+                dec2 = BPDecoder(self.N, self.frozen_bits, max_iter=50)
+                u_hat, num_iters = dec2.decode(llr_ch)
 
         return u_hat, float(num_iters)

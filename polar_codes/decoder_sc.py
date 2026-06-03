@@ -8,8 +8,23 @@ import numpy as np
 from encoder import bit_reversal_permutation
 
 
+def _logdomain_sum(x, y):
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
+def f_boxplus(La, Lb):
+    """f 运算（对数域精确形式，向量化）"""
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return np.vectorize(lambda a, b: _logdomain_sum(a + b, 0.0) - _logdomain_sum(a, b))(
+        La, Lb
+    )
+
+
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算"""
+    """min-sum 近似的 f 运算（BP 等使用）"""
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
@@ -70,18 +85,17 @@ class _SCDCore:
             branch_size = block_size // 2
             for j in range(l, self.N, block_size):
                 if j % block_size < branch_size:
-                    self.L[j, s + 1] = f_operation(
+                    self.L[j, s + 1] = f_boxplus(
                         self.L[j, s], self.L[j + branch_size, s]
                     )
                 else:
-                    top_bit = self.B[j - branch_size, s + 1]
-                    if np.isnan(top_bit):
-                        continue
-                    self.L[j, s + 1] = g_operation(
-                        self.L[j - branch_size, s],
-                        self.L[j, s],
-                        int(top_bit),
-                    )
+                    top_bit = int(self.B[j - branch_size, s + 1])
+                    btm_llr = self.L[j, s]
+                    top_llr = self.L[j - branch_size, s]
+                    if top_bit == 0:
+                        self.L[j, s + 1] = btm_llr + top_llr
+                    else:
+                        self.L[j, s + 1] = btm_llr - top_llr
 
     def _update_bits(self, l):
         if l < self.N / 2:
@@ -102,20 +116,12 @@ class _SCDCore:
         for i in range(self.N):
             l = _bit_reversed(i, self.n)
             self._update_llrs(l)
-            llr_ch = self.L[l, 0]
-            llr_dec = self.L[l, self.n]
-            if np.isnan(llr_dec) or (
-                abs(llr_ch) > 1.0
-                and (abs(llr_dec) < 1e-8 or abs(llr_dec) < 0.5 * abs(llr_ch))
-            ):
-                llr_dec = llr_ch
             if l in self.frozen:
                 self.B[l, self.n] = 0
             else:
-                self.B[l, self.n] = 0 if llr_dec >= 0 else 1
+                self.B[l, self.n] = 0 if self.L[l, self.n] >= 0 else 1
             self._update_bits(l)
-        out = self.B[:, self.n]
-        return np.nan_to_num(out, nan=0.0).astype(int)
+        return self.B[:, self.n].astype(int)
 
 
 def sc_decode_nonrecursive(llr_ch, frozen_bits):
@@ -282,26 +288,8 @@ _GINV_CACHE = {}
 
 
 def sc_decode(llr_ch, frozen_bits):
-    """
-    SC 译码主入口。
-    短码 (N<=128)：因子图单次 BP 迭代（与 SC 消息传递等价）。
-    长码：BP 早停译码（max_iter=50），保证蒙特卡洛仿真可收敛。
-    """
-    N = len(llr_ch)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-
-    if N <= 128:
-        from decoder_bp import BPDecoder
-
-        dec = BPDecoder(N, frozen_bits, max_iter=1)
-        u_hat, _ = dec.decode(llr_ch)
-        return u_hat
-
-    from decoder_bp import BPDecoder
-
-    dec = BPDecoder(N, frozen_bits, max_iter=50)
-    u_hat, _ = dec.decode(llr_ch)
-    return u_hat
+    """SC 译码主入口（非递归，对数域 f 运算）"""
+    return sc_decode_nonrecursive(llr_ch, frozen_bits)
 
 
 if __name__ == "__main__":
