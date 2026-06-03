@@ -107,6 +107,9 @@ class SCLDecoder:
             for path in paths:
                 if not path.active:
                     continue
+                # 每比特重新计算 LLR，清除陈旧缓存
+                path.llrs[:-1, :] = -np.inf
+                path.llrs[self.n, :] = llr_ch
                 llr_val = self._path_llr_at(path, phi)
 
                 if self.frozen_bits[phi]:
