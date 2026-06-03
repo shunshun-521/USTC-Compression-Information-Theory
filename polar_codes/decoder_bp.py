@@ -2,7 +2,6 @@
 极化码 BP（置信传播）译码器
 基于因子图，使用 min-sum 近似，含早停机制
 """
-import math
 import numpy as np
 from encoder import polar_encode
 from decoder_sc import f_operation
@@ -13,7 +12,7 @@ class BPDecoder:
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
-        self.n = int(math.log2(N))
+        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
@@ -36,15 +35,17 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             for j in range(n, 0, -1):
                 s = 2 ** (j - 1)
+                jp = min(j + 1, n)
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_min_sum(R[i, j] + L[i + s, j + 1], L[i, j + 1])
-                    L[i + s, j - 1] = self._f_min_sum(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                    L[i, j - 1] = self._f_min_sum(R[i, j] + L[i + s, jp], L[i, jp])
+                    L[i + s, j - 1] = self._f_min_sum(R[i, j], L[i, jp]) + L[i + s, jp]
 
             for j in range(1, n + 1):
                 s = 2 ** (j - 1)
+                jp = min(j + 1, n)
                 for i in range(0, N, 2 * s):
-                    R[i, j] = self._f_min_sum(R[i + s, j] + L[i + s, j + 1], R[i, j - 1])
-                    R[i + s, j] = self._f_min_sum(R[i, j - 1], L[i, j + 1]) + R[i + s, j]
+                    R[i, j] = self._f_min_sum(R[i + s, j] + L[i + s, jp], R[i, j - 1])
+                    R[i + s, j] = self._f_min_sum(R[i, j - 1], L[i, jp]) + R[i + s, j]
 
             u_hat = np.zeros(N, dtype=int)
             for i in range(N):
