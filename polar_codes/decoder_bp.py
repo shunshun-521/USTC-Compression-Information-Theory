@@ -48,11 +48,11 @@ class BPDecoder:
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _minsum(
-                        R[i, j] + L[i + s, j], L[i, j + 1], alpha
+                        R[i, j] + L[i + s, j], L[i, j], alpha
                     )
-                    L[i + s, j - 1] = _minsum(R[i, j], L[i, j + 1], alpha) + L[
-                        i + s, j + 1
-                    ]
+                    L[i + s, j - 1] = _minsum(
+                        R[i, j], L[i, j], alpha
+                    ) + L[i + s, j]
 
             # Left to right: update R
             for j in range(1, n + 1):
@@ -61,7 +61,9 @@ class BPDecoder:
                     R[i, j] = _minsum(
                         R[i + s, j] + L[i + s, j], R[i, j - 1], alpha
                     )
-                    R[i + s, j] = _minsum(R[i, j - 1], L[i, j], alpha) + R[i + s, j - 1]
+                    R[i + s, j] = _minsum(
+                        R[i, j - 1], L[i, j], alpha
+                    ) + R[i + s, j - 1]
 
             # Early stopping
             u_hat_br = np.zeros(N, dtype=int)
