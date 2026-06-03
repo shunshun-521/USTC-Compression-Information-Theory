@@ -34,10 +34,9 @@ MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 if os.environ.get("POLAR_QUICK", "0") == "1":
-    N_LIST = [256]
-    EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
-    MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "5000"))
-    MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "20"))
+    EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
+    MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "8000"))
+    MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "50"))
 
 if __name__ == "__main__":
     run_unit_tests()

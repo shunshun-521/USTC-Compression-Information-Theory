@@ -68,28 +68,31 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     C = 1 - E_y[log2(1 + exp(-2*s*y))], s = SNR = 2R * 10^{Eb/N0/10}
     """
     caps = []
+    log2 = np.log(2.0)
     for eb_n0_db in np.atleast_1d(eb_n0_db_list):
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            # 标准 BPSK-AWGN：integrand 中指数为 -2*snr*y^2
+            t = -2.0 * snr * (y ** 2)
+            return np.logaddexp(0.0, t) / log2 * np.exp(-0.5 * y ** 2)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
         val /= np.sqrt(2.0 * np.pi)
         caps.append(1.0 - val)
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=500):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
+    # 容量随 Eb/N0 单调递增
     idx = np.searchsorted(caps, rate)
     if idx == 0:
         return float(eb_grid[0])
     if idx >= len(eb_grid):
         return float(eb_grid[-1])
-    # 线性插值
     c0, c1 = caps[idx - 1], caps[idx]
     e0, e1 = eb_grid[idx - 1], eb_grid[idx]
     if abs(c1 - c0) < 1e-12:

@@ -37,10 +37,9 @@ MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if os.environ.get("POLAR_QUICK", "0") == "1":
-    N_LIST = [256]
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
-    MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "2000"))
-    MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "15"))
+    EB_N0_RANGE = np.arange(2.0, 5.5, 0.5)
+    MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "5000"))
+    MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "30"))
 
 if __name__ == "__main__":
     run_unit_tests()
@@ -113,5 +112,24 @@ if __name__ == "__main__":
         plt.savefig(f"results/fig3_bp_N{N}_iters.png", dpi=150)
         plt.savefig(f"results/fig3_bp_N{N}_iters.pdf")
         plt.close()
+
+    # 汇总图（若存在多码长结果）
+    import glob
+
+    bp_csvs = sorted(glob.glob("results/exp3_bp_N*_R0.5.csv"))
+    if bp_csvs:
+        from utils import load_results_csv
+
+        merged = {}
+        for path in bp_csvs:
+            n_val = path.split("_N")[1].split("_")[0]
+            merged[f"BP N={n_val}"] = load_results_csv(path)
+        shannon_db = find_capacity_limit(RATE)
+        plot_bler_curves(
+            merged,
+            f"BP Decoder BLER (R={RATE})",
+            "results/fig3_bp_bler.png",
+            shannon_limit_db=shannon_db,
+        )
 
     print("\n实验三完成。")
