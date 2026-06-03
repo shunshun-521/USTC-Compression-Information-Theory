@@ -19,7 +19,7 @@ from utils import find_capacity_limit, plot_bler_curves, save_results_csv
 
 def run_unit_tests():
     from encoder import polar_encode
-    from channel import compute_llr, eb_n0_to_sigma
+    from channel import bpsk_modulate, compute_llr, eb_n0_to_sigma
 
     N, K = 64, 32
     info, _, _ = ga_construction(N, K, 2.5)
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     L_LIST = [2, 4, 8]
     MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
     MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    EB_N0_RANGE = np.arange(2.0, 8.5, 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=bool)
@@ -86,6 +86,8 @@ if __name__ == "__main__":
         print(f"耗时 {time.time() - t0:.1f}s")
         all_results[f"SCL (L={L})"] = results
         save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+    if L == 4:
+        save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
     print(f"\nCA-SCL: L=8, CRC={CRC_LENGTH}")
 

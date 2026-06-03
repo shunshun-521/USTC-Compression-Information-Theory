@@ -8,6 +8,7 @@ import numpy as np
 from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma
 from construction import ga_construction
 from encoder import polar_encode
+from utils import crc_encode
 
 
 def run_simulation(
