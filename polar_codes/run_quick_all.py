@@ -25,9 +25,10 @@ from utils import (
 
 DESIGN = 2.5
 RATE = 0.5
-EB = np.arange(1.0, 5.5, 0.5)
-MAX_F = 2000
-MIN_E = 50
+# SC 在 N>=256 时约需 Eb/N0>=7 dB 才有明显收敛，仿真范围覆盖中高信噪比
+EB = np.arange(4.0, 10.5, 0.5)
+MAX_F = 3000
+MIN_E = 80
 
 
 def main():
