@@ -20,6 +20,9 @@ gpt2_models/
 gpt2_medium_models/
 qwen25_05b_models/
 
+# --- Polar codes runtime logs ---
+polar_codes/results/*.log
+
 # --- Experiment intermediate artifacts ---
 data/
 data_exp3/
