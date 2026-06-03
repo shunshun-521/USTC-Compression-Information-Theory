@@ -103,7 +103,7 @@ def _parity_check_matrix(N, info_indices):
 
 
 class BPDecoder:
-    """基于校验矩阵 H 的 min-sum BP 译码器"""
+    """基于校验矩阵 H 的 min-sum BP 译码器（向量化边消息）"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -114,9 +114,26 @@ class BPDecoder:
         self.H = _parity_check_matrix(N, self.info_indices)
         self.M, self.Nn = self.H.shape
         self.M_inv = _inverse_encoding_matrix(N)
-        # 邻接表
-        self.cn_neighbors = [np.where(self.H[m])[0] for m in range(self.M)]
-        self.vn_neighbors = [np.where(self.H[:, v])[0] for v in range(self.Nn)]
+        self._build_edge_tables()
+
+    def _build_edge_tables(self):
+        cn_nbrs = [np.where(self.H[m])[0] for m in range(self.M)]
+        vn_nbrs = [np.where(self.H[:, v])[0] for v in range(self.Nn)]
+        edge_vn, edge_cn, eid = [], [], 0
+        vn_edge_lists = [[] for _ in range(self.Nn)]
+        cn_edge_lists = [[] for _ in range(self.M)]
+        for m in range(self.M):
+            for v in cn_nbrs[m]:
+                edge_vn.append(v)
+                edge_cn.append(m)
+                vn_edge_lists[v].append(eid)
+                cn_edge_lists[m].append(eid)
+                eid += 1
+        self.num_edges = eid
+        self.edge_vn = np.array(edge_vn, dtype=np.int32)
+        self.edge_cn = np.array(edge_cn, dtype=np.int32)
+        self.vn_edge_lists = [np.array(x, dtype=np.int32) for x in vn_edge_lists]
+        self.cn_edge_lists = [np.array(x, dtype=np.int32) for x in cn_edge_lists]
 
     def _codeword_to_source(self, x_hat):
         u_hat = (x_hat.astype(np.uint8) @ self.M_inv) % 2
@@ -124,51 +141,47 @@ class BPDecoder:
         return u_hat.astype(int)
 
     def decode(self, llr_ch):
-        llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        llr_ch = np.clip(np.asarray(llr_ch, dtype=np.float64), -30, 30)
         N = self.N
-        llr_ch = np.clip(llr_ch, -30, 30)
-
-        # 消息：L_v2c[v][m], L_c2v[m][v]
-        L_v2c = {v: {m: float(llr_ch[v]) for m in self.vn_neighbors[v]} for v in range(N)}
-        L_c2v = {m: {v: 0.0 for v in self.cn_neighbors[m]} for m in range(self.M)}
+        v2c = np.zeros(self.num_edges, dtype=np.float64)
+        c2v = np.zeros(self.num_edges, dtype=np.float64)
+        for v in range(N):
+            v2c[self.vn_edge_lists[v]] = llr_ch[v]
 
         num_iters = self.max_iter
-        u_hat = np.zeros(N, dtype=int)
-
         for it in range(1, self.max_iter + 1):
-            # 校验节点更新
             for m in range(self.M):
-                nbrs = self.cn_neighbors[m]
-                for v in nbrs:
-                    others = [o for o in nbrs if o != v]
-                    if not others:
-                        L_c2v[m][v] = 0.0
-                        continue
-                    msgs = np.array([L_v2c[o][m] for o in others])
-                    sign = np.prod(np.sign(msgs))
-                    mag = np.min(np.abs(msgs))
-                    L_c2v[m][v] = self.alpha * sign * mag
+                edges = self.cn_edge_lists[m]
+                msgs = v2c[edges]
+                d = len(msgs)
+                if d == 1:
+                    c2v[edges[0]] = 0.0
+                    continue
+                signs = np.sign(msgs)
+                mags = np.abs(msgs)
+                total_sign = np.prod(signs)
+                idx_min = int(np.argmin(mags))
+                min1 = mags[idx_min]
+                min2 = np.min(np.delete(mags, idx_min)) if d > 1 else 0.0
+                for i, e in enumerate(edges):
+                    mag = min2 if i == idx_min else min1
+                    c2v[e] = self.alpha * total_sign * signs[i] * mag
 
-            # 变量节点更新
             for v in range(N):
-                total = llr_ch[v] + sum(L_c2v[m][v] for m in self.vn_neighbors[v])
-                for m in self.vn_neighbors[v]:
-                    L_v2c[v][m] = total - L_c2v[m][v]
+                edges = self.vn_edge_lists[v]
+                total = llr_ch[v] + np.sum(c2v[edges])
+                v2c[edges] = total - c2v[edges]
 
-            post = np.zeros(N)
+            post = np.zeros(N, dtype=np.float64)
             for v in range(N):
-                post[v] = llr_ch[v] + sum(L_c2v[m][v] for m in self.vn_neighbors[v])
+                post[v] = llr_ch[v] + np.sum(c2v[self.vn_edge_lists[v]])
 
             x_hat = (post < 0).astype(int)
-            u_hat = self._codeword_to_source(x_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
+            if np.array_equal(x_hat, (llr_ch < 0).astype(int)):
                 num_iters = it
                 break
+        else:
+            num_iters = self.max_iter
 
-        post = np.array(
-            [llr_ch[v] + sum(L_c2v[m][v] for m in self.vn_neighbors[v]) for v in range(N)]
-        )
         x_hat = (post < 0).astype(int)
-        u_hat = self._codeword_to_source(x_hat)
-        return u_hat, num_iters
+        return self._codeword_to_source(x_hat), num_iters
