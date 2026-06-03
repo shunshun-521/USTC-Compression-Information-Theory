@@ -7,7 +7,7 @@ from channel import (
     bpsk_modulate,
     awgn_channel,
     compute_llr,
-    eb_n0_to_sigma,
+    eb_n0_to_es,
     prepare_decoder_llr,
     prepare_frozen_bits_decoder,
     map_decoder_bits_to_natural,
@@ -32,15 +32,15 @@ def test_sc_lossless():
     frozen_dec = prepare_frozen_bits_decoder(frozen_bits, N)
 
     rng = np.random.default_rng(0)
-    sigma = eb_n0_to_sigma(10.0, K / N)
+    es = eb_n0_to_es(10.0, K / N)
     errors = 0
     for _ in range(100):
         payload = rng.integers(0, 2, size=K)
         u = np.zeros(N, dtype=int)
         u[info_idx] = payload
         x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = prepare_decoder_llr(compute_llr(y, sigma), N)
+        y = awgn_channel(bpsk_modulate(x, es), rng=rng)
+        llr = prepare_decoder_llr(compute_llr(y, es=es), N)
         u_hat = map_decoder_bits_to_natural(
             sc_decode(llr, frozen_dec), N
         )
@@ -62,14 +62,14 @@ def test_scl_equiv_sc():
     frozen_dec = prepare_frozen_bits_decoder(frozen_bits, N)
 
     rng = np.random.default_rng(1)
-    sigma = eb_n0_to_sigma(8.0, K / N)
+    es = eb_n0_to_es(8.0, K / N)
     for _ in range(20):
         payload = rng.integers(0, 2, size=K)
         u = np.zeros(N, dtype=int)
         u[info_idx] = payload
         x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = prepare_decoder_llr(compute_llr(y, sigma), N)
+        y = awgn_channel(bpsk_modulate(x, es), rng=rng)
+        llr = prepare_decoder_llr(compute_llr(y, es=es), N)
         u_sc = map_decoder_bits_to_natural(sc_decode(llr, frozen_dec), N)
         u_scl, _ = SCLDecoder(N, frozen_dec, list_size=1).decode(llr)
         u_scl = map_decoder_bits_to_natural(u_scl, N)

@@ -10,7 +10,7 @@ from channel import (
     bpsk_modulate,
     awgn_channel,
     compute_llr,
-    eb_n0_to_sigma,
+    eb_n0_to_es,
     prepare_decoder_llr,
     prepare_frozen_bits_decoder,
     map_decoder_bits_to_natural,
@@ -51,7 +51,7 @@ def run_simulation(
     results = []
 
     for eb_n0_db in eb_n0_db_list:
-        sigma = eb_n0_to_sigma(eb_n0_db, rate)
+        es = eb_n0_to_es(eb_n0_db, rate)
         num_errors = 0
         num_bit_errors = 0
         num_frames = 0
@@ -69,9 +69,9 @@ def run_simulation(
             u[info_indices] = payload
 
             x = polar_encode(u)
-            s = bpsk_modulate(x)
-            y = awgn_channel(s, sigma, rng)
-            llr = prepare_decoder_llr(compute_llr(y, sigma), N)
+            s = bpsk_modulate(x, es)
+            y = awgn_channel(s, rng=rng)
+            llr = prepare_decoder_llr(compute_llr(y, es=es), N)
 
             t0 = time.perf_counter()
             u_hat_dec, aux = decoder(llr)

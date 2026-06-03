@@ -37,8 +37,8 @@ def upper_llr(l1, l2):
         return l1
     elif l1 == np.inf and l2 == np.inf:
         return np.inf
-    else:  # principal decoding equation
-        return logdomain_sum(l1 + l2, 0) - logdomain_sum(l1, l2)
+    else:  # min-sum 近似（数值更稳定）
+        return float(np.sign(l1) * np.sign(l2) * min(abs(l1), abs(l2)))
 
 def lower_llr(l1, l2, b):
     """
