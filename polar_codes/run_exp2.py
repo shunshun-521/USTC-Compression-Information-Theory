@@ -59,7 +59,8 @@ def main():
     L_LIST = [2, 4, 8]
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(1.0, 10.25, 0.25)
+    # 步长 0.5 dB 以降低 N=512 时 SCL 仿真耗时（L=8 递归列表译码较慢）
+    EB_N0_RANGE = np.arange(1.0, 10.25, 0.5)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=int)
