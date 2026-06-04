@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/polar_codes/run_exp2.py", line 58, in <module>
-    run_unit_tests()
-  File "/workspace/polar_codes/run_exp2.py", line 51, in run_unit_tests
-    assert crc_check(bits, 8)
-           ^^^^^^^^^^^^^^^^^^
-AssertionError
