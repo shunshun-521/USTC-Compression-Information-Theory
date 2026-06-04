@@ -21,24 +21,28 @@ def _crc_poly(crc_length):
     raise ValueError("crc_length 仅支持 8 或 16")
 
 
+def _crc_remainder(bits, crc_length):
+    """标准 LFSR CRC 余式（信息位后补 crc_length 个 0）"""
+    poly = _crc_poly(crc_length)
+    width = crc_length
+    mask = (1 << width) - 1
+    reg = 0
+    padded = np.concatenate([np.asarray(bits, dtype=int), np.zeros(width, dtype=int)])
+    for bit in padded:
+        fb = ((reg >> (width - 1)) & 1) ^ int(bit)
+        reg = ((reg << 1) & mask) ^ (poly * fb)
+    return reg
+
+
 def crc_encode(info_bits, crc_length=8):
     """
     计算 CRC 校验位并附加到信息比特后。
     CRC-8: 0x07; CRC-16: 0x8005
     """
     info_bits = np.asarray(info_bits, dtype=np.int8)
-    poly = _crc_poly(crc_length)
-    mask = (1 << crc_length) - 1
-    reg = 0
-    for bit in info_bits:
-        reg ^= int(bit) << (crc_length - 1)
-        for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & mask
-            else:
-                reg = (reg << 1) & mask
+    rem = _crc_remainder(info_bits, crc_length)
     crc_bits = np.array(
-        [(reg >> (crc_length - 1 - i)) & 1 for i in range(crc_length)], dtype=int
+        [(rem >> (crc_length - 1 - i)) & 1 for i in range(crc_length)], dtype=int
     )
     return np.concatenate([info_bits, crc_bits])
 
@@ -46,17 +50,11 @@ def crc_encode(info_bits, crc_length=8):
 def crc_check(bits, crc_length=8):
     """检验 bits 末尾 CRC 是否正确"""
     bits = np.asarray(bits, dtype=np.int8)
-    poly = _crc_poly(crc_length)
-    mask = (1 << crc_length) - 1
-    reg = 0
-    for bit in bits:
-        reg ^= int(bit) << (crc_length - 1)
-        for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & mask
-            else:
-                reg = (reg << 1) & mask
-    return reg == 0
+    if len(bits) < crc_length:
+        return False
+    info = bits[:-crc_length]
+    expected = crc_encode(info, crc_length)[-crc_length:]
+    return np.array_equal(bits[-crc_length:], expected)
 
 
 class _Path:
