@@ -32,17 +32,16 @@ def _gf2_inverse(A):
     return aug[:, n:] % 2
 
 
-def _cn_minsum(messages, alpha=0.9375):
-    """校验节点 min-sum 输出。"""
-    if len(messages) == 0:
+def _cn_minsum_vec(msgs, alpha):
+    """向量化的校验节点 min-sum。"""
+    msgs = np.asarray(msgs, dtype=np.float64)
+    if msgs.size == 0:
         return 0.0
-    if len(messages) == 1:
-        return messages[0]
-    signs = np.sign(messages)
+    if msgs.size == 1:
+        return float(msgs[0])
+    signs = np.sign(msgs)
     signs[signs == 0] = 1.0
-    prod_sign = np.prod(signs)
-    min_abs = np.min(np.abs(messages))
-    return alpha * prod_sign * min_abs
+    return float(alpha * np.prod(signs) * np.min(np.abs(msgs)))
 
 
 class BPDecoder:
@@ -59,40 +58,43 @@ class BPDecoder:
         frozen_idx = np.where(self.frozen_bits)[0]
         self.G_inv = G_inv
         self.H = G_inv[:, frozen_idx].T.astype(int)
-        self.check_to_var = [np.where(self.H[c])[0] for c in range(self.H.shape[0])]
+        M = self.H.shape[0]
+        self.check_to_var = [np.where(self.H[c])[0] for c in range(M)]
         self.var_to_check = [np.where(self.H[:, i])[0] for i in range(N)]
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N = self.N
         alpha = self.alpha
+        M = self.H.shape[0]
 
         Lv = llr_ch.copy()
-        Lvc = np.zeros((self.H.shape[0], N), dtype=np.float64)
+        Lvc = np.zeros((M, N), dtype=np.float64)
+        Lcv = np.zeros((M, N), dtype=np.float64)
 
         num_iters = self.max_iter
+        ctv = self.check_to_var
+        vtc = self.var_to_check
 
         for it in range(1, self.max_iter + 1):
-            Lcv = np.zeros_like(Lvc)
             for i in range(N):
-                for c in self.var_to_check[i]:
+                for c in vtc[i]:
                     Lcv[c, i] = Lv[i] - Lvc[c, i]
 
-            for c, nodes in enumerate(self.check_to_var):
-                for i in nodes:
+            for c in range(M):
+                nodes = ctv[c]
+                for idx_i, i in enumerate(nodes):
                     msgs = [Lcv[c, j] for j in nodes if j != i]
-                    Lvc[c, i] = _cn_minsum(msgs, alpha)
+                    Lvc[c, i] = _cn_minsum_vec(msgs, alpha)
 
             for i in range(N):
-                if self.var_to_check[i].size:
-                    Lv[i] = llr_ch[i] + np.sum(Lvc[self.var_to_check[i], i])
+                cs = vtc[i]
+                if cs.size:
+                    Lv[i] = llr_ch[i] + Lvc[cs, i].sum()
                 else:
                     Lv[i] = llr_ch[i]
 
             x_hat = (Lv < 0).astype(int)
-            u_hat = np.mod(x_hat.dot(self.G_inv), 2).astype(int)
-            u_hat[self.frozen_bits] = 0
-
             if np.array_equal(x_hat, (llr_ch < 0).astype(int)):
                 num_iters = it
                 break

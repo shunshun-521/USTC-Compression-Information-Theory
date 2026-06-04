@@ -22,9 +22,11 @@ os.makedirs("results", exist_ok=True)
 N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_ITER = 50
 MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
 MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
+BP_MAX_FRAMES = int(os.environ.get("POLAR_BP_MAX_FRAMES", str(min(MAX_FRAMES, 800))))
+BP_MAX_ITER = int(os.environ.get("POLAR_BP_MAX_ITER", "50"))
+MAX_ITER = BP_MAX_ITER
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -67,9 +69,9 @@ if __name__ == "__main__":
             u_hat, num_iters = bp_decoder.decode(llr_ch)
             return u_hat, num_iters
 
-        print(f"N={N} BP")
+        print(f"N={N} BP (max_frames={BP_MAX_FRAMES})")
         r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS, info_idx=info_idx
+            N, K, EB_N0_RANGE, bp_d, "bp", BP_MAX_FRAMES, MIN_ERRORS, info_idx=info_idx
         )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
         save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
