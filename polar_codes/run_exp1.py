@@ -54,7 +54,8 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+# SC 在 R=0.5、N=256 时约需 Eb/N0>7dB 才进入低 BLER 区
+EB_N0_RANGE = np.arange(0.0, 10.0, 0.5)
 
 if __name__ == "__main__":
     run_unit_tests()
