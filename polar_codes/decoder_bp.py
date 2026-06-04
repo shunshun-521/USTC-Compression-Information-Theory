@@ -36,17 +36,17 @@ class BPDecoder:
 
         num_iters = self.max_iter
         for it in range(self.max_iter):
-            # 右到左更新 L
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
+            # 右到左更新 L（列 j 使用列 j+1，j 从 n-1 到 0）
+            for j in range(n - 1, -1, -1):
+                s = 2 ** j
                 for i in range(0, N, 2 * s):
                     for t in range(s):
                         idx = i + t
-                        L[idx, j - 1] = self._f_ms(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_ms(
+                            R[idx, j + 1] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_ms(
-                            R[idx, j], L[idx, j + 1]
+                        L[idx + s, j] = self._f_ms(
+                            R[idx, j + 1], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
             # 左到右更新 R
@@ -55,14 +55,14 @@ class BPDecoder:
                 for i in range(0, N, 2 * s):
                     for t in range(s):
                         idx = i + t
+                        jp = min(j + 1, n)
                         R[idx, j] = self._f_ms(
-                            R[idx + s, j] + L[idx + s, j + 1], R[idx, j - 1]
+                            R[idx + s, j] + L[idx + s, jp], R[idx, j - 1]
                         )
                         R[idx + s, j] = self._f_ms(
-                            R[idx, j - 1], L[idx, j + 1]
+                            R[idx, j - 1], L[idx, jp]
                         ) + R[idx + s, j]
 
-            # 早停
             u_hat = np.zeros(N, dtype=int)
             for i in range(N):
                 if self.frozen_bits[i]:
