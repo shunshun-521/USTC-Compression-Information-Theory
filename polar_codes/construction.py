@@ -12,8 +12,9 @@ def phi(x):
     phi(x) = sqrt(pi/x) * e^{-x/4} * (1 - 10/(7x)), x >= 10
     """
     x = np.asarray(x, dtype=float)
+    x = np.maximum(x, 1e-12)
     result = np.zeros_like(x)
-    small = (x > 0) & (x < 10)
+    small = x < 10
     large = x >= 10
     if np.any(small):
         xs = x[small]
@@ -78,9 +79,10 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     for _ in range(n):
         m_new = np.zeros(2 * len(m), dtype=float)
         for i in range(len(m)):
-            m_new[2 * i] = 2.0 * m[i]
-            m_new[2 * i + 1] = phi_inv(1.0 - (1.0 - phi(m[i])) ** 2)
-        m = m_new
+            mi = max(float(m[i]), 1e-12)
+            m_new[2 * i] = 2.0 * mi
+            m_new[2 * i + 1] = phi_inv(1.0 - (1.0 - phi(mi)) ** 2)
+        m = np.maximum(m_new, 1e-12)
 
     llr_means = m
     info_indices = np.argsort(llr_means)[-K:]

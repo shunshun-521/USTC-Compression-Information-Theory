@@ -5,7 +5,7 @@
 import math
 import numpy as np
 
-INF = 1e100
+NEG_INF = -1e30
 
 
 def f_operation(La, Lb):
@@ -28,7 +28,6 @@ def _is_g_node(layer, idx):
 
 
 def _s_updater(layer, idx, s):
-    """更新部分和 s（硬判决树）"""
     if _is_g_node(layer - 1, idx):
         s[layer, idx] = s[layer - 1, idx]
     else:
@@ -41,8 +40,7 @@ def _s_updater(layer, idx, s):
 
 
 def _compute_llr(layer, idx, llrs, s):
-    """递归计算因子图节点 LLR"""
-    if llrs[layer, idx] > -INF / 2:
+    if llrs[layer, idx] > NEG_INF / 2:
         return llrs[layer, idx]
 
     if not _is_g_node(layer, idx):
@@ -62,13 +60,42 @@ def _compute_llr(layer, idx, llrs, s):
     return llrs[layer, idx]
 
 
+def sc_decode(llr_ch, frozen_bits):
+    """
+    SC 译码主函数。
+    frozen_bits[i]==1 表示冻结位。
+    """
+    llr_ch = np.asarray(llr_ch, dtype=np.float64)
+    N = len(llr_ch)
+    n = int(math.log2(N))
+    frozen = _frozen_mask(frozen_bits)
+
+    llrs = NEG_INF * np.ones((n + 1, N), dtype=np.float64)
+    llrs[n, :] = llr_ch
+    s = -np.ones((n + 1, N), dtype=int)
+
+    u_hat = np.zeros(N, dtype=int)
+
+    for phi in range(N):
+        if frozen[phi]:
+            s[0, phi] = 0
+            llrs[0, phi] = 1e30
+            u_hat[phi] = 0
+        else:
+            llrs[0, phi] = _compute_llr(0, phi, llrs, s)
+            u_hat[phi] = 1 if llrs[0, phi] < 0 else 0
+            s[0, phi] = u_hat[phi]
+
+    return u_hat
+
+
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（基于分层 LLR 的等价实现）"""
+    """递归 SC 译码（与 sc_decode 等价，供对照）"""
     return sc_decode(llr, frozen_bits)
 
 
 def precompute_sc_indices(N):
-    """预计算非递归 SC 辅助向量（与 sc_decode 内部逻辑一致）"""
+    """预计算非递归 SC 辅助向量"""
     n = int(math.log2(N))
     lambda_offset = [1 << i for i in range(n + 1)]
     llr_layer_vec = []
@@ -94,32 +121,3 @@ def precompute_sc_indices(N):
         bit_layer_vec.append(bit_layers)
 
     return lambda_offset, llr_layer_vec, bit_layer_vec
-
-
-def sc_decode(llr_ch, frozen_bits):
-    """
-    SC 译码主函数（分层 LLR + 部分和，与编码器索引一致）。
-    frozen_bits[i]==1 表示冻结位。
-    """
-    llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    N = len(llr_ch)
-    n = int(math.log2(N))
-    frozen = _frozen_mask(frozen_bits)
-
-    llrs = -INF * np.ones((n + 1, N), dtype=np.float64)
-    llrs[n, :] = llr_ch
-    s = -np.ones((n + 1, N), dtype=int)
-
-    u_hat = np.zeros(N, dtype=int)
-
-    for phi in range(N):
-        if frozen[phi]:
-            s[0, phi] = 0
-            llrs[0, phi] = INF
-            u_hat[phi] = 0
-        else:
-            llrs[0, phi] = _compute_llr(0, phi, llrs, s)
-            u_hat[phi] = 1 if llrs[0, phi] < 0 else 0
-            s[0, phi] = u_hat[phi]
-
-    return u_hat

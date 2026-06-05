@@ -4,7 +4,7 @@
 """
 import math
 import numpy as np
-from decoder_sc import INF, _compute_llr, _frozen_mask, _is_g_node, _s_updater, f_operation
+from decoder_sc import NEG_INF, _compute_llr, _frozen_mask, f_operation
 
 
 # ==================== CRC 工具 ====================
@@ -69,7 +69,7 @@ class _Path:
     __slots__ = ("llrs", "s", "pm", "u_hat")
 
     def __init__(self, n, N):
-        self.llrs = -INF * np.ones((n + 1, N), dtype=np.float64)
+        self.llrs = NEG_INF * np.ones((n + 1, N), dtype=np.float64)
         self.s = -np.ones((n + 1, N), dtype=int)
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=int)
@@ -105,20 +105,20 @@ class SCLDecoder:
         for phi in range(N):
             new_paths = []
             for path in paths:
+                path.llrs[0 : self.n, :] = NEG_INF
                 if self.frozen[phi]:
                     llr_val = _compute_llr(0, phi, path.llrs, path.s)
                     path.pm += _pm_penalty(llr_val, 0)
                     path.s[0, phi] = 0
-                    path.llrs[0, phi] = INF
                     path.u_hat[phi] = 0
                     new_paths.append(path)
                 else:
                     llr_val = _compute_llr(0, phi, path.llrs, path.s)
                     for u in (0, 1):
                         child = path.copy()
+                        child.llrs[0 : self.n, :] = NEG_INF
                         child.pm += _pm_penalty(llr_val, u)
                         child.s[0, phi] = u
-                        child.llrs[0, phi] = llr_val
                         child.u_hat[phi] = u
                         new_paths.append(child)
 
