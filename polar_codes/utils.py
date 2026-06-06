@@ -4,8 +4,8 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
+from channel import eb_n0_to_sigma
 from construction import ga_construction
 
 
@@ -57,20 +57,19 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
-    通过高斯数值积分计算。
+    通过互信息 I(X;Y) 数值积分计算。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
+    y = np.linspace(-12.0, 12.0, 120001)
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacities.append(1.0 - val / np.sqrt(2.0 * np.pi))
+        sigma = eb_n0_to_sigma(eb_n0_db, rate)
+        p1 = np.exp(-0.5 * ((y - 1.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+        p2 = np.exp(-0.5 * ((y + 1.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+        py = 0.5 * (p1 + p2)
+        hy = -np.trapezoid(py * np.log2(py + 1e-300), y)
+        hyx = np.log2(sigma * np.sqrt(2.0 * np.pi * np.e))
+        capacities.append(hy - hyx)
     return np.array(capacities)
 
 

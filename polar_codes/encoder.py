@@ -1,6 +1,6 @@
 """
 极化码编码器
-编码：x = u * G_N，利用蝶形结构实现 O(N log N) 复杂度
+编码：x = u * G_N，利用递归偶/奇结构实现 O(N log N) 复杂度
 """
 import numpy as np
 
@@ -21,7 +21,7 @@ def bit_reversal_permutation(N):
 
 def polar_encode(u):
     """
-    极化码编码（蝶形 XOR 结构，x = u @ F^⊗n）。
+    极化码编码（递归偶/奇蝶形结构）。
 
     参数：
         u: 长度为 N 的源序列（信息位 + 冻结位）
@@ -29,15 +29,12 @@ def polar_encode(u):
     返回：
         x: 长度为 N 的码字
     """
-    u = np.array(u, dtype=int).copy()
+    u = np.array(u, dtype=int)
+    if len(u) == 1:
+        return u.copy()
+
     N = len(u)
-    n = int(np.log2(N))
-
-    step = 1
-    for _ in range(n):
-        for i in range(0, N, 2 * step):
-            for j in range(step):
-                u[i + j] ^= u[i + j + step]
-        step *= 2
-
-    return u
+    x = np.zeros(N, dtype=int)
+    x[: N // 2] = polar_encode((u[0::2] + u[1::2]) % 2)
+    x[N // 2 :] = polar_encode(u[1::2])
+    return x

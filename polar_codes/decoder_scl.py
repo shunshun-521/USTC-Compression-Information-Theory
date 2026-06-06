@@ -43,43 +43,19 @@ def _pm_penalty(llr_val, u_bit):
     return 0.0 if u_bit == hard else abs(llr_val)
 
 
-def _decode_node_single(y, frozen):
-    """与 SC 递归节点相同，返回 (u, x)。"""
-    N = len(y)
-    if N == 1:
-        u = 0 if frozen[0] else (0 if y[0] >= 0 else 1)
-        x = 0.0 if y[0] >= 0 else 1.0
-        return np.array([u], dtype=int), np.array([x])
-
-    half = N // 2
-    u1est = f_operation(y[:half], y[half:])
-    uhat1, u1hp = _decode_node_single(u1est, frozen[:half])
-    u2est = g_operation(f_operation(u1hp, y[:half]), y[half:], uhat1)
-    uhat2, u2hp = _decode_node_single(u2est, frozen[half:])
-
-    u = np.zeros(N, dtype=int)
-    u[:half] = uhat1
-    u[half:] = uhat2
-    x1 = f_operation(u1hp, u2hp)
-    x = np.zeros(N, dtype=np.float64)
-    x[0::2] = x1
-    x[1::2] = u2hp
-    return u, x
-
-
-def _x_partial_from_uhat(y, frozen, uhat):
-    """根据已判决的 uhat 计算左子树 x 部分和。"""
-    N = len(y)
+def _x_from_uhat(uhat):
+    """由硬判决 uhat 递归构造 x 部分和数组（与 SC 译码一致）。"""
+    N = len(uhat)
     if N == 1:
         return np.array([0.0 if uhat[0] == 0 else 1.0])
 
     half = N // 2
-    u1hp = _x_partial_from_uhat(y[:half], frozen[:half], uhat[:half])
-    u2hp = _x_partial_from_uhat(y[half:], frozen[half:], uhat[half:])
-    x1 = f_operation(u1hp, u2hp)
+    x_left = _x_from_uhat(uhat[:half])
+    x_right = _x_from_uhat(uhat[half:])
+    x1 = f_operation(x_left, x_right)
     x = np.zeros(N, dtype=np.float64)
     x[0::2] = x1
-    x[1::2] = u2hp
+    x[1::2] = x_right
     return x
 
 
@@ -99,9 +75,7 @@ class SCLDecoder:
             u_hat = sc_decode_recursive(llr_ch, self.frozen_bits)
             return u_hat, 0.0
 
-        paths = self._scl_paths(
-            llr_ch, self.frozen_bits, 0, [(0.0, np.zeros(self.N, dtype=int))]
-        )
+        paths = self._scl_paths(llr_ch, self.frozen_bits, 0, [(0.0, np.zeros(self.N, dtype=int))])
         paths.sort(key=lambda p: p[0])
         paths = paths[: self.list_size]
 
@@ -120,7 +94,7 @@ class SCLDecoder:
         return best_any[1].copy(), best_any[0]
 
     def _scl_paths(self, y, frozen, offset, paths):
-        """多路径递归 SCL。"""
+        """多路径递归 SCL（偶/奇分解）。"""
         N = len(y)
         if N == 1:
             candidates = []
@@ -141,18 +115,15 @@ class SCLDecoder:
             candidates.sort(key=lambda p: p[0])
             return candidates[: self.list_size]
 
-        half = N // 2
-        u1est = f_operation(y[:half], y[half:])
-        left_paths = self._scl_paths(u1est, frozen[:half], offset, paths)
+        u1est = f_operation(y[0::2], y[1::2])
+        left_paths = self._scl_paths(u1est, frozen[: N // 2], offset, paths)
 
         all_results = []
         for pm, u_hat in left_paths:
-            uhat1 = u_hat[offset: offset + half]
-            u1hp = _x_partial_from_uhat(y[:half], frozen[:half], uhat1)
-            u2est = g_operation(f_operation(u1hp, y[:half]), y[half:], uhat1)
-            sub = self._scl_paths(
-                u2est, frozen[half:], offset + half, [(pm, u_hat)]
-            )
+            uhat1 = u_hat[offset: offset + N // 2]
+            u1hp = _x_from_uhat(uhat1)
+            u2est = g_operation(f_operation(u1hp, y[0::2]), y[1::2], uhat1)
+            sub = self._scl_paths(u2est, frozen[N // 2 :], offset + N // 2, [(pm, u_hat)])
             all_results.extend(sub)
 
         all_results.sort(key=lambda p: p[0])

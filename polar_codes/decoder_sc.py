@@ -22,22 +22,23 @@ def g_operation(La, Lb, u_hat):
 
 def sc_decode_recursive(llr, frozen_bits):
     """
-    递归 SC 译码（自然序因子图，与 polar_encode 配套）。
+    递归 SC 译码（偶/奇分解，与 polar_encode 配套）。
     """
     frozen_bits = np.asarray(frozen_bits, dtype=bool)
 
     def decode_node(y, frozen):
         N = len(y)
         if N == 1:
-            u = 0 if frozen[0] else (0 if y[0] >= 0 else 1)
+            if frozen[0]:
+                u = 0
+            else:
+                u = 0 if y[0] >= 0 else 1
             x = 0.0 if y[0] >= 0 else 1.0
-            return int(u), x
+            return np.array([u], dtype=int), np.array([x])
 
-        u1est = f_operation(y[: N // 2], y[N // 2 :])
+        u1est = f_operation(y[0::2], y[1::2])
         uhat1, u1hp = decode_node(u1est, frozen[: N // 2])
-        u2est = g_operation(
-            f_operation(u1hp, y[: N // 2]), y[N // 2 :], uhat1
-        )
+        u2est = g_operation(f_operation(u1hp, y[0::2]), y[1::2], uhat1)
         uhat2, u2hp = decode_node(u2est, frozen[N // 2 :])
 
         u = np.zeros(N, dtype=int)
@@ -45,10 +46,9 @@ def sc_decode_recursive(llr, frozen_bits):
         u[N // 2 :] = uhat2
 
         x1 = f_operation(u1hp, u2hp)
-        x2 = u2hp
         x = np.zeros(N, dtype=np.float64)
         x[0::2] = x1
-        x[1::2] = x2
+        x[1::2] = u2hp
         return u, x
 
     u_hat, _ = decode_node(llr, frozen_bits)
@@ -88,7 +88,6 @@ def precompute_sc_indices(N):
 
 def sc_decode(llr_ch, frozen_bits):
     """
-    非递归 SC 译码主函数。
-    当前实现委托给已验证的递归版本，保证与编码器一致。
+    非递归 SC 译码主函数（委托递归实现，保证正确性）。
     """
     return sc_decode_recursive(llr_ch, frozen_bits)

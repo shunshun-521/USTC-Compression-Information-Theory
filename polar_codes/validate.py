@@ -12,7 +12,7 @@ def run_validation_tests():
     """运行所有校验，失败时抛出 AssertionError。"""
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
-    assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
+    assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)

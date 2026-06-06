@@ -8,12 +8,12 @@ from encoder import polar_encode
 
 
 def _build_generator_matrix(N):
-    """构造 G_N = F^⊗n。"""
-    F = np.array([[1, 0], [1, 1]], dtype=int)
-    G = F
-    n = int(np.log2(N))
-    for _ in range(n - 1):
-        G = np.kron(G, F)
+    """通过单位向量编码构造生成矩阵 G_N。"""
+    G = np.zeros((N, N), dtype=int)
+    for i in range(N):
+        u = np.zeros(N, dtype=int)
+        u[i] = 1
+        G[i] = polar_encode(u)
     return G
 
 
