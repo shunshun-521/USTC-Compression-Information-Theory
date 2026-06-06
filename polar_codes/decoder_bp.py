@@ -45,19 +45,21 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             num_iters = it
 
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            # 从右到左更新 L 消息（列 n-1 到 0）
+            for j in range(n - 1, -1, -1):
+                step = 1 << j
                 for i in range(0, N, 2 * step):
                     for k in range(step):
                         idx = i + k
                         idx2 = idx + step
-                        L[idx, j - 1] = self._f_ms(
-                            R[idx, j] + L[idx2, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_ms(
+                            R[idx, j + 1] + L[idx2, j + 1], L[idx, j + 1]
                         )
-                        L[idx2, j - 1] = (
-                            self._f_ms(R[idx, j], L[idx, j + 1]) + L[idx2, j + 1]
+                        L[idx2, j] = (
+                            self._f_ms(R[idx, j + 1], L[idx, j + 1]) + L[idx2, j + 1]
                         )
 
+            # 从左到右更新 R 消息（列 1 到 n）
             for j in range(0, n):
                 step = 1 << j
                 for i in range(0, N, 2 * step):
