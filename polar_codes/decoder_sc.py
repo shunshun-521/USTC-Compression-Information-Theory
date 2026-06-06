@@ -6,9 +6,6 @@ import math
 
 import numpy as np
 
-from encoder import bit_reversal_permutation
-
-
 def f_operation(La, Lb):
     """min-sum 近似的 f 运算"""
     sa = np.sign(La)

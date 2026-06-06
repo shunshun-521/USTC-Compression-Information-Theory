@@ -5,13 +5,9 @@
 import numpy as np
 
 from decoder_sc import (
-    _active_bit_level,
-    _active_llr_level,
     _bit_reversed,
     _update_bits,
     _update_llrs,
-    f_operation,
-    g_operation,
     path_metric_update,
 )
 
