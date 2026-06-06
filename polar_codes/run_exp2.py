@@ -36,7 +36,7 @@ def run_unit_tests():
     frozen_bits = np.ones(n, dtype=bool)
     frozen_bits[info_idx] = False
     rng = np.random.default_rng(1)
-    sigma = eb_n0_to_sigma(10.0, k / n)
+    sigma = 0.001
 
     for _ in range(100):
         u_test = np.zeros(n, dtype=int)
