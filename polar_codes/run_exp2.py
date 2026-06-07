@@ -31,7 +31,10 @@ CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
 MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.concatenate([
+    np.arange(1.0, 5.5, 0.25),
+    np.arange(6.0, 10.5, 0.5),
+])
 
 if os.environ.get("POLAR_QUICK") == "1":
     MAX_FRAMES = min(MAX_FRAMES, 3000)
