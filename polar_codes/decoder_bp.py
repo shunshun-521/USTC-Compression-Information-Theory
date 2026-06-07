@@ -24,57 +24,47 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits.astype(bool))[0]
-        self.decode_order = [bit_reversed(i, self.n) for i in range(N)]
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N = self.N
         n = self.n
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_idx, 0] = self.LARGE
+        L = np.zeros((n + 1, N), dtype=np.float64)
+        R = np.zeros((n + 1, N), dtype=np.float64)
+        L[n, :] = llr_ch
+        R[0, :] = 0.0
+        R[0, self.frozen_idx] = self.LARGE
 
         num_iters = self.max_iter
-        u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx = i + k
-                        idx2 = idx + s
-                        L[idx, j - 1] = _f_min_sum(
-                            R[idx, j] + L[idx2, j + 1],
-                            L[idx, j + 1],
-                            self.alpha,
-                        )
-                        L[idx2, j - 1] = _f_min_sum(
-                            R[idx, j],
-                            L[idx, j + 1],
-                            self.alpha,
-                        ) + L[idx2, j + 1]
+            for layer in range(n - 1, -1, -1):
+                step = 1 << layer
+                for i in range(0, N, 2 * step):
+                    la = L[layer + 1, i:i + step]
+                    lb = L[layer + 1, i + step:i + 2 * step]
+                    ra = R[layer, i:i + step]
+                    L[layer, i:i + step] = _f_min_sum(
+                        ra + lb, la, self.alpha
+                    )
+                    L[layer, i + step:i + 2 * step] = _f_min_sum(
+                        ra, la, self.alpha
+                    ) + lb
 
-            for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx = i + k
-                        idx2 = idx + s
-                        R[idx, j + 1] = _f_min_sum(
-                            R[idx2, j] + L[idx2, j + 1],
-                            R[idx, j],
-                            self.alpha,
-                        )
-                        R[idx2, j + 1] = _f_min_sum(
-                            R[idx, j],
-                            L[idx, j + 1],
-                            self.alpha,
-                        ) + R[idx2, j]
+            for layer in range(0, n):
+                step = 1 << layer
+                for i in range(0, N, 2 * step):
+                    la = L[layer + 1, i:i + step]
+                    lb = L[layer + 1, i + step:i + 2 * step]
+                    rb = R[layer + 1, i + step:i + 2 * step]
+                    ra = R[layer, i:i + step]
+                    R[layer + 1, i:i + step] = _f_min_sum(
+                        rb + lb, ra, self.alpha
+                    )
+                    R[layer + 1, i + step:i + 2 * step] = _f_min_sum(
+                        ra, la, self.alpha
+                    ) + rb
 
             u_hat = self._hard_decision(L, R)
             x_hat = polar_encode(u_hat)
@@ -86,7 +76,7 @@ class BPDecoder:
         return u_hat, num_iters
 
     def _hard_decision(self, L, R):
-        total = L[:, 0] + R[:, 0]
+        total = L[0, :] + R[0, :]
         u_hat = (total < 0).astype(int)
         u_hat[self.frozen_bits.astype(bool)] = 0
         return u_hat
