@@ -1,0 +1,71 @@
+"""
+极化码构造：高斯近似（GA）方法
+适用于 BPSK-AWGN 信道
+"""
+import numpy as np
+
+from encoder import bit_reversal_permutation
+
+
+def phi(x):
+    x = np.asarray(x, dtype=np.float64)
+    result = np.empty_like(x)
+    mask_small = x < 10
+    mask_large = ~mask_small
+    result[mask_small] = np.exp(-0.4527 * x[mask_small] ** 0.86 + 0.0218)
+    xs = x[mask_large]
+    result[mask_large] = np.sqrt(np.pi / xs) * np.exp(-xs / 4) * (1 - 10.0 / (7.0 * xs))
+    return result
+
+
+def phi_inv(y):
+    y = np.asarray(y, dtype=np.float64)
+    scalar = y.ndim == 0
+    if scalar:
+        y = y.reshape(1)
+    lo = np.zeros_like(y)
+    hi = np.full_like(y, 100.0)
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        pm = phi(mid)
+        lo = np.where(pm < y, mid, lo)
+        hi = np.where(pm >= y, mid, hi)
+    result = (lo + hi) / 2
+    return float(result[0]) if scalar else result
+
+
+def ga_construction(N, K, design_eb_n0_db, rate=None):
+    """
+    高斯近似构造极化码：递归 GA 计算 llr_means，取最大的 K 个信道作为信息位。
+    """
+    if rate is None:
+        rate = K / N
+    n = int(np.log2(N))
+    assert 2 ** n == N, "N must be a power of 2"
+
+    sigma = 1.0 / np.sqrt(2 * rate) * 10 ** (-design_eb_n0_db / 20)
+    m0 = 2.0 / sigma ** 2
+    m = np.array([m0], dtype=np.float64)
+    for _ in range(n):
+        m_new = np.zeros(2 * len(m), dtype=np.float64)
+        for i in range(len(m)):
+            m_new[2 * i] = phi_inv(1 - (1 - phi(m[i])) ** 2)
+            m_new[2 * i + 1] = 2 * m[i]
+        m = m_new
+    llr_means = m
+    br = bit_reversal_permutation(N)
+    reliabilities = llr_means[br]
+
+    info_indices = np.sort(np.argsort(reliabilities)[-K:])
+    frozen_indices = np.sort(np.argsort(reliabilities)[: N - K])
+    return info_indices, frozen_indices, reliabilities
+
+
+if __name__ == "__main__":
+    info8, frozen8, _ = ga_construction(8, 4, 2.5)
+    print("N=8, K=4, Eb/N0=2.5dB")
+    print("info_indices:", info8)
+    print("frozen_indices:", frozen8)
+
+    info256, _, _ = ga_construction(256, 128, 2.5)
+    print("\nN=256, K=128, first 20 info_indices:", info256[:20])
