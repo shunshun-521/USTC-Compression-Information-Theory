@@ -38,6 +38,8 @@ def run_simulation(
         total_iters = 0
 
         while num_frames < max_frames and num_errors < min_errors:
+            if verbose and num_frames > 0 and num_frames % 5000 == 0:
+                print(f"    ... {num_frames} frames, {num_errors} errors", flush=True)
             if crc_length > 0:
                 from decoder_scl import crc_encode
 
