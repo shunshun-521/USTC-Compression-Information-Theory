@@ -17,7 +17,12 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self.large = 1e6
+        self.large = 20.0
+
+    def _boxplus(self, a, b):
+        a = np.clip(a, -self.large, self.large)
+        b = np.clip(b, -self.large, self.large)
+        return 2.0 * np.arctanh(np.tanh(a / 2.0) * np.tanh(b / 2.0))
 
     def _f_min_sum(self, x, y):
         return self.alpha * f_operation(x, y)
@@ -29,50 +34,46 @@ class BPDecoder:
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = llr_ch
+        L[:, n] = np.clip(llr_ch, -self.large, self.large)
         R[:, 0] = 0.0
         R[self.frozen_bits, 0] = self.large
 
         num_iters = self.max_iter
+        rev = _bit_reversal_array(N)
+        g = self._boxplus
+
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_min_sum(
-                        R[i, j] + L[i + s, j],
-                        L[i, j],
-                    )
-                    L[i + s, j - 1] = self._f_min_sum(
-                        R[i, j],
-                        L[i, j],
-                    ) + L[i + s, j]
+            for s in range(n):
+                block = 2 ** s
+                for b in range(0, N, 2 * block):
+                    for k in range(block):
+                        i = b + k
+                        j = i + block
+                        R[i, s + 1] = g(R[i, s], L[j, s + 1] + R[j, s + 1])
+                        R[j, s + 1] = g(R[i, s], L[i, s + 1]) + R[j, s]
 
-            for j in range(1, n + 1):
-                s = 2 ** (j - 1)
-                for i in range(0, N, 2 * s):
-                    R[i, j] = self._f_min_sum(
-                        R[i + s, j] + L[i + s, j],
-                        R[i, j - 1],
-                    )
-                    R[i + s, j] = self._f_min_sum(
-                        R[i, j - 1],
-                        L[i, j],
-                    ) + R[i + s, j - 1]
+            for s in range(n - 1, -1, -1):
+                block = 2 ** s
+                for b in range(0, N, 2 * block):
+                    for k in range(block):
+                        i = b + k
+                        j = i + block
+                        L[i, s] = g(L[i, s + 1], L[j, s + 1] + R[j, s + 1])
+                        L[j, s] = g(R[i, s + 1], L[i, s + 1]) + L[j, s + 1]
 
-            u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
+            u_hat = np.zeros(N, dtype=int)
             u_hat[total < 0] = 1
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
-            rev = _bit_reversal_array(N)
             hard_ch = (llr_ch < 0).astype(int)
             if np.array_equal(x_hat[rev], hard_ch):
                 num_iters = it
                 break
 
-        u_hat = np.zeros(N, dtype=int)
         total = L[:, 0] + R[:, 0]
+        u_hat = np.zeros(N, dtype=int)
         u_hat[total < 0] = 1
         u_hat[self.frozen_bits] = 0
         return u_hat, num_iters
