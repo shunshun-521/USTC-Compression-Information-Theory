@@ -4,6 +4,8 @@
 """
 import numpy as np
 
+from encoder import bit_reversal_permutation
+
 
 def phi(x):
     x = np.asarray(x, dtype=np.float64)
@@ -51,10 +53,12 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
             m_new[2 * i + 1] = 2 * m[i]
         m = m_new
     llr_means = m
+    br = bit_reversal_permutation(N)
+    reliabilities = llr_means[br]
 
-    info_indices = np.sort(np.argsort(llr_means)[-K:])
-    frozen_indices = np.sort(np.argsort(llr_means)[: N - K])
-    return info_indices, frozen_indices, llr_means
+    info_indices = np.sort(np.argsort(reliabilities)[-K:])
+    frozen_indices = np.sort(np.argsort(reliabilities)[: N - K])
+    return info_indices, frozen_indices, reliabilities
 
 
 if __name__ == "__main__":
