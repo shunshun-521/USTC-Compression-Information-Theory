@@ -20,8 +20,8 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 9.5, 0.25)
+MIN_ERRORS = 50
+EB_N0_RANGE = np.unique(np.concatenate([np.arange(1.0, 7.0, 0.25), np.arange(7.0, 9.5, 0.5)]))
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
