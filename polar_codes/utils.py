@@ -57,23 +57,28 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
 
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
-    通过高斯数值积分计算。
+    C = 1 - (2/sqrt(2pi)) * ∫_0^∞ log2(1+exp(-snr*y^2)) * exp(-y^2/2) dy
+    其中 snr = 2R * 10^{Eb/N0/10}
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+            z = -snr * y * y
+            if z > 0:
+                log_term = z / np.log(2.0)
+            else:
+                log_term = np.log1p(np.exp(z)) / np.log(2.0)
+            return log_term * np.exp(-y ** 2 / 2.0)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        val, _ = integrate.quad(integrand, 0.0, 20.0)
+        val = 2.0 * val / np.sqrt(2.0 * np.pi)
         capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 4), num_points=1000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     这是香农限，用于在 BLER 图中标注参考竖线。
