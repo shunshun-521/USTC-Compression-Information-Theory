@@ -12,7 +12,7 @@ def run_unit_tests(verbose=True):
     """运行编码器、SC/SCL 校验，失败时抛出 AssertionError。"""
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
-    expected = np.array([1, 1, 0, 1])
+    expected = np.array([1, 1, 0, 1])  # Arikan 蝶形编码 u=[1,0,1,1]
     assert np.array_equal(x, expected), f"编码器错误: {x}, 期望 {expected}"
     if verbose:
         print("编码器校验通过")
