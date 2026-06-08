@@ -41,6 +41,9 @@ def run_simulation(
         total_iters = 0
 
         while num_frames < max_frames and num_errors < min_errors:
+            # 高 SNR 下若长时间无错误则提前结束
+            if num_frames >= 10000 and num_errors == 0:
+                break
             if crc_length > 0:
                 info_bits = rng.integers(0, 2, size=k_info)
                 payload = crc_encode(info_bits, crc_length)
