@@ -14,7 +14,7 @@ from decoder_bp import BPDecoder
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from run_exp1 import run_unit_tests
-from simulation import get_sim_params, run_simulation
+from simulation import get_eb_n0_range, get_sim_params, run_simulation
 from utils import find_capacity_limit, plot_bler_curves, save_results_csv
 
 os.makedirs("results", exist_ok=True)
@@ -24,7 +24,7 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES, MIN_ERRORS = get_sim_params()
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = get_eb_n0_range(np.arange(1.0, 5.5, 0.25))
 
 if __name__ == "__main__":
     run_unit_tests()

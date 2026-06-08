@@ -12,7 +12,7 @@ from channel import eb_n0_to_sigma
 from construction import ga_construction
 from decoder_sc import sc_decode
 from encoder import polar_encode
-from simulation import get_sim_params, run_simulation
+from simulation import get_eb_n0_range, get_sim_params, run_simulation
 from utils import find_capacity_limit, plot_bler_curves, save_frozen_set_info, save_results_csv
 
 os.makedirs("results", exist_ok=True)
@@ -62,11 +62,13 @@ def run_unit_tests():
     print("单元测试全部通过。")
 
 
-N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES, MIN_ERRORS = get_sim_params()
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+EB_N0_RANGE = get_eb_n0_range(np.arange(0.0, 5.5, 0.25))
+N_LIST = (
+    [256, 512] if os.environ.get("POLAR_QUICK", "0") == "1" else [256, 512, 1024]
+)
 
 if __name__ == "__main__":
     run_unit_tests()

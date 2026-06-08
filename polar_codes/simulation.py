@@ -106,6 +106,14 @@ def run_simulation(
 def get_sim_params():
     """从环境变量读取快速仿真参数"""
     quick = os.environ.get("POLAR_QUICK", "0") == "1"
-    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "5000"))
+    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "3000"))
     min_errors = int(os.environ.get("POLAR_MIN_ERRORS", "100" if not quick else "20"))
     return max_frames, min_errors
+
+
+def get_eb_n0_range(default_range):
+    """快速模式下使用稀疏 Eb/N0 采样"""
+    if os.environ.get("POLAR_QUICK", "0") != "1":
+        return default_range
+    step = float(os.environ.get("POLAR_EB_N0_STEP", "0.5"))
+    return np.arange(default_range[0], default_range[-1] + step * 0.5, step)
