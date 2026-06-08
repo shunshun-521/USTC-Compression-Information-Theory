@@ -29,17 +29,17 @@ def main():
     run_unit_tests()
 
     quick = os.environ.get("POLAR_QUICK", "0") == "1"
-    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "5000"))
-    min_errors = int(os.environ.get("POLAR_MIN_ERRORS", "100" if not quick else "20"))
+    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "500"))
+    min_errors = int(os.environ.get("POLAR_MIN_ERRORS", "100" if not quick else "10"))
 
     os.makedirs("results", exist_ok=True)
 
-    N = 512
+    N = 128 if quick else 512
     RATE = 0.5
     K = N // 2
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
-    L_LIST = [2, 4, 8]
+    L_LIST = [2, 4] if quick else [2, 4, 8]
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)

@@ -3,7 +3,8 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import f_operation, g_operation, sc_decode
+
+from decoder_sc import cn_operation, g_operation, sc_decode
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -39,24 +40,35 @@ def crc_check(bits, crc_length=8):
     return np.array_equal(bits[-crc_length:], crc_encode(bits[:-crc_length], crc_length)[-crc_length:])
 
 
+def _partial_up_from_u(u_seg):
+    """由已知 u 段计算 g 运算所需的部分和向量。"""
+    u_seg = np.asarray(u_seg, dtype=int)
+    if len(u_seg) == 1:
+        return u_seg.astype(np.float64)
+    half = len(u_seg) // 2
+    up_left = _partial_up_from_u(u_seg[:half])
+    up_right = _partial_up_from_u(u_seg[half:])
+    u_up_l = np.bitwise_xor(up_left.astype(int), up_right.astype(int)).astype(np.float64)
+    return np.concatenate([u_up_l, up_right])
+
+
 def _root_llr_at_phi(llr, u_prefix, phi):
     """计算比特 phi 处的根 LLR（已知 u_prefix[0:phi]）。"""
 
-    def walk(node, depth, offset, active_end):
-        if depth == 0:
+    def walk(node, offset):
+        n = len(node)
+        if n == 1:
             return node[0]
-        half = len(node) // 2
-        left = f_operation(node[:half], node[half:])
-        if offset + half <= active_end:
-            u_left = u_prefix[offset:offset + half]
-            right = g_operation(node[:half], node[half:], u_left)
-            return walk(right, depth - 1, offset + half, active_end)
-        if active_end <= offset:
-            return walk(left, depth - 1, offset, active_end)
-        return walk(left, depth - 1, offset, active_end)
+        half = n // 2
+        top = cn_operation(node[:half], node[half:])
+        if phi < offset + half:
+            return walk(top, offset)
+        u_left = u_prefix[offset : offset + half]
+        u_left_up = _partial_up_from_u(u_left)
+        bottom = g_operation(node[:half], node[half:], u_left_up)
+        return walk(bottom, offset + half)
 
-    n = int(np.log2(len(llr)))
-    return walk(llr, n, 0, phi)
+    return walk(np.asarray(llr, dtype=np.float64), 0)
 
 
 def _path_penalty(llr_val, bit):
@@ -76,6 +88,10 @@ class SCLDecoder:
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, L = self.N, self.list_size
+
+        if L == 1:
+            u_hat = sc_decode(llr_ch, self.frozen_bits)
+            return u_hat, 0.0
 
         paths = [(0.0, np.zeros(N, dtype=int))]
 

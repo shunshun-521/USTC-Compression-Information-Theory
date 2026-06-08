@@ -30,12 +30,12 @@ def main():
     run_unit_tests()
 
     quick = os.environ.get("POLAR_QUICK", "0") == "1"
-    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "5000"))
-    min_errors = int(os.environ.get("POLAR_MIN_ERRORS", "100" if not quick else "20"))
+    max_frames = int(os.environ.get("POLAR_MAX_FRAMES", "100000" if not quick else "500"))
+    min_errors = int(os.environ.get("POLAR_MIN_ERRORS", "100" if not quick else "10"))
 
     os.makedirs("results", exist_ok=True)
 
-    N_LIST = [256, 512]
+    N_LIST = [128] if quick else [256, 512]
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50

@@ -3,7 +3,6 @@
 适用于 BPSK-AWGN 信道
 """
 import numpy as np
-from encoder import bit_reversal_permutation
 
 
 def phi(x):
@@ -75,9 +74,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         means = m_new
 
     llr_means = means
-    br = bit_reversal_permutation(N)
-    rel_u = llr_means[br]
-    info_indices = np.sort(np.argsort(-rel_u)[:K])
+    info_indices = np.sort(np.argsort(-llr_means)[:K])
     frozen_indices = np.setdiff1d(np.arange(N), info_indices)
     return info_indices, frozen_indices, llr_means
 

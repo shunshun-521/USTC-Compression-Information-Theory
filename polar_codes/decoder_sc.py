@@ -3,57 +3,72 @@
 提供递归版本（参考实现）和非递归版本（高效实现）
 """
 import math
+
 import numpy as np
+
+LLR_MAX = 30.0
 
 
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
-    支持向量化（La, Lb 为同形状 numpy 数组）
+    min-sum 近似的 f 运算（box-plus 可选，见 cn_operation）。
     """
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
-def g_operation(La, Lb, u_hat):
+def cn_operation(La, Lb):
+    """精确 box-plus f 运算（LLR 域）。"""
+    La = np.clip(np.asarray(La, dtype=np.float64), -LLR_MAX, LLR_MAX)
+    Lb = np.clip(np.asarray(Lb, dtype=np.float64), -LLR_MAX, LLR_MAX)
+    return np.log1p(np.exp(La + Lb)) - np.log(np.exp(La) + np.exp(Lb))
+
+
+def g_operation(La, Lb, u_partial):
     """
-    g 运算：g(La, Lb, u_hat) = (1 - 2*u_hat) * La + Lb
+    g 运算：g(La, Lb, u_partial) = (1 - 2*u_partial) * La + Lb
+    u_partial 为当前层的部分和（非最终信息比特）。
     """
-    return (1 - 2 * u_hat) * La + Lb
+    return (1 - 2 * u_partial) * La + Lb
+
+
+def _sc_recursive(llr, frozen_bits, use_boxplus=True):
+    """Sionna/Arikan 风格递归 SC，g 节点使用部分和 u_up。"""
+    llr = np.asarray(llr, dtype=np.float64)
+    frozen_bits = np.asarray(frozen_bits, dtype=int)
+    n = len(llr)
+    f_fn = cn_operation if use_boxplus else f_operation
+
+    if n == 1:
+        if frozen_bits[0]:
+            bit = 0
+        elif llr[0] >= 0:
+            bit = 0
+        else:
+            bit = 1
+        u = np.array([bit], dtype=int)
+        return u, u.astype(np.float64)
+
+    half = n // 2
+    llr_left = llr[:half]
+    llr_right = llr[half:]
+    frozen_l = frozen_bits[:half]
+    frozen_r = frozen_bits[half:]
+
+    top = f_fn(llr_left, llr_right)
+    u_left, u_left_up = _sc_recursive(top, frozen_l, use_boxplus)
+
+    bottom = g_operation(llr_left, llr_right, u_left_up)
+    u_right, u_right_up = _sc_recursive(bottom, frozen_r, use_boxplus)
+
+    u = np.concatenate([u_left, u_right])
+    u_up_left = np.bitwise_xor(u_left_up.astype(int), u_right_up.astype(int)).astype(np.float64)
+    u_up = np.concatenate([u_up_left, u_right_up.astype(np.float64)])
+    return u, u_up
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """
-    递归 SC 译码。
-    参数：
-        llr: 长度 N 的信道 LLR 数组
-        frozen_bits: 长度 N 的 bool 数组，True 表示冻结位（置 0）
-    返回：
-        u_hat: 长度 N 的估计源序列
-    """
-    llr = np.asarray(llr, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    u_hat = np.zeros(len(llr), dtype=int)
-
-    def decode_node(llr_node, bit_offset):
-        n = len(llr_node)
-        if n == 1:
-            idx = bit_offset
-            if frozen_bits[idx]:
-                u_hat[idx] = 0
-            else:
-                u_hat[idx] = 0 if llr_node[0] >= 0 else 1
-            return
-
-        half = n // 2
-        llr_left = f_operation(llr_node[:half], llr_node[half:])
-        decode_node(llr_left, bit_offset)
-
-        u_left = u_hat[bit_offset:bit_offset + half]
-        llr_right = g_operation(llr_node[:half], llr_node[half:], u_left)
-        decode_node(llr_right, bit_offset + half)
-
-    decode_node(llr, 0)
+    """递归 SC 译码（参考实现）。"""
+    u_hat, _ = _sc_recursive(np.asarray(llr, dtype=np.float64), frozen_bits)
     return u_hat
 
 
@@ -90,32 +105,6 @@ def precompute_sc_indices(N):
 
 def sc_decode(llr_ch, frozen_bits):
     """
-    非递归 SC 译码（显式栈，与递归版本等价）。
+    非递归 SC 译码主函数（调用修正后的递归核心）。
     """
-    llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=int)
-    u_hat = np.zeros(len(llr_ch), dtype=int)
-
-    stack = [(llr_ch.copy(), 0, 0)]
-    while stack:
-        llr_node, bit_offset, state = stack.pop()
-        half = len(llr_node) // 2
-
-        if half == 0:
-            idx = bit_offset
-            if frozen_bits[idx]:
-                u_hat[idx] = 0
-            else:
-                u_hat[idx] = 0 if llr_node[0] >= 0 else 1
-            continue
-
-        if state == 0:
-            llr_left = f_operation(llr_node[:half], llr_node[half:])
-            stack.append((llr_node, bit_offset, 1))
-            stack.append((llr_left, bit_offset, 0))
-        else:
-            u_left = u_hat[bit_offset:bit_offset + half]
-            llr_right = g_operation(llr_node[:half], llr_node[half:], u_left)
-            stack.append((llr_right, bit_offset + half, 0))
-
-    return u_hat
+    return sc_decode_recursive(llr_ch, frozen_bits)
