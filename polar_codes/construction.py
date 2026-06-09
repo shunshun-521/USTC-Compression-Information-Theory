@@ -30,7 +30,7 @@ def phi_inv(y):
     if scalar:
         y = y.reshape(1)
     lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
+    hi = np.full_like(y, 1e4)
     for _ in range(60):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
