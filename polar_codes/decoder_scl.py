@@ -92,6 +92,8 @@ class SCLDecoder:
 
                 candidates.sort(key=lambda x: x[0])
                 selected = candidates[:L]
+                while len(selected) < L:
+                    selected.append(selected[-1])
 
                 new_llrs = []
                 new_bits = []
@@ -105,7 +107,7 @@ class SCLDecoder:
                 llrs = new_llrs
                 bits = new_bits
                 pm = new_pm
-                active = L
+                active = len(llrs)
 
         best_paths = list(range(L))
         if self.crc_length > 0:
