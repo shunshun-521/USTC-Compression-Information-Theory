@@ -50,20 +50,35 @@ def load_results_csv(filepath):
     return results
 
 
+def _stable_log2_1_plus_exp(t):
+    """数值稳定的 log2(1 + exp(t))。"""
+    if t > 0:
+        return t / np.log(2) + np.log2(1 + np.exp(-t))
+    return np.log2(1 + np.exp(t))
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - H(X|Y)，与 channel.py 中 sigma = 1/sqrt(2*R*Eb/N0) 约定一致。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10))
+        eb = 10 ** (eb_n0_db / 10)
+        sigma2 = 1.0 / (2 * rate * eb)
+        norm = 1.0 / np.sqrt(2 * np.pi * sigma2)
 
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+        def branch(x_sign, llr_sign):
+            def integrand(y):
+                llr = 2 * y / sigma2
+                p = norm * np.exp(-(y - x_sign) ** 2 / (2 * sigma2))
+                return p * _stable_log2_1_plus_exp(llr_sign * llr)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+            val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
+            return val
+
+        h_cond = 0.5 * (branch(1, -1) + branch(-1, 1))
+        capacities.append(1 - h_cond)
     return np.array(capacities)
 
 
