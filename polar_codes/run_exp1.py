@@ -25,7 +25,7 @@ N_LIST = get_n_list([256, 512, 1024])
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES, MIN_ERRORS = get_sim_params(100000, 100)
-EB_N0_RANGE = get_eb_n0_range(0.0, 5.5, 0.25)
+EB_N0_RANGE = get_eb_n0_range(2.0, 9.5, 0.5)
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")
 

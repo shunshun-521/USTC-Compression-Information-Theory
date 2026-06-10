@@ -30,7 +30,7 @@ DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES, MIN_ERRORS = get_sim_params(100000, 100)
-EB_N0_RANGE = get_eb_n0_range(1.0, 5.5, 0.25)
+EB_N0_RANGE = get_eb_n0_range(3.0, 8.5, 0.5)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
