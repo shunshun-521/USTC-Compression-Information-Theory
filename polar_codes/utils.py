@@ -7,8 +7,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy import integrate
-
 from construction import ga_construction
 
 
@@ -64,21 +62,14 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-  C = 1 - E_y[log2(1 + exp(-2*s*y))]
+    计算 BPSK-AWGN 信道容量参考（bits/channel use）。
+
+    采用实数 AWGN 信道容量 C = 0.5 * log2(1 + SNR)，
+    其中 SNR = 2R * 10^{Eb/N0/10}（与仿真中 LLR 标度一致）。
     """
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-        s = snr
-
-        def integrand(y):
-            p_y = np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi)
-            return p_y * np.log2(1.0 + np.exp(-2.0 * s * y))
-
-        val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
-        capacities.append(1.0 - val)
-    return np.array(capacities)
+    eb = np.asarray(eb_n0_db_list, dtype=np.float64)
+    snr = 2.0 * rate * (10 ** (eb / 10.0))
+    return 0.5 * np.log2(1.0 + snr)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
