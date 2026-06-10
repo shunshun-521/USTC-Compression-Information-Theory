@@ -1,0 +1,100 @@
+"""
+极化码构造：高斯近似（GA）方法
+适用于 BPSK-AWGN 信道
+"""
+import numpy as np
+
+from encoder import bit_reversal_permutation
+
+
+def phi(x):
+    """
+    GA 中的 phi 函数近似（x > 0）
+    phi(x) = e^{-0.4527 * x^0.86 + 0.0218},  0 < x < 10
+    phi(x) = sqrt(pi/x) * e^{-x/4} * (1 - 10/(7x)), x >= 10
+    """
+    x = np.asarray(x, dtype=np.float64)
+    out = np.empty_like(x)
+    mask_small = x < 10.0
+    mask_large = ~mask_small
+    xs = x[mask_small]
+    xl = x[mask_large]
+    out[mask_small] = np.exp(-0.4527 * np.power(xs, 0.86) + 0.0218)
+    out[mask_large] = (
+        np.sqrt(np.pi / xl)
+        * np.exp(-xl / 4.0)
+        * (1.0 - 10.0 / (7.0 * xl))
+    )
+    return out
+
+
+def phi_inv(y):
+    """
+    phi 函数的数值逆（二分法，区间 [0, 100]）
+    """
+    y = np.asarray(y, dtype=np.float64)
+    y = np.clip(y, 1e-12, phi(np.array(100.0)))
+    lo = np.zeros_like(y)
+    hi = np.full_like(y, 100.0)
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        pm = phi(mid)
+        lo = np.where(pm > y, mid, lo)
+        hi = np.where(pm > y, hi, mid)
+    return (lo + hi) / 2.0
+
+
+def ga_construction(N, K, design_eb_n0_db, rate=None):
+    """
+    高斯近似构造极化码。
+
+    参数：
+        N: 码长（必须是 2 的幂）
+        K: 信息位数
+        design_eb_n0_db: 设计信噪比 Eb/N0（dB）
+        rate: 码率 R=K/N，若为 None 则自动计算
+
+    返回：
+        info_indices: 长度为 K 的数组，信息位在 u 向量中的索引（从 0 开始）
+        frozen_indices: 长度为 N-K 的数组，冻结位索引
+        llr_means: 长度为 N 的数组，每个极化信道的等效 LLR 均值
+    """
+    if rate is None:
+        rate = K / N
+    n = int(np.log2(N))
+    assert 2 ** n == N, "N must be a power of 2"
+
+    snr_linear = 2.0 * rate * (10.0 ** (design_eb_n0_db / 10.0))
+    sigma = 1.0 / np.sqrt(snr_linear)
+    m0 = 2.0 / (sigma ** 2)
+
+    m = np.array([m0], dtype=np.float64)
+    for _ in range(n):
+        m_new = np.empty(2 * len(m), dtype=np.float64)
+        phi_m = phi(m)
+        m_new[0::2] = phi_inv(1.0 - (1.0 - phi_m) ** 2)
+        m_new[1::2] = 2.0 * m
+        m = m_new
+
+    llr_means = m.copy()
+
+    # 与 SC 译码器的比特倒序处理顺序对齐
+    br = bit_reversal_permutation(N)
+    reliabilities = llr_means[br]
+    info_in_br_order = np.argsort(-reliabilities)[:K]
+    info_indices = np.sort(br[info_in_br_order])
+    frozen_mask = np.ones(N, dtype=bool)
+    frozen_mask[info_indices] = False
+    frozen_indices = np.where(frozen_mask)[0]
+
+    return info_indices, frozen_indices, llr_means
+
+
+if __name__ == "__main__":
+    info8, frozen8, _ = ga_construction(8, 4, 2.5)
+    print("N=8, K=4, Eb/N0=2.5dB")
+    print("info_indices:", info8)
+    print("frozen_indices:", frozen8)
+
+    info256, _, _ = ga_construction(256, 128, 2.5)
+    print("\nN=256, K=128, first 20 info_indices:", info256[:20])
