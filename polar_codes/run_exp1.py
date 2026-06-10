@@ -55,6 +55,9 @@ DESIGN_EBN0 = 2.5
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+if os.environ.get("POLAR_QUICK", "0") == "1":
+    EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
+    N_LIST = [256, 512]
 
 if __name__ == "__main__":
     run_unit_tests()
