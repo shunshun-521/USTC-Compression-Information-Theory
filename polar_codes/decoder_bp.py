@@ -35,7 +35,6 @@ class BPDecoder:
         n = self.n
         N = self.N
 
-        # L[i, j]: 从右到左消息; R[i, j]: 从左到右消息
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
         L[:, n] = llr_ch
@@ -44,38 +43,40 @@ class BPDecoder:
         R[frozen_idx, 0] = self.LARGE
 
         num_iters = 0
-        u_hat = np.zeros(N, dtype=np.int32)
 
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
+            L_new = L.copy()
+            R_new = R.copy()
+
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
-                    L[i : i + s, j - 1] = self._f_ms(
+                    L_new[i : i + s, j - 1] = self._f_ms(
                         R[i : i + s, j] + L[i + s : i + 2 * s, j],
                         L[i : i + s, j],
                     )
-                    L[i + s : i + 2 * s, j - 1] = self._f_ms(
+                    L_new[i + s : i + 2 * s, j - 1] = self._f_ms(
                         R[i : i + s, j], L[i : i + s, j]
                     ) + L[i + s : i + 2 * s, j]
 
-            # 左到右更新 R
             for j in range(0, n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    R[i : i + s, j + 1] = self._f_ms(
+                    r_prev = R[i : i + s, j - 1] if j > 0 else 0.0
+                    R_new[i : i + s, j + 1] = self._f_ms(
                         R[i + s : i + 2 * s, j] + L[i + s : i + 2 * s, j + 1],
-                        R[i : i + s, j],
+                        r_prev,
                     )
-                    R[i + s : i + 2 * s, j + 1] = self._f_ms(
-                        R[i : i + s, j], L[i : i + s, j + 1]
+                    r_prev2 = R[i : i + s, j - 1] if j > 0 else 0.0
+                    R_new[i + s : i + 2 * s, j + 1] = self._f_ms(
+                        r_prev2, L[i : i + s, j + 1]
                     ) + R[i + s : i + 2 * s, j]
 
+            L = L_new
+            R = R_new
             num_iters = it
 
-            # 早停检查
-            total = L[:, 0] + R[:, 0]
-            u_hat = np.where(total >= 0, 0, 1).astype(np.int32)
+            u_hat = np.where(L[:, 0] + R[:, 0] >= 0, 0, 1).astype(np.int32)
             u_hat[self.frozen_bits.astype(bool)] = 0
 
             x_hat = polar_encode(u_hat)
@@ -83,7 +84,6 @@ class BPDecoder:
             if np.array_equal(x_hat, x_hard):
                 break
 
-        total = L[:, 0] + R[:, 0]
-        u_hat = np.where(total >= 0, 0, 1).astype(np.int32)
+        u_hat = np.where(L[:, 0] + R[:, 0] >= 0, 0, 1).astype(np.int32)
         u_hat[self.frozen_bits.astype(bool)] = 0
         return u_hat, num_iters
