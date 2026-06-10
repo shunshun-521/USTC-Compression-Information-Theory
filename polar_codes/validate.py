@@ -46,4 +46,4 @@ def run_unit_tests():
     u_scl, _ = SCLDecoder(4, frozen4, list_size=1).decode(llr_test)
     assert np.array_equal(u_sc, u_scl), "L=1 SCL 应等价于 SC"
 
-    print("All unit tests passed.")
+    print("All unit tests passed.", flush=True)
