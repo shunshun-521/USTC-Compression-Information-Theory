@@ -43,3 +43,7 @@ def run_unit_tests(verbose=True):
 
     if verbose:
         print("所有单元测试通过。")
+
+
+if __name__ == "__main__":
+    run_unit_tests()
