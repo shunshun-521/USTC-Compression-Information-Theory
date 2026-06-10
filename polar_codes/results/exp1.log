@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "/workspace/polar_codes/run_exp1.py", line 22, in <module>
-    run_unit_tests()
-  File "/workspace/polar_codes/validate.py", line 39, in run_unit_tests
-    assert np.array_equal(u_hat_sc, u_hat_rec)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError
