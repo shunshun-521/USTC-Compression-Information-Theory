@@ -40,7 +40,8 @@ def run_unit_tests():
         assert np.array_equal(u_hat_sc[info_idx], source)
 
     # L=1 SCL 等价 SC
-    llr_test = compute_llr(bpsk_modulate(polar_encode(u)), 0.01)
+    u4 = np.array([1, 0, 1, 1])
+    llr_test = compute_llr(bpsk_modulate(polar_encode(u4)), 0.01)
     frozen4 = np.array([False, False, True, True])
     u_sc = sc_decode(llr_test, frozen4)
     u_scl, _ = SCLDecoder(4, frozen4, list_size=1).decode(llr_test)
