@@ -22,15 +22,15 @@ from validation import run_unit_tests
 os.makedirs("results", exist_ok=True)
 
 QUICK = os.environ.get("POLAR_QUICK", "0") == "1"
-N = 256 if QUICK else 512
+N = 128 if QUICK else 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4] if QUICK else [2, 4, 8]
-MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "3000" if QUICK else "100000"))
-MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "15" if QUICK else "100"))
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.5 if QUICK else 0.25)
+MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "200" if QUICK else "100000"))
+MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "10" if QUICK else "100"))
+EB_N0_RANGE = np.arange(2.0, 4.5, 1.0) if QUICK else np.arange(1.0, 5.5, 0.25)
 
 run_unit_tests()
 

@@ -26,9 +26,9 @@ N_LIST = [256] if QUICK else [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "2000" if QUICK else "100000"))
-MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "15" if QUICK else "100"))
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.5 if QUICK else 0.25)
+MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "200" if QUICK else "100000"))
+MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "10" if QUICK else "100"))
+EB_N0_RANGE = np.arange(2.0, 4.5, 1.0) if QUICK else np.arange(1.0, 5.5, 0.25)
 
 run_unit_tests()
 

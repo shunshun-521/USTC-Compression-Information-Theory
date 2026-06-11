@@ -62,29 +62,38 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=np.float64)
     capacities = []
-    y_grid = np.linspace(-10, 10, 2001)
+    y_grid = np.linspace(-12, 12, 4001)
+    phi = np.exp(-0.5 * y_grid**2) / np.sqrt(2.0 * np.pi)
 
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-        integrand = np.log2(1.0 + np.exp(-2.0 * snr * y_grid)) * np.exp(-0.5 * y_grid**2)
-        integral = np.trapz(integrand, y_grid) / np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - integral)
+        p0 = np.exp(-0.5 * (y_grid - 1.0) ** 2 * snr)
+        p1 = np.exp(-0.5 * (y_grid + 1.0) ** 2 * snr)
+        p_sum = p0 + p1
+        mi = (
+            p0 * np.log2(np.maximum(2.0 * p0 / p_sum, 1e-300))
+            + p1 * np.log2(np.maximum(2.0 * p1 / p_sum, 1e-300))
+        )
+        capacities.append(float(np.trapezoid(mi * phi, y_grid)))
 
     return np.asarray(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    # 线性插值细化
-    if 0 < idx < len(eb_grid) - 1:
-        c0, c1 = caps[idx - 1], caps[idx + 1]
-        e0, e1 = eb_grid[idx - 1], eb_grid[idx + 1]
-        if c0 != c1:
-            return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
-    return float(eb_grid[idx])
+    diff = caps - rate
+    cross = np.where(np.diff(np.sign(diff)))[0]
+    if len(cross) == 0:
+        idx = int(np.argmin(np.abs(diff)))
+        return float(eb_grid[idx])
+    i = int(cross[0])
+    c0, c1 = caps[i], caps[i + 1]
+    e0, e1 = eb_grid[i], eb_grid[i + 1]
+    if c1 == c0:
+        return float(e0)
+    return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
 
 
 def plot_bler_curves(
