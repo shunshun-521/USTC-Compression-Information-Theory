@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from config import MAX_FRAMES, MIN_ERRORS
+from config import EXP1_N_LIST, MAX_FRAMES, MIN_ERRORS
 from validate import run_all as run_validation
 from construction import ga_construction
 from decoder_sc import sc_decode
@@ -25,7 +25,7 @@ os.makedirs("results", exist_ok=True)
 print("运行模块校验...")
 run_validation()
 
-N_LIST = [256, 512, 1024]
+N_LIST = EXP1_N_LIST
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
