@@ -4,6 +4,8 @@
 import os
 import sys
 
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -26,8 +28,8 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
+MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", 100000))
+MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", 100))
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 for N in N_LIST:
