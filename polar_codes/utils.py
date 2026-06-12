@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -63,24 +62,32 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    计算 BPSK-AWGN 离散输入信道容量（bits/channel use）。
+    通过 Monte Carlo 估计互信息 I(X;Y)。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
+    rng = np.random.default_rng(0)
+    num_samples = 200000
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        sigma = 1.0 / np.sqrt(2.0 * rate * (10.0 ** (eb_n0_db / 10.0)))
+        x = rng.integers(0, 2, size=num_samples)
+        s = 1.0 - 2.0 * x
+        y = s + rng.normal(0.0, sigma, size=num_samples)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        llr = 2.0 * y / (sigma ** 2)
+        p0 = 1.0 / (1.0 + np.exp(-llr))
+        p1 = 1.0 - p0
+        p0 = np.clip(p0, 1e-300, 1.0)
+        p1 = np.clip(p1, 1e-300, 1.0)
+        h_x_given_y = -np.mean(p0 * np.log2(p0) + p1 * np.log2(p1))
+        capacities.append(max(1.0 - h_x_given_y, 0.0))
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 5), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
