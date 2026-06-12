@@ -52,27 +52,41 @@ def load_results_csv(filepath):
     return results
 
 
+def _bpsk_mutual_info(eb_n0_linear):
+    """
+    BPSK-AWGN 互信息 I(X;Y)（bits/channel use），X∈{+1,-1} 等概率。
+    """
+    sigma2 = 1.0 / (2.0 * eb_n0_linear)
+    coef = 1.0 / np.sqrt(2.0 * np.pi * sigma2)
+
+    def p_pos(y):
+        return coef * np.exp(-0.5 * (y - 1.0) ** 2 / sigma2)
+
+    def p_neg(y):
+        return coef * np.exp(-0.5 * (y + 1.0) ** 2 / sigma2)
+
+    def cond_entropy(y):
+        a, b = p_pos(y), p_neg(y)
+        q = a / (a + b)
+        if q < 1e-15 or q > 1.0 - 1e-15:
+            return 0.0
+        return -q * np.log2(q) - (1.0 - q) * np.log2(1.0 - q)
+
+    hxy, _ = integrate.quad(
+        lambda y: 0.5 * (p_pos(y) + p_neg(y)) * cond_entropy(y), -10, 10, limit=200
+    )
+    return max(0.0, 1.0 - hxy)
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
-    通过高斯数值积分计算。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacities.append(1.0 - val / np.sqrt(2.0 * np.pi))
-    return np.array(capacities)
+    return np.array([_bpsk_mutual_info(10 ** (db / 10.0)) for db in eb_n0_db_list])
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-4, 10), num_points=1000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     这是香农限，用于在 BLER 图中标注参考竖线。
