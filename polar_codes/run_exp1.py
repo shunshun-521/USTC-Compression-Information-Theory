@@ -46,7 +46,7 @@ EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 if os.environ.get("POLAR_QUICK") == "1":
     MAX_FRAMES = min(MAX_FRAMES, 5000)
     MIN_ERRORS = min(MIN_ERRORS, 30)
-    EB_N0_RANGE = np.arange(1.0, 4.5, 0.5)
+    EB_N0_RANGE = np.arange(3.0, 7.5, 0.5)
     N_LIST = [256, 512] if len(N_LIST) > 2 else N_LIST
 
 # ========== 保存信息位/冻结位集合 ==========

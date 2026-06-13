@@ -38,7 +38,7 @@ EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 if os.environ.get("POLAR_QUICK") == "1":
     MAX_FRAMES = min(MAX_FRAMES, 3000)
     MIN_ERRORS = min(MIN_ERRORS, 20)
-    EB_N0_RANGE = np.arange(1.5, 4.5, 0.5)
+    EB_N0_RANGE = np.arange(3.5, 7.5, 0.5)
 
 for N in N_LIST:
     K = N // 2

@@ -40,8 +40,11 @@ EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 if os.environ.get("POLAR_QUICK") == "1":
     MAX_FRAMES = min(MAX_FRAMES, 3000)
     MIN_ERRORS = min(MIN_ERRORS, 20)
-    EB_N0_RANGE = np.arange(1.5, 4.5, 0.5)
+    EB_N0_RANGE = np.arange(3.5, 7.5, 0.5)
     L_LIST = [2, 4]
+    CASCL_LIST_SIZE = 4
+else:
+    CASCL_LIST_SIZE = 8
 
 info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
