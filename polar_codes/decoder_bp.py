@@ -40,7 +40,8 @@ class BPDecoder:
             if self.frozen_br[i]:
                 R[0, i] = LARGE
             else:
-                R[0, i] = -abs(L[n, i]) if u_sc_br[i] == 1 else abs(L[n, i])
+                sc_bias = -abs(L[n, i]) if u_sc_br[i] == 1 else abs(L[n, i])
+                R[0, i] = 0.5 * L[n, i] + 0.5 * sc_bias
 
         num_iters = 0
         for it in range(self.max_iter):

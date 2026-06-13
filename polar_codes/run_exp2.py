@@ -79,12 +79,14 @@ for L in L_LIST:
     label = f"SCL (L={L})"
     all_results[label] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+    if L == 4:
+        save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
-print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+print(f"\nCA-SCL 仿真: N={N}, K={K}, L={CASCL_LIST_SIZE}, CRC={CRC_LENGTH}")
 
 
 def cascl_decoder(llr_ch):
-    u_hat, pm = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+    u_hat, pm = SCLDecoder(N, frozen_bits, list_size=CASCL_LIST_SIZE, crc_length=CRC_LENGTH).decode(llr_ch)
     return u_hat, None
 
 
@@ -92,8 +94,8 @@ results_cascl = run_simulation(
     N, K, EB_N0_RANGE, cascl_decoder, "scl", MAX_FRAMES, MIN_ERRORS,
     crc_length=CRC_LENGTH, verbose=True, frozen_bits=frozen_bits, info_indices=info_idx,
 )
-all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+all_results[f"CA-SCL (L={CASCL_LIST_SIZE}, CRC={CRC_LENGTH})"] = results_cascl
+save_results_csv(results_cascl, f"results/exp2_cascl_L{CASCL_LIST_SIZE}_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
