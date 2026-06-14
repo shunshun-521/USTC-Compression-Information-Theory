@@ -14,13 +14,13 @@ def run_simulation(
     K,
     eb_n0_db_list,
     decoder,
+    info_indices,
     decoder_type="sc",
     max_frames=100000,
     min_errors=100,
     crc_length=0,
     verbose=True,
     seed=42,
-    info_indices,
 ):
     """
     蒙特卡洛仿真。

@@ -60,10 +60,10 @@ for N in N_LIST:
         K=K,
         eb_n0_db_list=EB_N0_RANGE,
         decoder=decoder,
+        info_indices=info_idx,
         decoder_type="sc",
         max_frames=MAX_FRAMES,
         min_errors=MIN_ERRORS,
-        info_indices=info_idx,
         verbose=True,
     )
 

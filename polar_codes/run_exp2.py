@@ -57,7 +57,7 @@ def sc_decoder(llr_ch):
 
 print("\nSC 基线 (L=1)")
 results_sc = run_simulation(
-    N, K, EB_N0_RANGE, sc_decoder, "sc", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+    N, K, EB_N0_RANGE, sc_decoder, info_idx, "sc", MAX_FRAMES, MIN_ERRORS
 )
 all_results["SC (L=1)"] = results_sc
 save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
@@ -70,7 +70,7 @@ for L in L_LIST:
         return u_hat, None
 
     results = run_simulation(
-        N, K, EB_N0_RANGE, scl_decoder, "scl", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+        N, K, EB_N0_RANGE, scl_decoder, info_idx, "scl", MAX_FRAMES, MIN_ERRORS
     )
     all_results[f"SCL (L={L})"] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
@@ -88,11 +88,11 @@ results_cascl = run_simulation(
     K,
     EB_N0_RANGE,
     cascl_decoder,
+    info_idx,
     "scl",
     MAX_FRAMES,
     MIN_ERRORS,
     crc_length=CRC_LENGTH,
-    info_indices=info_idx,
 )
 all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
 save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")

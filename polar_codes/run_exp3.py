@@ -54,7 +54,7 @@ for N in N_LIST:
 
     print(f"\n实验三 N={N}: SC")
     r_sc = run_simulation(
-        N, K, EB_N0_RANGE, sc_d, "sc", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+        N, K, EB_N0_RANGE, sc_d, info_idx, "sc", MAX_FRAMES, MIN_ERRORS
     )
     all_results["SC"] = r_sc
     save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
@@ -65,7 +65,7 @@ for N in N_LIST:
 
     print(f"实验三 N={N}: SCL L=4")
     r_scl = run_simulation(
-        N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+        N, K, EB_N0_RANGE, scl_d, info_idx, "scl", MAX_FRAMES, MIN_ERRORS
     )
     all_results["SCL (L=4)"] = r_scl
     save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
@@ -78,7 +78,7 @@ for N in N_LIST:
 
     print(f"实验三 N={N}: BP")
     r_bp = run_simulation(
-        N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+        N, K, EB_N0_RANGE, bp_d, info_idx, "bp", MAX_FRAMES, MIN_ERRORS
     )
     all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
     save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
