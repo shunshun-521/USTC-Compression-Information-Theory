@@ -24,16 +24,16 @@ run_unit_tests()
 
 QUICK = os.environ.get("POLAR_QUICK", "0") == "1"
 
-N = 512
+N = 128 if QUICK else 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4] if QUICK else [2, 4, 8]
-MAX_FRAMES = 2000 if QUICK else 100000
-MIN_ERRORS = 20 if QUICK else 100
+MAX_FRAMES = 500 if QUICK else 100000
+MIN_ERRORS = 5 if QUICK else 100
 EB_N0_RANGE = (
-    np.arange(1.0, 4.0, 0.5) if QUICK else np.arange(1.0, 5.5, 0.25)
+    np.arange(1.5, 3.5, 0.5) if QUICK else np.arange(1.0, 5.5, 0.25)
 )
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
@@ -87,7 +87,10 @@ print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
 
 def cascl_decoder(llr_ch):
-    u_hat, pm = SCLDecoder(N, fb, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+    list_size = 4 if QUICK else 8
+    u_hat, pm = SCLDecoder(N, fb, list_size=list_size, crc_length=CRC_LENGTH).decode(
+        llr_ch
+    )
     return u_hat, None
 
 
@@ -103,8 +106,8 @@ results_cascl = run_simulation(
     info_indices=info_idx,
     frozen_bits=frozen_bits,
 )
-all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+all_results[f"CA-SCL (L={4 if QUICK else 8}, CRC={CRC_LENGTH})"] = results_cascl
+save_results_csv(results_cascl, f"results/exp2_cascl_L{4 if QUICK else 8}_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
