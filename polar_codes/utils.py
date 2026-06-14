@@ -71,7 +71,11 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
             p_y = np.exp(-(y - 1) ** 2 / (2 * snr)) / np.sqrt(
                 2 * np.pi * snr
             ) + np.exp(-(y + 1) ** 2 / (2 * snr)) / np.sqrt(2 * np.pi * snr)
-            term = np.log2(1 + np.exp(-2 * snr * y))
+            x = -2 * snr * y
+            if x > 0:
+                term = -x / np.log(2)
+            else:
+                term = np.log2(1 + np.exp(x))
             return p_y * term
 
         val, _ = integrate.quad(integrand, -20, 20, limit=200)
