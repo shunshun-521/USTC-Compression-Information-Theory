@@ -48,30 +48,40 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))], s = 2R * 10^(Eb/N0/10)
+    计算 BPSK 信道容量（bits/channel use），数值积分互信息。
+    调制：0 -> +1, 1 -> -1；N0 由 Eb/N0 与码率确定。
     """
     caps = []
     for eb_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_db / 10.0))
+        eb_lin = 10 ** (eb_db / 10.0)
+        sigma = 1.0 / np.sqrt(2.0 * rate * eb_lin)
+        amp = 1.0
 
         def integrand(y):
-            return np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi) * np.log2(
-                1.0 + np.exp(-2.0 * snr * y)
-            )
+            p0 = np.exp(-0.5 * ((y - amp) / sigma) ** 2) / (np.sqrt(2 * np.pi) * sigma)
+            p1 = np.exp(-0.5 * ((y + amp) / sigma) ** 2) / (np.sqrt(2 * np.pi) * sigma)
+            py = 0.5 * (p0 + p1)
+            mi = 0.0
+            for px in (p0, p1):
+                pxy = 0.5 * px
+                if pxy > 1e-300 and py > 1e-300:
+                    mi += pxy * np.log2(px / py)
+            return mi
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
-        caps.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -10.0 * sigma - 2, 10.0 * sigma + 2, limit=200)
+        caps.append(val)
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 5), num_points=200):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-  # refine with local search
-    lo, hi = eb_grid[max(0, idx - 1)], eb_grid[min(num_points - 1, idx + 1)]
+    if caps[-1] < rate:
+        return float(eb_n0_range[1])
+    idx = int(np.searchsorted(caps, rate))
+    idx = min(max(idx, 1), num_points - 1)
+    lo, hi = eb_grid[idx - 1], eb_grid[idx]
     for _ in range(50):
         mid = (lo + hi) / 2.0
         c_mid = compute_bpsk_capacity([mid], rate)[0]
