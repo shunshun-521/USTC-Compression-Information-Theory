@@ -4,7 +4,7 @@
 """
 import numpy as np
 from decoder_sc import f_operation
-from encoder import polar_encode
+from encoder import polar_encode, bit_reversal_permutation
 
 LARGE = 1e6
 
@@ -16,7 +16,7 @@ class BPDecoder:
         self.N = N
         self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
-        self.frozen_internal = self.frozen_bits.copy()
+        self.br = bit_reversal_permutation(N)
         self.max_iter = max_iter
         self.alpha = alpha
 
@@ -32,25 +32,25 @@ class BPDecoder:
 
         L[:, n] = llr_ch
         R[:, 0] = 0.0
-        R[self.frozen_internal, 0] = LARGE
+        R[self.frozen_bits[self.br], 0] = LARGE
 
         num_iters = self.max_iter
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        L[idx, j - 1] = self._f_ms(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_ms(
+                            R[idx, j + 1] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_ms(
+                        L[idx + s, j] = self._f_ms(
                             R[idx, j], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
-            for j in range(0, n):
+            for j in range(n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
@@ -63,8 +63,9 @@ class BPDecoder:
                         ) + R[idx + s, j]
 
             total = L[:, 0] + R[:, 0]
-            u_hat = np.where(total >= 0, 0, 1).astype(int)
-            u_hat[self.frozen_internal] = 0
+            u_internal = np.where(total >= 0, 0, 1).astype(int)
+            u_internal[self.frozen_bits[self.br]] = 0
+            u_hat = u_internal[self.br]
 
             x_hat = polar_encode(u_hat)
             hard_ch = (llr_ch < 0).astype(int)
@@ -73,6 +74,7 @@ class BPDecoder:
                 break
 
         total = L[:, 0] + R[:, 0]
-        u_hat = np.where(total >= 0, 0, 1).astype(int)
-        u_hat[self.frozen_internal] = 0
+        u_internal = np.where(total >= 0, 0, 1).astype(int)
+        u_internal[self.frozen_bits[self.br]] = 0
+        u_hat = u_internal[self.br]
         return u_hat, num_iters
