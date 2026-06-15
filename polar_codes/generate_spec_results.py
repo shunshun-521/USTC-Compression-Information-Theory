@@ -11,7 +11,7 @@ from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from decoder_bp import BPDecoder
 from simulation import run_simulation
-from utils import save_results_csv, plot_bler_curves, find_capacity_limit
+from utils import save_results_csv, plot_bler_curves, find_capacity_limit, save_frozen_set_info
 
 os.makedirs("results", exist_ok=True)
 
@@ -21,7 +21,9 @@ MAX_FRAMES = 5000
 MIN_ERRORS = 30
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
-# SC N=256, 512
+save_frozen_set_info([256, 512, 1024], None, DESIGN_EBN0,
+                     "results/frozen_sets.txt", rate=RATE)
+
 all_sc = {}
 for N in [256, 512]:
     K = N // 2
@@ -29,8 +31,8 @@ for N in [256, 512]:
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
 
-    def decoder(llr):
-        return sc_decode(llr, frozen_bits), None
+    def decoder(llr, _fb=frozen_bits):
+        return sc_decode(llr, _fb), None
 
     print(f"SC N={N}")
     results = run_simulation(
@@ -43,22 +45,25 @@ for N in [256, 512]:
 plot_bler_curves(all_sc, "SC BLER (spec)", "results/fig1_sc_bler.png",
                  find_capacity_limit(RATE))
 
-# SCL N=512
 N = 512
 K = N // 2
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
 frozen_bits[info_idx] = 0
 
+
+def scl_dec(llr):
+    u, _ = SCLDecoder(N, frozen_bits, 4).decode(llr)
+    return u, None
+
+
 print("SCL N=512 L=4")
 scl_results = run_simulation(
-    N, K, EB_N0_RANGE,
-    lambda llr: SCLDecoder(N, frozen_bits, 4).decode(llr) + (None,),
+    N, K, EB_N0_RANGE, scl_dec,
     "scl", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
 )
 save_results_csv(scl_results, "results/exp2_scl_N512_R0.5.csv")
 
-# BP N=256, 512
 for N in [256, 512]:
     K = N // 2
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
@@ -66,10 +71,12 @@ for N in [256, 512]:
     frozen_bits[info_idx] = 0
     bp = BPDecoder(N, frozen_bits)
 
+    def bp_dec(llr, _bp=bp):
+        return _bp.decode(llr)
+
     print(f"BP N={N}")
     results = run_simulation(
-        N, K, EB_N0_RANGE,
-        lambda llr, _bp=bp: _bp.decode(llr),
+        N, K, EB_N0_RANGE, bp_dec,
         "bp", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
     )
     save_results_csv(results, f"results/exp3_bp_N{N}_R0.5.csv")
