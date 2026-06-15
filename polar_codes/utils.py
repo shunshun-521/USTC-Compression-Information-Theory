@@ -63,16 +63,25 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_capacity_per_snr(snr_linear):
-    """BPSK 离散输入信道容量（bits/channel use）"""
+def _log2_1_plus_exp(z):
+    if z > 30:
+        return z / np.log(2)
+    if z < -30:
+        return 0.0
+    return np.log2(1.0 + np.exp(z))
 
-    def integrand(y):
-        z = -2.0 * snr_linear * y
-        if z > 0:
-            log_term = np.log2(1.0 + np.exp(-z))
-        else:
-            log_term = np.log2(1.0 + np.exp(z)) - z / np.log(2)
-        return log_term * np.exp(-0.5 * y ** 2)
+
+def _bpsk_capacity_per_snr(snr_linear):
+    """
+    BPSK 离散输入 AWGN 信道容量（bits/channel use）。
+    snr_linear = Es/N0 = 2R * 10^{Eb/N0/10}
+    """
+    if snr_linear <= 0:
+        return 0.0
+
+    def integrand(x):
+        z = -2.0 * snr_linear - 2.0 * np.sqrt(2.0 * snr_linear) * x
+        return _log2_1_plus_exp(z) * np.exp(-0.5 * x * x)
 
     val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
     val /= np.sqrt(2.0 * np.pi)
