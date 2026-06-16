@@ -25,7 +25,7 @@ def polar_encode(u):
     返回：
         x: 长度为 N 的码字
     """
-    u = np.asarray(u, dtype=np.int8).copy()
+    u = np.asarray(u, dtype=np.int64).copy()
     N = len(u)
     n = int(np.log2(N))
     assert 2 ** n == N
@@ -38,7 +38,7 @@ def polar_encode(u):
         step *= 2
 
     rev = bit_reversal_permutation(N)
-    return u[rev]
+    return u[rev].astype(np.int8)
 
 
 if __name__ == "__main__":

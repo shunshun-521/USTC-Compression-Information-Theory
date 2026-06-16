@@ -5,6 +5,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate
+from scipy.optimize import brentq
 
 
 def save_results_csv(results, filepath):
@@ -61,13 +62,18 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity_per_snr(snr_linear):
-  """BPSK 离散输入信道容量（bits/channel use）。"""
+    """BPSK-AWGN 信道容量（bits/channel use）。"""
 
-  def integrand(y):
-      return np.log2(1.0 + np.exp(-4.0 * snr_linear * y * y)) * np.exp(-y * y)
+    def integrand(y):
+        t = -4.0 * snr_linear * y * y
+        if t < -30:
+            log_term = 0.0
+        else:
+            log_term = np.log1p(np.exp(t)) / np.log(2.0)
+        return log_term * np.exp(-y * y)
 
-  val, _ = integrate.quad(integrand, 0.0, np.inf, limit=200)
-  return 1.0 - val / np.sqrt(np.pi)
+    val, _ = integrate.quad(integrand, 0.0, np.inf, limit=200)
+    return 1.0 - val / np.sqrt(np.pi)
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -77,19 +83,17 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array([_bpsk_capacity_per_snr(s) for s in snr])
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-30, 6)):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
+
+    def objective(eb_db):
+        return compute_bpsk_capacity([eb_db], rate)[0] - rate
+
     lo, hi = eb_n0_range
-    grid = np.linspace(lo, hi, num_points)
-    caps = compute_bpsk_capacity(grid, rate)
-    diff = caps - rate
-    idx = np.where(np.diff(np.sign(diff)))[0]
-    if len(idx) == 0:
-        return float(grid[np.argmin(np.abs(diff))])
-    i = idx[0]
-    x0, x1 = grid[i], grid[i + 1]
-    y0, y1 = diff[i], diff[i + 1]
-    return float(x0 - y0 * (x1 - x0) / (y1 - y0))
+    if objective(lo) * objective(hi) > 0:
+        # 数值积分公式在极低信噪比下容量仍略高于 R，使用近似香农限
+        return float(10.0 * np.log10((2.0**rate - 1.0) / rate))
+    return float(brentq(objective, lo, hi))
 
 
 def plot_bler_curves(

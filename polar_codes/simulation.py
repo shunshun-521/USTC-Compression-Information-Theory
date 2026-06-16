@@ -49,7 +49,7 @@ def run_simulation(
         total_iters = 0
 
         while num_frames < max_frames and num_errors < min_errors:
-            u = np.zeros(N, dtype=np.int8)
+            u = np.zeros(N, dtype=np.int64)
             if crc_length > 0:
                 from decoder_scl import crc_encode
 
