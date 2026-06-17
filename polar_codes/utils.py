@@ -62,15 +62,18 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            # C = 1 - E[log2(1 + exp(-2*snr*y^2))]
+            t = -2.0 * snr * y * y
+            t = np.clip(t, -700.0, 0.0)
+            return np.log2(1.0 + np.exp(t)) * np.exp(-0.5 * y * y)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -20.0, 20.0)
         val /= np.sqrt(2.0 * np.pi)
         capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=500):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
