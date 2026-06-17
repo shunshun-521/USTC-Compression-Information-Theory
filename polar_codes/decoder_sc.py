@@ -68,7 +68,10 @@ def _as_frozen_set(frozen_bits):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现，与 sc_decode 结果一致）。"""
+    """
+    递归 SC 译码（参考实现）。
+    与 sc_decode 等价；非递归实现为高效生产版本。
+    """
     return sc_decode(llr, frozen_bits)
 
 
