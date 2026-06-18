@@ -1,0 +1,32 @@
+"""实验参数：设置 POLAR_QUICK=1 可缩短仿真时间。"""
+import os
+
+QUICK = os.environ.get("POLAR_QUICK", "0") == "1"
+
+if QUICK:
+    EXP1_N_LIST = [256]
+    EXP1_MAX_FRAMES = 2000
+    EXP1_MIN_ERRORS = 20
+    EXP1_EB_N0 = [1.0, 2.0, 3.0, 4.0]
+    EXP2_MAX_FRAMES = 2000
+    EXP2_MIN_ERRORS = 20
+    EXP2_EB_N0 = [2.0, 3.0, 4.0]
+    EXP3_N_LIST = [256]
+    EXP3_MAX_FRAMES = 2000
+    EXP3_MIN_ERRORS = 20
+    EXP3_EB_N0 = [2.0, 3.0, 4.0]
+else:
+    EXP1_N_LIST = [256, 512, 1024]
+    EXP1_MAX_FRAMES = 100000
+    EXP1_MIN_ERRORS = 100
+    EXP1_EB_N0 = None
+    EXP2_MAX_FRAMES = 100000
+    EXP2_MIN_ERRORS = 100
+    EXP2_EB_N0 = None
+    EXP3_N_LIST = [256, 512]
+    EXP3_MAX_FRAMES = 100000
+    EXP3_MIN_ERRORS = 100
+    EXP3_EB_N0 = None
+
+DESIGN_EBN0 = 2.5
+RATE = 0.5
