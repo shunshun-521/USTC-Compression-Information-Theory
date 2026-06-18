@@ -8,6 +8,7 @@ from encoder import bit_reversal_permutation
 from decoder_sc import _sc_matrix_decode, _frozen_to_info_indices
 import sc_core as scf
 
+
 def _crc_poly(crc_length):
     if crc_length == 8:
         loc = [8, 2, 1, 0]
@@ -30,37 +31,23 @@ def crc_encode(info_bits, crc_length=8):
         if work[i] == 1:
             for j in range(crc_length + 1):
                 work[i + j] ^= p[j]
-    check_code = work[-crc_length:]
-    return np.array(info_bits + check_code, dtype=int)
+    return np.array(info_bits + work[-crc_length:], dtype=int)
 
 
 def crc_check(bits, crc_length=8):
     """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC。"""
     bits = [int(b) for b in np.asarray(bits, dtype=int)]
-    info = bits[:-crc_length]
-    return crc_encode(info, crc_length).tolist() == bits
-
-
-def _get_up_loc(bit_matrix):
-    n = int(np.log2(bit_matrix.shape[1]))
-    N = bit_matrix.shape[1]
-    for i in range(N):
-        if np.isnan(bit_matrix[n][i]):
-            for layer in range(n + 1):
-                width = 2 ** (n - layer)
-                if i % width == 0:
-                    return [layer, i]
-    return [0, 0]
+    return crc_encode(bits[:-crc_length], crc_length).tolist() == bits
 
 
 def _sc_step_to_split(llr_matrix, bit_matrix, information_pos, split_pos, frozen_bit=0):
-    """译码至信息位 split_pos 判决完成。"""
-    N = bit_matrix.shape[1]
+    """译码至 split_pos 位判决完成。"""
+    N = int(bit_matrix[0].size)
     n = int(np.log2(N))
-    loc = _get_up_loc(bit_matrix)
+    loc = scf.get_up_loc(bit_matrix)
     position = [loc[0], loc[1], n, N]
 
-    while not (bit_matrix[n][split_pos] == 0 or bit_matrix[n][split_pos] == 1):
+    while bit_matrix[n][split_pos] != 0 and bit_matrix[n][split_pos] != 1:
         up_llr = llr_matrix[position[0]][position[1]:position[1] + 2 ** (position[2] - position[0])]
         up_bit = bit_matrix[position[0]][position[1]:position[1] + 2 ** (position[2] - position[0])]
         left_llr = llr_matrix[position[0] + 1][position[1]:position[1] + 2 ** (position[2] - position[0] - 1)]
@@ -98,7 +85,6 @@ class SCLDecoder:
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
         self.n = int(np.log2(N))
-        self.frozen_bits = np.asarray(frozen_bits)
         self.info_indices = _frozen_to_info_indices(frozen_bits)
         self.list_size = list_size
         self.crc_length = crc_length
@@ -123,38 +109,46 @@ class SCLDecoder:
 
         n = self.n
         split_pos = list(self.info_indices)
-        llr_list, bit_list, pm_list = [], [], []
+        llr_list = []
+        bit_list = []
+        pm_list = [0.0]
         llr_m, bit_m = self._init_state(llr_ch)
         llr_list.append(llr_m)
         bit_list.append(bit_m)
-        pm_list.append(0.0)
+        split_loc = 0
+        l_now = 1
 
-        for loc, split in enumerate(split_pos):
-            prev = split_pos[loc - 1] if loc > 0 else -1
+        while split_loc < len(split_pos):
             new_llr, new_bit, new_pm = [], [], []
-            for llr_m, bit_m, pm in zip(llr_list, bit_list, pm_list):
-                lc, bc = llr_m.copy(), bit_m.copy()
-                lc, bc = _sc_step_to_split(lc, bc, self.info_indices, split)
-                seg_llr = lc[n][prev + 1:split + 1]
-                seg_bit = bc[n][prev + 1:split + 1]
-                base_pm = pm + scf.get_pm_update(seg_llr, seg_bit, 'l')
+            for i in range(l_now):
+                lc, bc = llr_list[i].copy(), bit_list[i].copy()
+                lc, bc = _sc_step_to_split(lc, bc, self.info_indices, split_pos[split_loc])
+                prev = split_pos[split_loc - 1] + 1 if split_loc > 0 else 0
+                seg_llr = lc[n][prev:split_pos[split_loc] + 1]
+                seg_bit = bc[n][prev:split_pos[split_loc] + 1]
+                pm_base = pm_list[i] + scf.get_pm_update(seg_llr, seg_bit, 'hf')
 
-                u_bit = int(bc[n][split])
-                for val in (u_bit, 1 - u_bit):
-                    lc2, bc2 = lc.copy(), bc.copy()
-                    bc2[n][split] = val
-                    pm_inc = 0.0 if val == u_bit else abs(float(lc[n][split]))
-                    new_llr.append(lc2)
-                    new_bit.append(bc2)
-                    new_pm.append(base_pm + pm_inc)
+                new_llr.append(lc)
+                new_bit.append(bc)
+                new_pm.append(pm_base)
+
+                bc_wrong = bc.copy()
+                bc_wrong[n][split_pos[split_loc]] = 1 - bc_wrong[n][split_pos[split_loc]]
+                seg_bit_w = bc_wrong[n][prev:split_pos[split_loc] + 1]
+                pm_wrong = pm_list[i] + scf.get_pm_update(seg_llr, seg_bit_w, 'hf')
+                new_llr.append(lc.copy())
+                new_bit.append(bc_wrong)
+                new_pm.append(pm_wrong)
 
             order = np.argsort(new_pm)[:self.list_size]
             llr_list = [new_llr[i] for i in order]
             bit_list = [new_bit[i] for i in order]
             pm_list = [new_pm[i] for i in order]
+            l_now = len(pm_list)
+            split_loc += 1
 
         if split_pos[-1] != self.N - 1:
-            for i in range(len(llr_list)):
+            for i in range(l_now):
                 llr_list[i], bit_list[i] = _sc_step_to_split(
                     llr_list[i], bit_list[i], self.info_indices, self.N - 1
                 )
