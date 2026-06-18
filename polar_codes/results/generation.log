@@ -1,0 +1,45 @@
+所有单元测试通过。
+  Eb/N0=3.00dB | BLER=4.0000e-02 | BER=1.3125e-02 | Errors=1 | Frames=25 | AvgTime=458.77ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=25 | AvgTime=469.62ms
+  Eb/N0=3.00dB | BLER=4.0000e-02 | BER=3.7500e-03 | Errors=1 | Frames=25 | AvgTime=2016.89ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=25 | AvgTime=1771.97ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=10 | AvgTime=7669.56ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=10 | AvgTime=8038.07ms
+/workspace/polar_codes/utils.py:69: RuntimeWarning: overflow encountered in exp
+  return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:69: RuntimeWarning: invalid value encountered in scalar multiply
+  return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:71: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = integrate.quad(integrand, -np.inf, np.inf)
+  Eb/N0=3.00dB | BLER=3.3333e-02 | BER=3.1250e-03 | Errors=1 | Frames=30 | AvgTime=2029.03ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=30 | AvgTime=1835.13ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=269.17ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=282.96ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=534.14ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=482.91ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=524.58ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=529.07ms
+/workspace/polar_codes/utils.py:69: RuntimeWarning: overflow encountered in exp
+  return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:69: RuntimeWarning: invalid value encountered in scalar multiply
+  return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:71: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = integrate.quad(integrand, -np.inf, np.inf)
+  Eb/N0=3.00dB | BLER=5.0000e-02 | BER=1.6406e-02 | Errors=1 | Frames=20 | AvgTime=565.66ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=20 | AvgTime=549.16ms
+  Eb/N0=3.00dB | BLER=5.0000e-02 | BER=3.1250e-03 | Errors=1 | Frames=20 | AvgTime=216.09ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=20 | AvgTime=225.67ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=5.0521e-01 | Errors=3 | Frames=3 | AvgTime=2343.27ms | AvgIter=50.0
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8177e-01 | Errors=3 | Frames=3 | AvgTime=2588.90ms | AvgIter=50.0
+  Eb/N0=3.00dB | BLER=6.6667e-02 | BER=6.2500e-03 | Errors=1 | Frames=15 | AvgTime=2162.08ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=2150.93ms
+  Eb/N0=3.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=536.12ms
+  Eb/N0=4.00dB | BLER=0.0000e+00 | BER=0.0000e+00 | Errors=0 | Frames=15 | AvgTime=502.59ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=5.0521e-01 | Errors=3 | Frames=3 | AvgTime=5464.55ms | AvgIter=50.0
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8958e-01 | Errors=3 | Frames=3 | AvgTime=5223.99ms | AvgIter=50.0
+补全完成
+GENERATION_DONE
