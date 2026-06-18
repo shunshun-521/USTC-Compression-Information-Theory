@@ -1,0 +1,22 @@
+运行模块校验...
+✓ 编码器校验通过
+✓ SC 译码校验通过
+✓ SC 递归/非递归一致性通过
+✓ SCL(L=1) 等价 SC 校验通过
+✓ CRC 校验通过
+✓ BP 译码校验: 30/30 帧正确 (Eb/N0=5dB)
+
+所有校验通过。
+
+SC 基线 (L=1)
+  Eb/N0=1.00dB | BLER=6.9767e-01 | BER=2.4119e-01 | Errors=30 | Frames=43 | AvgTime=362.37ms
+  Eb/N0=1.25dB | BLER=4.8387e-01 | BER=1.3760e-01 | Errors=30 | Frames=62 | AvgTime=362.81ms
+  Eb/N0=1.50dB | BLER=2.9703e-01 | BER=8.4313e-02 | Errors=30 | Frames=101 | AvgTime=365.63ms
+  Eb/N0=1.75dB | BLER=2.6316e-01 | BER=6.1643e-02 | Errors=30 | Frames=114 | AvgTime=363.03ms
+  Eb/N0=2.00dB | BLER=1.0563e-01 | BER=2.7921e-02 | Errors=30 | Frames=284 | AvgTime=362.98ms
+  Eb/N0=2.25dB | BLER=5.4446e-02 | BER=1.1598e-02 | Errors=30 | Frames=551 | AvgTime=363.09ms
+  Eb/N0=2.50dB | BLER=3.3557e-02 | BER=5.7108e-03 | Errors=30 | Frames=894 | AvgTime=363.41ms
+  Eb/N0=2.75dB | BLER=1.5337e-02 | BER=2.7779e-03 | Errors=30 | Frames=1956 | AvgTime=365.91ms
+  Eb/N0=3.00dB | BLER=4.0000e-03 | BER=6.0156e-04 | Errors=20 | Frames=5000 | AvgTime=363.60ms
+  Eb/N0=3.25dB | BLER=2.2000e-03 | BER=2.4688e-04 | Errors=11 | Frames=5000 | AvgTime=363.53ms
+  Eb/N0=3.50dB | BLER=1.2000e-03 | BER=6.4063e-05 | Errors=6 | Frames=5000 | AvgTime=363.46ms
