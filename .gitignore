@@ -23,6 +23,7 @@ qwen25_05b_models/
 # --- Experiment intermediate artifacts ---
 data/
 data_exp3/
+polar_codes/results/
 *.gpz
 *.qwz
 *.dec.txt
