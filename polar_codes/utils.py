@@ -68,6 +68,7 @@ def load_results_csv(filepath):
 def _log2_1pexp(z):
     """数值稳定的 log2(1 + exp(z))"""
     z = np.asarray(z, dtype=np.float64)
+    z = np.clip(z, -50.0, 50.0)
     return np.where(
         z > 0,
         (z + np.log1p(np.exp(-z))) / np.log(2.0),
