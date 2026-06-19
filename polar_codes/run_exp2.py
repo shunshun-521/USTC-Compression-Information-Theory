@@ -56,8 +56,8 @@ def main():
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
     L_LIST = [2, 4, 8]
-    MAX_FRAMES = 10000
-    MIN_ERRORS = 50
+    MAX_FRAMES = 3000
+    MIN_ERRORS = 30
     EB_N0_RANGE = np.arange(4.0, 11.0, 0.5)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
