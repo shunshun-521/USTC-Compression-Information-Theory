@@ -18,12 +18,14 @@ CRC16_POLY = 0x8005
 
 def _crc_polynomial_bits(crc_length):
     if crc_length == 8:
-        poly = CRC8_POLY
-    elif crc_length == 16:
-        poly = CRC16_POLY
-    else:
-        raise ValueError("crc_length 仅支持 8 或 16")
-    return np.array([(poly >> i) & 1 for i in range(crc_length - 1, -1, -1)], dtype=int)
+        # x^8 + x^2 + x + 1
+        return np.array([1, 0, 0, 0, 0, 0, 1, 1, 1], dtype=int)
+    if crc_length == 16:
+        # x^16 + x^15 + x^2 + 1
+        return np.array(
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1], dtype=int
+        )
+    raise ValueError("crc_length 仅支持 8 或 16")
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -32,7 +34,7 @@ def crc_encode(info_bits, crc_length=8):
     """
     info_bits = np.asarray(info_bits, dtype=int).flatten()
     poly = _crc_polynomial_bits(crc_length)
-    r = len(poly) - 1
+    r = crc_length
     msg = np.concatenate([info_bits, np.zeros(r, dtype=int)])
     for i in range(len(info_bits)):
         if msg[i] == 1:
@@ -44,7 +46,7 @@ def crc_check(bits, crc_length=8):
     """检验 bits 末尾 CRC 是否正确。"""
     bits = np.asarray(bits, dtype=int).flatten()
     poly = _crc_polynomial_bits(crc_length)
-    r = len(poly) - 1
+    r = crc_length
     if len(bits) < r:
         return False
     data = bits[:-r]

@@ -2,7 +2,6 @@
 极化码 BP（置信传播）译码器
 基于因子图，使用 min-sum 近似，含早停机制
 """
-import math
 import numpy as np
 from encoder import polar_encode
 from decoder_sc import f_operation
@@ -13,7 +12,7 @@ class BPDecoder:
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
-        self.n = int(math.log2(N))
+        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits).astype(bool)
         self.max_iter = max_iter
         self.alpha = alpha
@@ -39,29 +38,32 @@ class BPDecoder:
         hard_ch = (llr_ch < 0).astype(int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            # 从右到左更新 L 消息
+            for j in range(n - 1, -1, -1):
+                step = 1 << j
                 for i in range(0, N, 2 * step):
                     for t in range(step):
                         idx = i + t
-                        L[idx, j - 1] = self._f_ms(
-                            R[idx, j] + L[idx + step, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_ms(
+                            R[idx, j + 1] + L[idx + step, j + 1], L[idx, j + 1]
                         )
-                        L[idx + step, j - 1] = self._f_ms(R[idx, j], L[idx, j + 1]) + L[
-                            idx + step, j + 1
-                        ]
+                        L[idx + step, j] = (
+                            self._f_ms(R[idx, j + 1], L[idx, j + 1])
+                            + L[idx + step, j + 1]
+                        )
 
+            # 从左到右更新 R 消息
             for j in range(1, n + 1):
                 step = 1 << (j - 1)
                 for i in range(0, N, 2 * step):
                     for t in range(step):
                         idx = i + t
                         R[idx, j] = self._f_ms(
-                            R[idx + step, j] + L[idx + step, j + 1], R[idx, j - 1]
+                            R[idx + step, j] + L[idx + step, j], R[idx, j - 1]
                         )
-                        R[idx + step, j] = self._f_ms(R[idx, j - 1], L[idx, j + 1]) + R[
-                            idx + step, j
-                        ]
+                        R[idx + step, j] = (
+                            self._f_ms(R[idx, j - 1], L[idx, j]) + R[idx + step, j]
+                        )
 
             u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
