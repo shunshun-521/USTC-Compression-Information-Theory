@@ -9,7 +9,7 @@ def f_operation(La, Lb):
     """
     min-sum 近似的 f 运算：
     f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
-  """
+    """
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
@@ -53,9 +53,7 @@ def _active_bit_level(i, n):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """
-    递归 SC 译码（参考实现）。
-    """
+    """递归 SC 译码（参考实现）。"""
     llr = np.asarray(llr, dtype=np.float64)
     frozen_bits = np.asarray(frozen_bits, dtype=bool)
     N = len(llr)
@@ -82,24 +80,22 @@ def sc_decode_recursive(llr, frozen_bits):
 
 
 def precompute_sc_indices(N):
-    """保留接口：返回比特倒序译码顺序及辅助参数。"""
+    """预计算非递归 SC 译码所需的辅助向量。"""
     n = int(np.log2(N))
-    decode_order = [_bit_reversed(i, n) for i in range(N)]
     lambda_offset = [1 << i for i in range(n + 1)]
+    decode_order = [_bit_reversed(i, n) for i in range(N)]
     return lambda_offset, decode_order, n
 
 
 def sc_decode(llr_ch, frozen_bits):
     """
     非递归 SC 译码主函数（Permuted SC 结构）。
-    llr_ch[i] 对应编码后码字第 i 个位置（含比特倒序置换）。
     """
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
     frozen_bits = np.asarray(frozen_bits, dtype=int)
     N = len(llr_ch)
     n = int(np.log2(N))
 
-    # 将信道 LLR 映射到译码树自然索引
     L = np.zeros((N, n + 1), dtype=np.float64)
     B = np.zeros((N, n + 1), dtype=np.int32)
     for j in range(N):
@@ -135,5 +131,4 @@ def sc_decode(llr_ch, frozen_bits):
                         B[j - branch_size, s - 1] = B[j, s] ^ B[j - branch_size, s]
                         B[j, s - 1] = B[j, s]
 
-    u_hat = B[:, n].astype(int)
-    return u_hat
+    return B[:, n].astype(int)
