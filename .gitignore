@@ -21,6 +21,7 @@ gpt2_medium_models/
 qwen25_05b_models/
 
 # --- Experiment intermediate artifacts ---
+polar_codes/results/
 data/
 data_exp3/
 *.gpz
