@@ -103,3 +103,20 @@ for N in N_LIST:
     plt.close()
 
 print("\n实验三完成。")
+
+if not QUICK and len(N_LIST) > 1:
+    import glob
+    from utils import load_results_csv, plot_bler_curves
+
+    combined = {}
+    for n in N_LIST:
+        bp_csv = f"results/exp3_bp_N{n}_R0.5.csv"
+        if os.path.exists(bp_csv):
+            combined[f"BP N={n}"] = load_results_csv(bp_csv)
+    if combined:
+        plot_bler_curves(
+            combined,
+            f"BP Decoder BLER (R={RATE})",
+            "results/fig3_bp_bler.png",
+            shannon_limit_db=find_capacity_limit(RATE),
+        )
