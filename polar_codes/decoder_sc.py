@@ -11,10 +11,24 @@ from encoder import bit_reversal_permutation
 
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（box-plus，BPSK-AWGN 信道下精确形式）。
+    大 LLR 时自动退化为 min-sum 近似以保持数值稳定。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    large = (np.abs(La) > 30) | (np.abs(Lb) > 30)
+    out = np.empty_like(La, dtype=np.float64)
+    if np.any(large):
+        out[large] = (
+            np.sign(La[large])
+            * np.sign(Lb[large])
+            * np.minimum(np.abs(La[large]), np.abs(Lb[large]))
+        )
+    if np.any(~large):
+        t = np.tanh(La[~large] / 2.0) * np.tanh(Lb[~large] / 2.0)
+        t = np.clip(t, -1.0 + 1e-12, 1.0 - 1e-12)
+        out[~large] = 2.0 * np.arctanh(t)
+    return out
 
 
 def g_operation(La, Lb, u_hat):
