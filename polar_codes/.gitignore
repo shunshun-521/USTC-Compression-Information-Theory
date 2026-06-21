@@ -1,0 +1,5 @@
+ref/
+results/*.csv
+results/*.png
+results/*.pdf
+!results/frozen_sets.txt
