@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600">
+<rect width="100%" height="100%" fill="white"/>
+<text x="70" y="30" font-size="16">SCL vs SC BLER (N=128, R=0.5)</text>
+<line x1="70" y1="530" x2="890" y2="530" stroke="black"/>
+<line x1="70" y1="70" x2="70" y2="530" stroke="black"/>
+<polyline fill="none" stroke="#1f77b4" stroke-width="2" points="70,70 275,70 480,70 685,70 890,70"/>
+<text x="760" y="40" fill="#1f77b4" font-size="12">SC (L=1)</text>
+<polyline fill="none" stroke="#ff7f0e" stroke-width="2" points="70,70 275,70 480,70 685,70 890,70"/>
+<text x="760" y="58" fill="#ff7f0e" font-size="12">SCL (L=2)</text>
+<polyline fill="none" stroke="#2ca02c" stroke-width="2" points="70,70 275,70 480,70 685,70 890,70"/>
+<text x="760" y="76" fill="#2ca02c" font-size="12">SCL (L=4)</text>
+<polyline fill="none" stroke="#d62728" stroke-width="2" points="70,70 275,70 480,70 685,70 890,70"/>
+<text x="760" y="94" fill="#d62728" font-size="12">CA-SCL (L=8, CRC=8)</text>
+<line x1="-673" y1="70" x2="-673" y2="530" stroke="#999" stroke-dasharray="4"/>
+</svg>

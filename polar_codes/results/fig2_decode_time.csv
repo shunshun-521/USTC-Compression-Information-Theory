@@ -1,0 +1,5 @@
+decoder,avg_decode_time_ms
+SC (L=1),0.7505
+SCL (L=2),114.9043
+SCL (L=4),228.3945
+CA-SCL (L=8, CRC=8),455.4486
