@@ -31,7 +31,7 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(1.0, 8.5, 0.25)
 if os.environ.get("POLAR_QUICK", "0") == "1":
     EB_N0_RANGE = np.arange(1.5, 4.0, 0.5)
     L_LIST = [2, 4]
@@ -87,6 +87,8 @@ for L in L_LIST:
     label = f"SCL (L={L})"
     all_results[label] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+    if L == 4:
+        save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 

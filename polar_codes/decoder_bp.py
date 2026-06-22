@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from decoder_sc import f_operation
+from decoder_sc import f_operation_min_sum
 from encoder import polar_encode, prepare_channel_llr
 
 LARGE = 1e6
@@ -27,7 +27,7 @@ class BPDecoder:
         self.frozen_idx = np.where(self.frozen_bits)[0]
 
     def _f_min_sum(self, x, y):
-        return self.alpha * f_operation(x, y)
+        return self.alpha * f_operation_min_sum(x, y)
 
     def decode(self, llr_ch):
         llr = prepare_channel_llr(llr_ch)
