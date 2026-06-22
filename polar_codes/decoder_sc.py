@@ -13,9 +13,11 @@ from encoder import bit_reversal_permutation, prepare_channel_llr
 
 
 def _logdomain_sum(x, y):
-    if x > y:
-        return x + np.log1p(np.exp(y - x))
-    return y + np.log1p(np.exp(x - y))
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    larger = np.maximum(x, y)
+    smaller = np.minimum(x, y)
+    return larger + np.log1p(np.exp(smaller - larger))
 
 
 def f_operation(La, Lb):
