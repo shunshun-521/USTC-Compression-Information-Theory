@@ -2,9 +2,8 @@
 import csv
 import os
 
-import numpy as np
 import matplotlib.pyplot as plt
-from scipy import integrate
+import numpy as np
 
 
 def save_results_csv(results, filepath):
@@ -58,28 +57,28 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_mi_integrand(y, snr):
-    """互信息密度被积函数（数值稳定）"""
-    t = -2.0 * snr * y
-    log_term = np.logaddexp(0.0, t) / np.log(2.0)
-    return log_term * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
-
-
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*snr*y))]
+    基于 H(Y) - H(Y|X) 数值积分。
     """
+    from channel import eb_n0_to_sigma
+
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return _bpsk_mi_integrand(y, snr)
-
-        mi, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
-        capacities.append(1.0 - mi)
+        sigma = eb_n0_to_sigma(eb_n0_db, rate)
+        ys = np.linspace(-8 * sigma - 2, 8 * sigma + 2, 20000)
+        dy = ys[1] - ys[0]
+        p = 0.5 * np.exp(-0.5 * ((ys - 1) / sigma) ** 2) / (
+            sigma * np.sqrt(2 * np.pi)
+        ) + 0.5 * np.exp(-0.5 * ((ys + 1) / sigma) ** 2) / (
+            sigma * np.sqrt(2 * np.pi)
+        )
+        p = p / np.sum(p * dy)
+        h_y = -np.sum(p * np.log2(np.maximum(p, 1e-300)) * dy)
+        h_yx = 0.5 * np.log2(2 * np.pi * np.e * sigma ** 2)
+        capacities.append(max(h_y - h_yx, 0.0))
     return np.array(capacities)
 
 
