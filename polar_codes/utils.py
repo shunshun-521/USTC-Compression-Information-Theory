@@ -59,8 +59,10 @@ def load_results_csv(filepath):
 
 
 def _bpsk_mi_integrand(y, snr):
-    """互信息密度被积函数"""
-    return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
+    """互信息密度被积函数（数值稳定）"""
+    t = -2.0 * snr * y
+    log_term = np.logaddexp(0.0, t) / np.log(2.0)
+    return log_term * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
