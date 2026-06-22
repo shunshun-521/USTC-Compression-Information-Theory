@@ -111,6 +111,7 @@ if __name__ == "__main__":
     )
     all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
     save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+    save_results_csv(results_cascl, f"results/exp2_scl_N{N}_R0.5.csv")
 
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(
