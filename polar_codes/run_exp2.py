@@ -24,15 +24,15 @@ if __name__ == "__main__":
     print("运行单元测试...")
     run_unit_tests()
 
-    N = 512
+    N = 256 if QUICK else 512
     RATE = 0.5
     K = N // 2
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
     L_LIST = [2, 4, 8]
-    MAX_FRAMES = 2000 if QUICK else 100000
-    MIN_ERRORS = 20 if QUICK else 100
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.5 if QUICK else 0.25)
+    MAX_FRAMES = 500 if QUICK else 100000
+    MIN_ERRORS = 10 if QUICK else 100
+    EB_N0_RANGE = np.arange(1.0, 5.5, 1.0 if QUICK else 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=int)

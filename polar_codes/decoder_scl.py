@@ -73,13 +73,15 @@ class SCLDecoder:
         self.frozen_idx = np.where(self.frozen_bits == 1)[0]
         self.info_indices = np.where(self.frozen_bits == 0)[0]
         self.LARGE = 1e6
+        self._L = np.zeros((N, self.n + 1), dtype=np.float64)
+        self._R = np.zeros((N, self.n + 1), dtype=np.float64)
 
     def _current_llr(self, llr_ch, path, phi):
         N, n = self.N, self.n
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
+        L, R = self._L, self._R
         L[:, n] = llr_ch[self.br]
-        R[:, 0] = path.R0.copy()
+        R.fill(0.0)
+        R[:, 0] = path.R0
         R[self.frozen_idx, 0] = self.LARGE
         _left_sweep(L, R, n, N)
         return L[phi, 0] + R[phi, 0]

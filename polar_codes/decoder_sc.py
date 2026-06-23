@@ -65,12 +65,13 @@ def sc_decode(llr_ch, frozen_bits):
     frozen_idx = np.where(frozen_bits == 1)[0]
     u_hat = np.zeros(N, dtype=int)
 
-    for phi in range(N):
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = llr_ch[br]
+    L = np.zeros((N, n + 1), dtype=np.float64)
+    R = np.zeros((N, n + 1), dtype=np.float64)
+    channel_llr = llr_ch[br]
 
-        R[:, 0] = 0.0
+    for phi in range(N):
+        L[:, n] = channel_llr
+        R.fill(0.0)
         R[frozen_idx, 0] = LARGE
         for i in range(phi):
             if frozen_bits[i]:
