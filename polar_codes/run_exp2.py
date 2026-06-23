@@ -30,7 +30,7 @@ if __name__ == "__main__":
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
     L_LIST = [2, 4, 8]
-    MAX_FRAMES = 500 if QUICK else 100000
+    MAX_FRAMES = 100 if QUICK else 100000
     MIN_ERRORS = 10 if QUICK else 100
     EB_N0_RANGE = np.arange(1.0, 5.5, 1.0 if QUICK else 0.25)
 
