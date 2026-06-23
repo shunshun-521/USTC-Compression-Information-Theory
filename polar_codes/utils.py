@@ -7,7 +7,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -56,40 +55,48 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_one_plus_exp(x):
+    """Numerically stable log2(1 + exp(x))."""
+    x = np.asarray(x, dtype=np.float64)
+    out = np.empty_like(x)
+    large = x > 30.0
+    small = x < -30.0
+    mid = ~(large | small)
+    out[large] = x[large] / np.log(2.0)
+    out[small] = np.exp(x[small]) / np.log(2.0)
+    xm = x[mid]
+    out[mid] = np.log1p(np.exp(xm)) / np.log(2.0)
+    return out
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+
+    C = 1 - E_y[log2(1 + exp(-SNR * y^2))]，y ~ N(0,1)，
+    SNR = 2R * 10^(Eb/N0/10)。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            # 数值稳定：log2(1+exp(-2*snr*y)) = log2(1+exp(x)) with x=-2*snr*y
-            x = -2.0 * snr * y
-            if x >= 0:
-                log_term = (x + np.log1p(np.exp(-x))) / np.log(2.0)
-            else:
-                log_term = np.log1p(np.exp(x)) / np.log(2.0)
-            return log_term * np.exp(-0.5 * y ** 2)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        ys = np.linspace(-8.0, 8.0, 20001)
+        expo = -snr * ys ** 2
+        vals = _log2_one_plus_exp(expo) * np.exp(-0.5 * ys ** 2)
+        val = np.trapezoid(vals, ys) / np.sqrt(2.0 * np.pi)
+        capacities.append(max(0.0, 1.0 - val))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(0, 8), num_points=400):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-  # refine with local search
+    idx = int(np.argmin(np.abs(caps - rate)))
     lo = max(0, idx - 1)
     hi = min(num_points - 1, idx + 1)
     sub = eb_grid[lo:hi + 1]
     sub_caps = compute_bpsk_capacity(sub, rate)
-    j = np.argmin(np.abs(sub_caps - rate))
+    j = int(np.argmin(np.abs(sub_caps - rate)))
     return float(sub[j])
 
 
