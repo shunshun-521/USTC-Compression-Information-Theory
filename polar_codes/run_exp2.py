@@ -23,7 +23,7 @@ os.makedirs("results", exist_ok=True)
 
 run_unit_validation()
 
-N = 512 if os.environ.get("POLAR_QUICK", "0") != "1" else 128
+N = 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5

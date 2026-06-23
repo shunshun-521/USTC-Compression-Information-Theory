@@ -24,9 +24,6 @@ os.makedirs("results", exist_ok=True)
 run_unit_validation()
 
 N_LIST = [256, 512]
-if os.environ.get("POLAR_QUICK", "0") == "1":
-    N_LIST = [64, 128]
-
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50

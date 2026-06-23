@@ -22,9 +22,6 @@ os.makedirs("results", exist_ok=True)
 run_unit_validation()
 
 N_LIST = [256, 512, 1024]
-if os.environ.get("POLAR_QUICK", "0") == "1":
-    N_LIST = [64, 128]
-
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 params = sim_params(100000, 100, np.arange(0.0, 5.5, 0.25))

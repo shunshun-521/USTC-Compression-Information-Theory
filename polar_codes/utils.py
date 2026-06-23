@@ -68,14 +68,19 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity_scalar(snr_linear):
-    """BPSK 离散输入信道容量（bits/channel use）"""
+    """BPSK 离散输入信道容量（bits/channel use），直接数值积分互信息"""
+    from scipy.stats import norm
 
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-0.5 * y * y)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2.0 * np.pi)
-    return 1.0 - val
+    snr_linear = max(float(snr_linear), 1e-12)
+    sigma = 1.0 / np.sqrt(snr_linear)
+    y = np.linspace(-8.0 * sigma - 2.0, 8.0 * sigma + 2.0, 20001)
+    dy = y[1] - y[0]
+    p1 = norm.pdf(y, 1.0, sigma)
+    pm1 = norm.pdf(y, -1.0, sigma)
+    py = 0.5 * (p1 + pm1)
+    py = np.maximum(py, 1e-300)
+    term = 0.5 * (p1 * np.log2(p1 / py) + pm1 * np.log2(pm1 / py))
+    return float(np.sum(term) * dy)
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
