@@ -32,15 +32,15 @@ def _run_unit_tests():
 
 _run_unit_tests()
 
-N = 256 if QUICK else 512
+N = 64 if QUICK else 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4] if QUICK else [2, 4, 8]
-MAX_FRAMES = 5000 if QUICK else 100000
+MAX_FRAMES = 2000 if QUICK else 100000
 MIN_ERRORS = 20 if QUICK else 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.5 if QUICK else 0.25)
+EB_N0_RANGE = np.arange(2.0, 7.5, 1.0 if QUICK else 0.25)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)

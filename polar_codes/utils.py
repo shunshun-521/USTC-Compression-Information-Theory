@@ -8,7 +8,6 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate
-from scipy.special import erfc
 
 from construction import ga_construction
 
@@ -66,22 +65,26 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-  """
+    """
     snr_linear = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+    sigma = 1.0 / np.sqrt(snr_linear)
+
+    def p_yx(y, x):
+        return np.exp(-0.5 * ((y - x) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
 
     def integrand(y):
-        p0 = (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * (y - np.sqrt(snr_linear)) ** 2)
-        p1 = (1 / np.sqrt(2 * np.pi)) * np.exp(-0.5 * (y + np.sqrt(snr_linear)) ** 2)
-        py = 0.5 * p0 + 0.5 * p1
+        pyp = p_yx(y, 1.0)
+        pyn = p_yx(y, -1.0)
+        py = 0.5 * pyp + 0.5 * pyn
         if py < 1e-300:
             return 0.0
-        term = 0.0
-        for p in (p0, p1):
-            if p > 0:
-                term += p * np.log2(p / py)
-        return -term
+        mi = 0.0
+        for px in (pyp, pyn):
+            if px > 0:
+                mi += 0.5 * px * np.log2(px / py)
+        return mi
 
-    cap, _ = integrate.quad(integrand, -10, 10, limit=200)
+    cap, _ = integrate.quad(integrand, -15, 15, limit=200)
     return cap
 
 

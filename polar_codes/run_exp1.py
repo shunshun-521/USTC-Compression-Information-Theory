@@ -42,12 +42,12 @@ def _run_unit_tests():
 _run_unit_tests()
 
 # ========== 参数设置 ==========
-N_LIST = [256, 512] if QUICK else [256, 512, 1024]
+N_LIST = [64, 128] if QUICK else [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 5000 if QUICK else 100000
+MAX_FRAMES = 2000 if QUICK else 100000
 MIN_ERRORS = 20 if QUICK else 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.5 if QUICK else 0.25)
+EB_N0_RANGE = np.arange(0.0, 8.0, 1.0 if QUICK else 0.25)
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, os.path.join(RESULTS_DIR, "frozen_sets.txt"))
 

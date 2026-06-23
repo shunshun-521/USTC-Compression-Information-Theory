@@ -8,8 +8,10 @@ from encoder import bit_reversal_permutation, polar_encode
 
 def _f_min_sum(a, b, alpha):
     """min-sum f 运算，带归一化因子 alpha"""
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
     sign = np.sign(a) * np.sign(b)
-    sign[sign == 0] = 1
+    sign = np.where(sign == 0, 1, sign)
     return alpha * sign * np.minimum(np.abs(a), np.abs(b))
 
 

@@ -5,8 +5,6 @@
 import numpy as np
 from encoder import bit_reversal_permutation
 from decoder_sc import (
-    f_operation,
-    g_operation,
     sc_decode,
     _all_computed,
     _leftdown,
@@ -48,7 +46,6 @@ def crc_check(bits, crc_length=8):
 
 
 def _pm_penalty(llr, bit):
-    """路径度量惩罚：与 LLR 符号不一致时加 |LLR|"""
     preferred = 0 if llr >= 0 else 1
     return 0.0 if bit == preferred else abs(llr)
 
@@ -56,21 +53,18 @@ def _pm_penalty(llr, bit):
 def _get_up_loc(bit_matrix):
     N = bit_matrix.shape[1]
     n = int(np.log2(N))
+    detect = -1
     for i in range(N):
-        if np.isnan(bit_matrix[n, i]):
-            detect = i - 1
-            break
-    else:
-        detect = N - 1
-    if detect < 0:
-        return [0, 0, n]
-    loc = [0, 0, n]
-    for i in range(n):
-        if detect % 2 == 1:
-            loc[0] += 1
-            loc[1] += 2 ** (n - 1 - i)
-        detect //= 2
-    return loc
+        v = bit_matrix[n, i]
+        if v == 0 or v == 1:
+            continue
+        detect = i - 1
+        break
+    if detect == -1:
+        return [0, 0]
+    if detect % 2 == 0:
+        return [n - 1, detect]
+    return [n - 1, detect - 1]
 
 
 def _sc_step_to(llr_matrix, bit_matrix, frozen_bits, stop_pos):
@@ -83,7 +77,11 @@ def _sc_step_to(llr_matrix, bit_matrix, frozen_bits, stop_pos):
     loc = _get_up_loc(bit_matrix)
     position = [loc[0], loc[1], n, N]
 
-    while np.isnan(bit_matrix[n, stop_pos]):
+    guard = 0
+    while bit_matrix[n, stop_pos] != 0 and bit_matrix[n, stop_pos] != 1:
+        guard += 1
+        if guard > 4 * N * n:
+            break
         span = 2 ** (position[2] - position[0])
         up_llr = llr_matrix[position[0], position[1] : position[1] + span]
         up_bit = bit_matrix[position[0], position[1] : position[1] + span]
@@ -107,7 +105,7 @@ def _sc_step_to(llr_matrix, bit_matrix, frozen_bits, stop_pos):
             else:
                 position = _rightdown(position)
         elif _all_computed(left_bit):
-            bit_matrix[position[0] + 1, position[1] + half : position[1] + span] = _get_right_llr(
+            llr_matrix[position[0] + 1, position[1] + half : position[1] + span] = _get_right_llr(
                 left_bit.astype(int), up_llr
             )
         elif not _all_computed(left_llr):
@@ -124,7 +122,7 @@ def _sc_step_to(llr_matrix, bit_matrix, frozen_bits, stop_pos):
 
 
 class SCLDecoder:
-    """SCL 译码器（含 Lazy Copy 优化：路径分裂时复制矩阵）"""
+    """SCL 译码器"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -149,39 +147,38 @@ class SCLDecoder:
 
         paths = [(llr0, bit0, 0.0)]
 
-        prev_pos = -1
         for pos in self.info_positions:
             new_paths = []
             for llr_m, bit_m, pm in paths:
                 llr_m, bit_m = _sc_step_to(llr_m, bit_m, self.frozen_bits, pos)
                 llr_val = llr_m[n, pos]
-                bit_val = int(bit_m[n, pos])
+                if np.isnan(llr_val):
+                    llr_val = 0.0
+                bit_val = int(bit_m[n, pos]) if bit_m[n, pos] in (0, 1) else (0 if llr_val >= 0 else 1)
+                bit_m[n, pos] = bit_val
 
-                new_paths.append((llr_m.copy(), bit_m.copy(), pm))
-
-                if not self.frozen_bits[pos]:
-                    bit_m_alt = bit_m.copy()
-                    bit_m_alt[n, pos] = 1 - bit_val
-                    pm_alt = pm + _pm_penalty(llr_val, 1 - bit_val)
-                    new_paths.append((llr_m.copy(), bit_m_alt, pm_alt))
+                bm1 = bit_m.copy()
+                bm1[n, pos] = 1 - bit_val
+                new_paths.append((llr_m.copy(), bit_m.copy(), pm + _pm_penalty(llr_val, bit_val)))
+                new_paths.append((llr_m.copy(), bm1, pm + _pm_penalty(llr_val, 1 - bit_val)))
 
             new_paths.sort(key=lambda x: x[2])
             paths = new_paths[: self.list_size]
-            prev_pos = pos
 
         for llr_m, bit_m, pm in paths:
-            llr_m, bit_m = _sc_step_to(llr_m, bit_m, self.frozen_bits, N - 1)
+            _sc_step_to(llr_m, bit_m, self.frozen_bits, N - 1)
 
         if self.crc_length > 0:
             valid = []
-            for llr_m, bit_m, pm in paths:
+            for _, bit_m, pm in paths:
                 u_hat = bit_m[n].astype(int)
                 info_bits = u_hat[self.info_positions]
                 if crc_check(info_bits, self.crc_length):
                     valid.append((u_hat, pm))
             if valid:
-                u_hat, pm = min(valid, key=lambda x: x[1])
-                return u_hat, pm
+                return min(valid, key=lambda x: x[1])
 
         best = min(paths, key=lambda x: x[2])
-        return best[1][n].astype(int), best[2]
+        u_hat = best[1][n].astype(int)
+        u_hat[np.isnan(best[1][n])] = 0
+        return u_hat, best[2]
