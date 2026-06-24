@@ -70,14 +70,14 @@ def _bpsk_capacity_scalar(snr_linear):
 
     def log2_1pexp_neg(z):
         if z > 30:
-            return -z / np.log(2)
+            return 0.0
         return np.log1p(np.exp(-z)) / np.log(2)
 
     def integrand(y):
-        z = 2.0 * snr_linear * y
+        z = 2.0 * snr_linear * (y ** 2)
         return log2_1pexp_neg(z) * np.exp(-0.5 * y * y)
 
-    val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
+    val, _ = integrate.quad(integrand, -15.0, 15.0, limit=200)
     return 1.0 - val / np.sqrt(2.0 * np.pi)
 
 
