@@ -86,12 +86,6 @@ class SCLDecoder:
             path["L_refs"] = path["L"]
             path["B_refs"] = path["B"]
 
-    def _ensure_owned(self, path, array_key):
-        refs_key = f"{array_key}_refs"
-        if path[refs_key] is not path[array_key]:
-            path[array_key] = path[refs_key].copy()
-            path[refs_key] = path[array_key]
-
     def _path_penalty(self, llr_val, u_bit):
         hard = 0 if llr_val >= 0 else 1
         return 0.0 if u_bit == hard else abs(llr_val)

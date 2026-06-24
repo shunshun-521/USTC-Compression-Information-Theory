@@ -38,12 +38,12 @@ class BPDecoder:
         for j in range(n - 1, -1, -1):
             s = 1 << j
             for block in range(0, N, 2 * s):
-                for i in range(block, block + s):
-                    L[i, j] = self._f(
-                        L[i, j + 1],
-                        R[i + s, j] + L[i + s, j + 1],
-                    )
-                    L[i + s, j] = self._f(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                idx = np.arange(block, block + s)
+                L[idx, j] = self._f(
+                    L[idx, j + 1],
+                    R[idx + s, j] + L[idx + s, j + 1],
+                )
+                L[idx + s, j] = self._f(R[idx, j], L[idx, j + 1]) + L[idx + s, j + 1]
 
     def _update_reflected(self, L, R):
         n = self.n
@@ -51,12 +51,12 @@ class BPDecoder:
         for j in range(n):
             s = 1 << j
             for block in range(0, N, 2 * s):
-                for i in range(block, block + s):
-                    R[i, j + 1] = self._f(
-                        R[i, j],
-                        L[i + s, j + 1] + R[i + s, j],
-                    )
-                    R[i + s, j + 1] = self._f(R[i, j], L[i, j + 1]) + R[i + s, j]
+                idx = np.arange(block, block + s)
+                R[idx, j + 1] = self._f(
+                    R[idx, j],
+                    L[idx + s, j + 1] + R[idx + s, j],
+                )
+                R[idx + s, j + 1] = self._f(R[idx, j], L[idx, j + 1]) + R[idx + s, j]
 
     def decode(self, llr_ch):
         """主译码函数，返回 u_hat, num_iters。"""
@@ -77,12 +77,13 @@ class BPDecoder:
             self._update_llr(L, R)
             self._update_reflected(L, R)
 
-            u_hat = self._hard_decision(L[:, 0], R[:, 0])
-            x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
-                num_iters = it
-                break
+            if it % 5 == 0 or it == self.max_iter:
+                u_hat = self._hard_decision(L[:, 0], R[:, 0])
+                x_hat = polar_encode(u_hat)
+                hard_ch = (llr_ch < 0).astype(int)
+                if np.array_equal(x_hat, hard_ch):
+                    num_iters = it
+                    break
 
         u_hat = self._hard_decision(L[:, 0], R[:, 0])
         return u_hat, num_iters
