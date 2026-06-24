@@ -26,8 +26,7 @@ def _gf2_inverse(A):
     return aug[:, n:] % 2
 
 
-def _parity_matrix(N, frozen_bits):
-    Ginv = _gf2_inverse(build_generator_matrix(N))
+def _parity_matrix(N, frozen_bits, Ginv):
     frozen_idx = np.where(np.asarray(frozen_bits, dtype=bool))[0]
     return Ginv[:, frozen_idx].T
 
@@ -40,31 +39,33 @@ def _bp_minsum(llr, cn_neighbors, vn_neighbors, max_iter, alpha):
     M = len(cn_neighbors)
     N = len(llr)
     llr = np.asarray(llr, dtype=np.float64)
-    Lq = { (i, j): llr[j] for i in range(M) for j in cn_neighbors[i] }
-    Lr = {}
-    num_iters = max_iter
+    Lq = np.zeros((M, N), dtype=np.float64)
+    Lr = np.zeros((M, N), dtype=np.float64)
+    for i, idx in enumerate(cn_neighbors):
+        Lq[i, idx] = llr[idx]
 
+    num_iters = max_iter
     for it in range(1, max_iter + 1):
-        for i in range(M):
-            idx = cn_neighbors[i]
-            for j in idx:
-                others = [k for k in idx if k != j]
-                if not others:
-                    Lr[(i, j)] = LARGE
-                else:
-                    s = Lq[(i, others[0])]
-                    for k in others[1:]:
-                        s = _minsum(s, Lq[(i, k)], alpha)
-                    Lr[(i, j)] = s
+        for i, idx in enumerate(cn_neighbors):
+            vals = Lq[i, idx]
+            for pos, j in enumerate(idx):
+                if len(idx) == 1:
+                    Lr[i, j] = LARGE
+                    continue
+                others = np.concatenate([vals[:pos], vals[pos + 1 :]])
+                s = others[0]
+                for k in range(1, len(others)):
+                    s = _minsum(s, others[k], alpha)
+                Lr[i, j] = s
 
         total = llr.copy()
         for j in range(N):
             for i in vn_neighbors[j]:
-                total[j] += Lr.get((i, j), 0.0)
+                total[j] += Lr[i, j]
 
         for j in range(N):
             for i in vn_neighbors[j]:
-                Lq[(i, j)] = total[j] - Lr.get((i, j), 0.0)
+                Lq[i, j] = total[j] - Lr[i, j]
 
         x_hat = (total < 0).astype(int)
         if np.array_equal(x_hat, (llr < 0).astype(int)):
@@ -82,8 +83,8 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        H = _parity_matrix(N, self.frozen_bits)
         self._Ginv = _gf2_inverse(build_generator_matrix(N))
+        H = _parity_matrix(N, self.frozen_bits, self._Ginv)
         self._cn = [np.where(H[i])[0] for i in range(H.shape[0])]
         self._vn = [np.where(H[:, j])[0] for j in range(N)]
 

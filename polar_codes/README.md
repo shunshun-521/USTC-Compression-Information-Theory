@@ -30,7 +30,7 @@ POLAR_QUICK=1 python run_exp2.py
 POLAR_QUICK=1 python run_exp3.py
 ```
 
-完整仿真（`MAX_FRAMES=100000`）在普通 CPU 上可能需要数小时；BP 译码在较大码长下尤其耗时。
+BP 译码基于校验矩阵 min-sum，单帧耗时随码长显著增长。完整 BP 蒙特卡洛（`MIN_ERRORS=100`）在 N≥256 时可能需要数小时；可设置 `POLAR_BP_QUICK=1` 降低 BP 错误计数阈值以加速实验三。
 
 ## 说明
 

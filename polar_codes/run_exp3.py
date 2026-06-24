@@ -31,12 +31,15 @@ assert np.array_equal(polar_encode([1, 1, 1, 1]), [0, 0, 0, 1])
 print("单元测试通过：编码器")
 
 QUICK = os.environ.get("POLAR_QUICK", "0") == "1"
+BP_QUICK = os.environ.get("POLAR_BP_QUICK", "0") == "1" or QUICK
 N_LIST = [256] if QUICK else [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 15 if QUICK else 50
 MAX_FRAMES = 80 if QUICK else 100000
 MIN_ERRORS = 5 if QUICK else 100
+MIN_ERRORS_BP = 20 if BP_QUICK else MIN_ERRORS
+MAX_FRAMES_BP = 3000 if BP_QUICK else MAX_FRAMES
 EB_N0_RANGE = np.arange(1.0, 5.5, 1.0 if QUICK else 0.25)
 
 for N in N_LIST:
@@ -77,7 +80,7 @@ for N in N_LIST:
         return u_hat, num_iters
 
     r_bp = run_simulation(
-        N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
+        N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS_BP,
         info_indices=info_idx, frozen_bits=fb,
     )
     all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
