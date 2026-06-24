@@ -21,10 +21,7 @@ def polar_encode(u):
     返回：
         x: 长度为 N 的码字
 
-    实现：蝶形（butterfly）递归结构
-        - 每层：相邻对 (u[i], u[i + step]) -> (u[i] XOR u[i+step], u[i+step])
-        - 共 log2(N) 层
-        - 最后做比特倒序置换（bit-reversal permutation）
+    蝶形编码后返回 u（不做输出比特倒序；与 SC 译码器的比特倒序相位顺序等价）。
     """
     u = np.asarray(u, dtype=int).copy()
     N = len(u)
