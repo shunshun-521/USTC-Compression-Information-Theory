@@ -27,7 +27,7 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(0.0, 8.0, 0.25)  # 扩展至高 SNR 以观察 BLER 瀑布区
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")
 
