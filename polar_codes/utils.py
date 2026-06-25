@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -67,23 +66,21 @@ def load_results_csv(filepath):
     return results
 
 
-def compute_bpsk_capacity(eb_n0_db_list, rate):
+def compute_bpsk_capacity(eb_n0_db_list, rate, n_samples=200000, seed=42):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    计算 BPSK-AWGN 信道容量（bits/channel use），与仿真中 sigma 定义一致。
     """
+    rng = np.random.default_rng(seed)
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        eb_lin = 10 ** (eb_n0_db / 10.0)
+        sigma = 1.0 / np.sqrt(2.0 * rate * eb_lin)
+        x = rng.choice([-1.0, 1.0], size=n_samples)
+        y = x + sigma * rng.standard_normal(n_samples)
+        llr = 2.0 * y / (sigma ** 2)
+        mi = 1.0 - np.mean(np.log2(1.0 + np.exp(-llr * x)))
+        capacities.append(mi)
     return np.array(capacities)
 
 
