@@ -41,22 +41,22 @@ class BPDecoder:
                     for k in range(s):
                         idx = i + k
                         L[idx, j - 1] = self._f_minsum(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
+                            R[idx, j] + L[idx + s, j], L[idx, j]
                         )
                         L[idx + s, j - 1] = self._f_minsum(
-                            R[idx, j], L[idx, j + 1]
-                        ) + L[idx + s, j + 1]
+                            R[idx, j], L[idx, j]
+                        ) + L[idx + s, j]
 
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
+            for j in range(0, n):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        R[idx, j] = self._f_minsum(
-                            R[idx + s, j] + L[idx + s, j + 1], R[idx, j - 1]
+                        R[idx, j + 1] = self._f_minsum(
+                            R[idx + s, j + 1] + L[idx + s, j + 1], R[idx, j]
                         )
-                        R[idx + s, j] = self._f_minsum(
-                            R[idx, j - 1], L[idx, j + 1]
+                        R[idx + s, j + 1] = self._f_minsum(
+                            R[idx, j], L[idx, j + 1]
                         ) + R[idx + s, j]
 
             u_hat = np.zeros(N, dtype=int)
