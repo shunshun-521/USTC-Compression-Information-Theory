@@ -160,7 +160,7 @@ class SCLDecoder:
             candidates.sort(key=lambda p: p.pm)
             paths = candidates[: self.list_size]
 
-        best_crc = None
+        best_crc_pm = None
         best_pm = float("inf")
         best_path = paths[0]
 
@@ -169,14 +169,14 @@ class SCLDecoder:
             if self.crc_length > 0:
                 payload = u_hat[self.info_indices]
                 if crc_check(payload, self.crc_length):
-                    if path.pm < best_crc:
-                        best_crc = path.pm
+                    if best_crc_pm is None or path.pm < best_crc_pm:
+                        best_crc_pm = path.pm
                         best_path = path
             elif path.pm < best_pm:
                 best_pm = path.pm
                 best_path = path
 
-        if self.crc_length > 0 and best_crc is not None:
-            return best_path.B[:, self.n].astype(int), best_crc
+        if self.crc_length > 0 and best_crc_pm is not None:
+            return best_path.B[:, self.n].astype(int), best_crc_pm
 
         return best_path.B[:, self.n].astype(int), best_path.pm
