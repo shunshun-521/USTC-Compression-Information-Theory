@@ -59,3 +59,5 @@
 实验三 BP: N=256
   Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9969e-01 | Errors=50 | Frames=50 | AvgTime=727.52ms | AvgIter=50.0
   Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9359e-01 | Errors=50 | Frames=50 | AvgTime=723.11ms | AvgIter=50.0
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9641e-01 | Errors=50 | Frames=50 | AvgTime=722.28ms | AvgIter=50.0
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9766e-01 | Errors=50 | Frames=50 | AvgTime=732.15ms | AvgIter=50.0
