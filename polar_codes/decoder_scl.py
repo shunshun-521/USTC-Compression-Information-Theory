@@ -8,7 +8,7 @@ from encoder import bit_reversal_permutation, bit_reversed_index
 from decoder_sc import (
     _active_bit_level,
     _active_llr_level,
-    _frozen_to_set,
+    _as_frozen_mask,
     _lower_llr,
     _upper_llr,
 )
@@ -18,10 +18,7 @@ CRC16_POLY = 0x8005
 
 
 def crc_encode(info_bits, crc_length=8):
-    """
-    计算 CRC 校验位并附加到信息比特后。
-    CRC-8: 0x07, CRC-16: 0x8005
-    """
+    """计算 CRC 校验位并附加到信息比特后。"""
     info_bits = np.asarray(info_bits, dtype=int)
     if crc_length == 8:
         poly = CRC8_POLY
@@ -33,7 +30,7 @@ def crc_encode(info_bits, crc_length=8):
     reg = 0
     for bit in info_bits:
         reg ^= int(bit) << (crc_length - 1)
-        for _ in range(8):
+        for _ in range(crc_length):
             if reg & (1 << (crc_length - 1)):
                 reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
             else:
@@ -47,7 +44,7 @@ def crc_encode(info_bits, crc_length=8):
 
 
 def crc_check(bits, crc_length=8):
-    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC"""
+    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC。"""
     if crc_length == 0:
         return True
     expected = crc_encode(bits[:-crc_length], crc_length)
@@ -66,23 +63,21 @@ class _PathState:
 
 
 class SCLDecoder:
-    """SCL 译码器（含 Lazy Copy 优化）"""
+    """SCL 译码器（含 Lazy Copy 优化）。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
         self.n = int(np.log2(N))
-        self.frozen_set = _frozen_to_set(frozen_bits)
+        self.frozen_bits = _as_frozen_mask(frozen_bits)
         self.list_size = list_size
         self.crc_length = crc_length
-        self.info_indices = np.array(
-            sorted(set(range(N)) - self.frozen_set), dtype=int
-        )
+        self.info_indices = np.where(~self.frozen_bits)[0]
 
-    def _update_llrs(self, path, l):
-        for s in range(self.n - _active_llr_level(l, self.n), self.n):
+    def _update_llrs(self, path, bit_idx):
+        for s in range(self.n - _active_llr_level(bit_idx, self.n), self.n):
             block_size = 2 ** (s + 1)
             branch_size = block_size // 2
-            for j in range(l, self.N, block_size):
+            for j in range(bit_idx, self.N, block_size):
                 if j % block_size < branch_size:
                     path.L[j, s + 1] = _upper_llr(
                         path.L[j, s], path.L[j + branch_size, s]
@@ -94,13 +89,13 @@ class SCLDecoder:
                         path.B[j - branch_size, s + 1],
                     )
 
-    def _update_bits(self, path, l):
-        if l < self.N / 2:
+    def _update_bits(self, path, bit_idx):
+        if bit_idx < self.N / 2:
             return
-        for s in range(self.n, self.n - _active_bit_level(l, self.n), -1):
+        for s in range(self.n, self.n - _active_bit_level(bit_idx, self.n), -1):
             block_size = 2 ** s
             branch_size = block_size // 2
-            for j in range(l, -1, -block_size):
+            for j in range(bit_idx, -1, -block_size):
                 if j % block_size >= branch_size:
                     path.B[j - branch_size, s - 1] = int(path.B[j, s]) ^ int(
                         path.B[j - branch_size, s]
@@ -124,29 +119,29 @@ class SCLDecoder:
         llr_ch = llr_ch[bit_reversal_permutation(self.N)]
         paths = [_PathState(self.N, self.n, llr_ch)]
 
-        for i in range(self.N):
-            l = bit_reversed_index(i, self.n)
+        for phi in range(self.N):
+            bit_idx = bit_reversed_index(phi, self.n)
             candidates = []
 
             for path in paths:
-                self._update_llrs(path, l)
-                llr = path.L[l, self.n]
+                self._update_llrs(path, bit_idx)
+                llr = path.L[bit_idx, self.n]
 
-                if l in self.frozen_set:
+                if self.frozen_bits[bit_idx]:
                     penalty = self._path_metric_penalty(llr, 0)
                     new_path = self._clone_path(path)
                     new_path.pm += penalty
-                    new_path.B[l, self.n] = 0
-                    new_path.u_hat[l] = 0
-                    self._update_bits(new_path, l)
+                    new_path.B[bit_idx, self.n] = 0
+                    new_path.u_hat[bit_idx] = 0
+                    self._update_bits(new_path, bit_idx)
                     candidates.append(new_path)
                 else:
                     for bit in (0, 1):
                         new_path = self._clone_path(path)
                         new_path.pm += self._path_metric_penalty(llr, bit)
-                        new_path.B[l, self.n] = bit
-                        new_path.u_hat[l] = bit
-                        self._update_bits(new_path, l)
+                        new_path.B[bit_idx, self.n] = bit
+                        new_path.u_hat[bit_idx] = bit
+                        self._update_bits(new_path, bit_idx)
                         candidates.append(new_path)
 
             candidates.sort(key=lambda p: p.pm)
