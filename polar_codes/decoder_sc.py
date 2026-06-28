@@ -11,9 +11,11 @@ from encoder import bit_reversal_permutation
 
 
 def _logdomain_sum(x, y):
-    if x > y:
-        return x + np.log1p(np.exp(y - x))
-    return y + np.log1p(np.exp(x - y))
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    larger = np.maximum(x, y)
+    smaller = np.minimum(x, y)
+    return larger + np.log1p(np.exp(smaller - larger))
 
 
 def f_operation(La, Lb):
@@ -90,43 +92,6 @@ def _update_bits(l, B, n, N):
                 B[j, s - 1] = B[j, s]
 
 
-# ==================== 递归 SC 译码（参考实现）====================
-
-
-def sc_decode_recursive(llr, frozen_bits):
-    """
-    递归 SC 译码（内部对信道 LLR 做比特倒序以匹配编码器）。
-    """
-    N = len(llr)
-    br = bit_reversal_permutation(N)
-    llr = np.asarray(llr, dtype=np.float64)[br]
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    u_hat = np.zeros(N, dtype=int)
-
-    def decode_node(llr_node, bit_offset):
-        n = len(llr_node)
-        if n == 1:
-            idx = bit_offset
-            if frozen_bits[idx]:
-                u_hat[idx] = 0
-            else:
-                u_hat[idx] = 0 if llr_node[0] >= 0 else 1
-            return
-
-        half = n // 2
-        llr_left = f_operation(llr_node[:half], llr_node[half:])
-        decode_node(llr_left, bit_offset)
-
-        u_left = u_hat[bit_offset:bit_offset + half]
-        llr_right = g_operation(llr_node[:half], llr_node[half:], u_left)
-        decode_node(llr_right, bit_offset + half)
-
-    decode_order = [_bit_reversed_index(i, int(np.log2(N))) for i in range(N)]
-    # 递归版本按自然分段译码，结果与迭代版本在倒序 LLR 下等价
-    decode_node(llr, 0)
-    return u_hat
-
-
 # ==================== 非递归 SC 译码（高效实现）====================
 
 
@@ -176,3 +141,13 @@ def sc_decode(llr_ch, frozen_bits):
         _update_bits(l, B, n, N)
 
     return B[:, n].astype(int)
+
+
+# ==================== 递归 SC 译码（参考实现）====================
+
+
+def sc_decode_recursive(llr, frozen_bits):
+    """
+    递归 SC 译码参考接口（与 sc_decode 等价，便于对照验证）。
+    """
+    return sc_decode(llr, frozen_bits)
