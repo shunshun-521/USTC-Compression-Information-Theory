@@ -55,25 +55,25 @@ def _bpsk_capacity_at_eb_n0(eb_n0_db, rate):
     snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        x = -2.0 * snr * y * y
+        log_term = np.where(
+            x > 30,
+            x / np.log(2),
+            np.log1p(np.exp(np.clip(x, -30, 30))) / np.log(2),
+        )
+        return log_term * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+    val, _ = integrate.quad(integrand, -15.0, 15.0, limit=200)
+    return 1.0 - val
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-  返回与 eb_n0_db_list 对应的容量数组。
-    """
+    """计算 BPSK 离散输入信道容量（bits/channel use）。"""
     return np.array([_bpsk_capacity_at_eb_n0(e, rate) for e in eb_n0_db_list])
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
-    """
-    找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
-    这是香农限，用于在 BLER 图中标注参考竖线。
-    """
+    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_vals, rate)
     idx = np.searchsorted(caps, rate)
@@ -90,9 +90,7 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
                      xlabel="Eb/N0 (dB)", ylabel="BLER"):
-    """
-    绘制 BLER-Eb/N0 曲线。
-    """
+    """绘制 BLER-Eb/N0 曲线。"""
     fig, ax = plt.subplots(figsize=(8, 5))
     for label, results in results_dict.items():
         eb = [r["eb_n0_db"] for r in results]
@@ -115,9 +113,7 @@ def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
 
 
 def save_frozen_set_info(N_list, K, design_eb_n0_db, save_path, rate=0.5):
-    """
-    将各码长的信息位集合和冻结位集合保存到文本文件。
-    """
+    """将各码长的信息位集合和冻结位集合保存到文本文件。"""
     from construction import ga_construction
 
     os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
