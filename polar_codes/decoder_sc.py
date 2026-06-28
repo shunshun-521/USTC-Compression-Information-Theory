@@ -10,12 +10,22 @@ from encoder import bit_reversal_permutation
 # ==================== 基本运算 ====================
 
 
+def _logdomain_sum(x, y):
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（box-plus，大 LLR 时退化为 min-sum）。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    large = np.maximum(np.abs(La), np.abs(Lb)) > 30.0
+    ms = np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    bp = _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+    return np.where(large, ms, bp)
 
 
 def g_operation(La, Lb, u_hat):
