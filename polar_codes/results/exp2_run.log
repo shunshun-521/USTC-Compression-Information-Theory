@@ -1,0 +1,7 @@
+单元测试通过。
+SC 基线 (L=1)
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9203e-01 | Errors=100 | Frames=100 | AvgTime=5.81ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.8668e-01 | Errors=100 | Frames=100 | AvgTime=5.81ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.8539e-01 | Errors=100 | Frames=100 | AvgTime=5.82ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.8023e-01 | Errors=100 | Frames=100 | AvgTime=5.82ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.7285e-01 | Errors=100 | Frames=100 | AvgTime=5.81ms
