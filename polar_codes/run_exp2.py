@@ -53,8 +53,8 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-MAX_FRAMES = 20000
-MIN_ERRORS = 50
+MAX_FRAMES = 8000
+MIN_ERRORS = 30
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
