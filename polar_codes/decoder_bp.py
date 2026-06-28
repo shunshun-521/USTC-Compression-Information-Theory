@@ -9,11 +9,11 @@ from channel import hard_decision_llr
 from decoder_sc import f_operation
 from encoder import polar_encode
 
-LARGE = 1e6
+LARGE = 1e7
 
 
 class BPDecoder:
-    """BP 译码器。"""
+    """BP 译码器（按阶段索引的 L/R 消息）。"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -29,13 +29,15 @@ class BPDecoder:
     def decode(self, llr_ch):
         """主译码函数。"""
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        n = self.n
+        m = self.n
         N = self.N
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
+        # L[i, j]: stage j=1..m+1 (1-indexed in paper), we use 0..m
+        # R[i, j]: stage j=0..m
+        L = np.zeros((N, m + 1), dtype=np.float64)
+        R = np.zeros((N, m + 1), dtype=np.float64)
 
-        L[:, n] = llr_ch
+        L[:, m] = llr_ch
         R[:, 0] = 0.0
         R[self.frozen_idx, 0] = LARGE
 
@@ -43,17 +45,35 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_ms(R[i, j - 1] + L[i + s, j], L[i, j])
-                    L[i + s, j - 1] = self._f_ms(R[i, j - 1], L[i, j]) + L[i + s, j]
+            # Right to left: update L from stage m down to 1
+            for stage in range(m, 0, -1):
+                stride = 1 << (stage - 1)
+                for block in range(0, N, stride * 2):
+                    for node in range(block, block + stride):
+                        bot = node + stride
+                        L[node, stage - 1] = self._f_ms(
+                            L[bot, stage] + R[bot, stage - 1],
+                            L[node, stage],
+                        )
+                        L[bot, stage - 1] = self._f_ms(
+                            R[node, stage - 1],
+                            L[node, stage],
+                        ) + L[bot, stage]
 
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    R[i, j] = self._f_ms(R[i + s, j - 1] + L[i + s, j], R[i, j - 1])
-                    R[i + s, j] = self._f_ms(R[i, j - 1], L[i, j]) + R[i + s, j - 1]
+            # Left to right: update R from stage 0 up to m-1
+            for stage in range(0, m):
+                stride = 1 << stage
+                for block in range(0, N, stride * 2):
+                    for node in range(block, block + stride):
+                        bot = node + stride
+                        R[node, stage + 1] = self._f_ms(
+                            R[bot, stage] + L[bot, stage + 1],
+                            R[node, stage],
+                        )
+                        R[bot, stage + 1] = self._f_ms(
+                            R[node, stage],
+                            L[node, stage + 1],
+                        ) + R[bot, stage]
 
             num_iters = it
 
