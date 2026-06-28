@@ -15,7 +15,7 @@ from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from encoder import polar_encode, polar_generator_matrix
 from simulation import run_simulation
-from utils import find_capacity_limit, plot_bler_curves, save_results_csv
+from utils import find_capacity_limit, load_results_csv, plot_bler_curves, save_results_csv
 
 
 def run_unit_tests():
@@ -52,10 +52,10 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
-MAX_FRAMES = 8000
-MIN_ERRORS = 30
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
+L_LIST = [4]
+MAX_FRAMES = 4000
+MIN_ERRORS = 20
+EB_N0_RANGE = np.arange(1.0, 5.0, 1.0)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
@@ -64,18 +64,26 @@ frozen_b = frozen_bits.astype(bool)
 
 all_results = {}
 
+sc_csv = f'results/exp2_sc_N{N}_R0.5.csv'
+if os.path.exists(sc_csv):
+    print('加载已有 SC 结果:', sc_csv)
+    all_results['SC (L=1)'] = load_results_csv(sc_csv)
+else:
+    def sc_decoder(llr_ch):
+        return sc_decode(llr_ch, frozen_b), None
 
-def sc_decoder(llr_ch):
-    return sc_decode(llr_ch, frozen_b), None
+    print('\nSC 基线 (L=1)')
+    results_sc = run_simulation(
+        N, K, EB_N0_RANGE, sc_decoder, 'sc',
+        MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+    )
+    all_results['SC (L=1)'] = results_sc
+    save_results_csv(results_sc, sc_csv)
 
-
-print('\nSC 基线 (L=1)')
-results_sc = run_simulation(
-    N, K, EB_N0_RANGE, sc_decoder, 'sc',
-    MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
-)
-all_results['SC (L=1)'] = results_sc
-save_results_csv(results_sc, f'results/exp2_sc_N{N}_R0.5.csv')
+scl2_csv = f'results/exp2_scl_L2_N{N}_R0.5.csv'
+if os.path.exists(scl2_csv):
+    print('加载已有 SCL L=2 结果:', scl2_csv)
+    all_results['SCL (L=2)'] = load_results_csv(scl2_csv)
 
 for L in L_LIST:
     print(f'\nSCL 仿真: N={N}, K={K}, L={L}')
@@ -91,11 +99,11 @@ for L in L_LIST:
     all_results[f'SCL (L={L})'] = results
     save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
 
-print(f'\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}')
+print(f'\nCA-SCL 仿真: N={N}, K={K}, L=4, CRC={CRC_LENGTH}')
 
 
 def cascl_decoder(llr_ch):
-    u_hat, _ = SCLDecoder(N, frozen_b, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+    u_hat, _ = SCLDecoder(N, frozen_b, list_size=4, crc_length=CRC_LENGTH).decode(llr_ch)
     return u_hat, None
 
 
@@ -104,8 +112,8 @@ results_cascl = run_simulation(
     MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
     info_indices=info_idx, verbose=True,
 )
-all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
-save_results_csv(results_cascl, f'results/exp2_cascl_L8_N{N}_R0.5.csv')
+all_results[f'CA-SCL (L=4, CRC={CRC_LENGTH})'] = results_cascl
+save_results_csv(results_cascl, f'results/exp2_cascl_L4_N{N}_R0.5.csv')
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
