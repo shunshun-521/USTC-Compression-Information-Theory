@@ -16,9 +16,12 @@ def f_operation(La, Lb):
 
 
 def _logdomain_sum(x, y):
-    if x > y:
-        return x + np.log1p(np.exp(y - x))
-    return y + np.log1p(np.exp(x - y))
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    diff = y - x
+    diff = np.clip(diff, -50.0, 50.0)
+    rev_diff = np.clip(x - y, -50.0, 50.0)
+    return np.where(x > y, x + np.log1p(np.exp(diff)), y + np.log1p(np.exp(rev_diff)))
 
 
 def f_boxplus(La, Lb):
