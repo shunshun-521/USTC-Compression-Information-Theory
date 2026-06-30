@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -59,38 +58,20 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
+    """AWGN 信道容量近似 C ≈ 0.5·log2(1+SNR)，SNR = 2R·Eb/N0"""
+    eb_n0_db_list = np.atleast_1d(np.asarray(eb_n0_db_list, dtype=np.float64))
+    snr = 2.0 * rate * (10 ** (eb_n0_db_list / 10.0))
+    return 0.5 * np.log2(1.0 + snr)
+
+
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=800):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    找到使 AWGN 信道容量等于码率 R 的 Eb/N0（dB）。
+    采用无限星座 AWGN 香农限: SNR = 2^R - 1, Eb/N0 = SNR / R。
     """
-    eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
-    return np.array(capacities)
-
-
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
-    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.searchsorted(caps, rate)
-    if idx == 0:
-        return eb_grid[0]
-    if idx >= len(eb_grid):
-        return eb_grid[-1]
-    c0, c1 = caps[idx - 1], caps[idx]
-    e0, e1 = eb_grid[idx - 1], eb_grid[idx]
-    if c1 == c0:
-        return e0
-    return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
+    snr_req = 2.0 ** rate - 1.0
+    eb_linear = snr_req / rate
+    return float(10.0 * np.log10(eb_linear))
 
 
 def plot_bler_curves(
