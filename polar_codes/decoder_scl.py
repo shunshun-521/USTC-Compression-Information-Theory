@@ -1,5 +1,8 @@
 """
 极化码 SCL（串行抵消列表）译码器
+支持 CRC 辅助（CA-SCL）
+"""
+import numpy as np
 from decoder_sc import (
     _update_llrs,
     _update_bits,
