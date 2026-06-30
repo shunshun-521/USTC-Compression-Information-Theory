@@ -1,0 +1,13 @@
+单元测试通过。
+  Eb/N0=1.00dB | BLER=6.8027e-01 | BER=2.1057e-01 | Errors=100 | Frames=147 | AvgTime=37.80ms
+  Eb/N0=1.25dB | BLER=5.8480e-01 | BER=1.8478e-01 | Errors=100 | Frames=171 | AvgTime=37.83ms
+  Eb/N0=1.50dB | BLER=3.2787e-01 | BER=9.2469e-02 | Errors=100 | Frames=305 | AvgTime=37.78ms
+  Eb/N0=1.75dB | BLER=2.1505e-01 | BER=5.2823e-02 | Errors=100 | Frames=465 | AvgTime=37.84ms
+  Eb/N0=2.00dB | BLER=1.0941e-01 | BER=2.4596e-02 | Errors=100 | Frames=914 | AvgTime=37.85ms
+  Eb/N0=2.25dB | BLER=7.0126e-02 | BER=1.4688e-02 | Errors=100 | Frames=1426 | AvgTime=37.78ms
+  Eb/N0=2.50dB | BLER=2.3657e-02 | BER=4.9560e-03 | Errors=100 | Frames=4227 | AvgTime=38.18ms
+  Eb/N0=2.75dB | BLER=1.2806e-02 | BER=2.5882e-03 | Errors=100 | Frames=7809 | AvgTime=37.95ms
+  Eb/N0=3.00dB | BLER=4.6555e-03 | BER=7.3433e-04 | Errors=100 | Frames=21480 | AvgTime=37.88ms
+  Eb/N0=3.25dB | BLER=2.0601e-03 | BER=2.7312e-04 | Errors=100 | Frames=48542 | AvgTime=37.79ms
+  Eb/N0=3.50dB | BLER=7.4000e-04 | BER=1.2031e-04 | Errors=74 | Frames=100000 | AvgTime=37.70ms
+  Eb/N0=3.75dB | BLER=2.9000e-04 | BER=3.7344e-05 | Errors=29 | Frames=100000 | AvgTime=37.73ms
