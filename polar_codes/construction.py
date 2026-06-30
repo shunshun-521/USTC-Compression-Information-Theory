@@ -71,15 +71,23 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     sigma = (1.0 / np.sqrt(2.0 * rate)) * (10.0 ** (-design_eb_n0_db / 20.0))
     m0 = 2.0 / (sigma**2)
 
-    m = np.array([m0], dtype=np.float64)
-    for _ in range(n):
-        m_new = np.empty(2 * len(m), dtype=np.float64)
-        ph = phi(m)
-        m_new[0::2] = phi_inv(1.0 - (1.0 - ph) ** 2)
-        m_new[1::2] = 2.0 * m
-        m = m_new
+    z = np.zeros((N, n + 1), dtype=np.float64)
+    z[:, 0] = m0
 
-    llr_means = m
+    for j in range(1, n + 1):
+        u = 1 << j
+        half = u // 2
+        for t in range(0, N, u):
+            for s in range(half):
+                k = t + s
+                z_top = z[k, j - 1]
+                z_bottom = z[k + half, j - 1]
+                ph_top = phi(z_top)
+                ph_bottom = phi(z_bottom)
+                z[k, j] = phi_inv(1.0 - (1.0 - ph_top) * (1.0 - ph_bottom))
+                z[k + half, j] = z_top + z_bottom
+
+    llr_means = z[:, n]
     info_indices = np.argsort(llr_means)[-K:]
     info_indices = np.sort(info_indices)
     all_idx = np.arange(N)
