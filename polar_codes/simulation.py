@@ -6,7 +6,7 @@ import time
 
 import numpy as np
 
-from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma
+from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma, snr_linear
 from construction import ga_construction
 from decoder_scl import crc_encode
 from encoder import polar_encode
@@ -36,6 +36,7 @@ def run_simulation(
 
     for eb_n0_db in eb_n0_db_list:
         sigma = eb_n0_to_sigma(eb_n0_db, rate)
+        energy = snr_linear(eb_n0_db, rate)
         num_errors = 0
         num_bit_errors = 0
         num_frames = 0
@@ -54,7 +55,7 @@ def run_simulation(
             u[info_indices] = payload
 
             x = polar_encode(u)
-            s = bpsk_modulate(x)
+            s = bpsk_modulate(x, energy=energy)
             y = awgn_channel(s, sigma, rng)
             llr = compute_llr(y, sigma)
 
@@ -121,11 +122,15 @@ def validate_modules(verbose=True):
     frozen_bits[info_idx] = 0
     rng = np.random.default_rng(0)
     sigma = eb_n0_to_sigma(10.0, K / N)
+    energy = snr_linear(10.0, K / N)
     sc_errors = 0
     for _ in range(100):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
+        llr = compute_llr(
+            awgn_channel(bpsk_modulate(polar_encode(u), energy=energy), sigma, rng),
+            sigma,
+        )
         u_hat = sc_decode(llr, frozen_bits)
         if not np.array_equal(u_hat[info_idx], u[info_idx]):
             sc_errors += 1
@@ -137,7 +142,10 @@ def validate_modules(verbose=True):
     for _ in range(50):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
+        llr = compute_llr(
+            awgn_channel(bpsk_modulate(polar_encode(u), energy=energy), sigma, rng),
+            sigma,
+        )
         u_hat, _ = scl.decode(llr)
         if not np.array_equal(u_hat, sc_decode(llr, frozen_bits)):
             scl_errors += 1

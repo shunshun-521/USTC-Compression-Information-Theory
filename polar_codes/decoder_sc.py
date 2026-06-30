@@ -17,20 +17,21 @@ def prepare_channel_llr(llr_ch):
 
 
 def _logdomain_sum(x, y):
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    larger = np.maximum(x, y)
-    smaller = np.minimum(x, y)
-    return larger + np.log1p(-np.exp(smaller - larger))
+    """log(exp(x) + exp(y))，数值稳定实现。"""
+    x = float(x)
+    y = float(y)
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
 
 
 def _logdomain_diff(x, y):
-    x = np.asarray(x, dtype=np.float64)
-    y = np.asarray(y, dtype=np.float64)
-    swap = x < y
-    a = np.where(swap, y, x)
-    b = np.where(swap, x, y)
-    return a + np.log1p(-np.exp(b - a))
+    """log(exp(x) - exp(y))，要求 x >= y。"""
+    x = float(x)
+    y = float(y)
+    if x > y:
+        return x + np.log1p(-np.exp(y - x))
+    return y + np.log1p(-np.exp(x - y))
 
 
 def f_operation(La, Lb):
@@ -92,7 +93,7 @@ def _upper_llr(l1, l2):
         return l1
     if np.isinf(l1) and np.isinf(l2):
         return np.inf
-    return float(_logdomain_sum(l1 + l2, 0.0) - _logdomain_sum(l1, l2))
+    return _logdomain_sum(l1 + l2, 0.0) - _logdomain_sum(l1, l2)
 
 
 def _lower_llr(l1, l2, bit):
