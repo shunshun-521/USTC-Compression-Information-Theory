@@ -23,9 +23,14 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
+MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
+MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+
+if os.environ.get("POLAR_QUICK") == "1":
+    MAX_FRAMES = 5000
+    MIN_ERRORS = 30
+    EB_N0_RANGE = np.arange(1.0, 5.0, 0.5)
 
 if __name__ == "__main__":
     print("运行单元测试...")
