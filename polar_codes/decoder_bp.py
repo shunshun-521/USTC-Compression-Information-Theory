@@ -5,7 +5,7 @@
 import math
 import numpy as np
 
-from decoder_sc import _prepare_llr, f_operation
+from decoder_sc import _bit_reversed, _prepare_llr, f_operation
 from encoder import polar_encode
 
 
@@ -28,7 +28,6 @@ class BPDecoder:
         llr_ch = _prepare_llr(llr_ch)
         n = self.n
         N = self.N
-        alpha = self.alpha
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
@@ -37,7 +36,7 @@ class BPDecoder:
 
         frozen_l = np.zeros(N, dtype=bool)
         for phi in range(N):
-            l = int(format(phi, f"0{n}b")[::-1], 2)
+            l = _bit_reversed(phi, n)
             frozen_l[l] = self.frozen_bits[l]
         R[frozen_l, 0] = self.LARGE
 
@@ -47,21 +46,30 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._ms_f(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1]
-                    )
-                    L[i + s, j - 1] = self._ms_f(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+            for stage in range(n - 1, -1, -1):
+                span = 1 << stage
+                for block in range(0, N, span * 2):
+                    for i in range(block, block + span):
+                        j = i + span
+                        L[i, stage] = self._ms_f(
+                            R[i, stage + 1] + L[j, stage + 1], L[i, stage + 1]
+                        )
+                        L[j, stage] = (
+                            self._ms_f(R[i, stage + 1], L[i, stage + 1])
+                            + L[j, stage + 1]
+                        )
 
-            for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    R[i, j + 1] = self._ms_f(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j]
-                    )
-                    R[i + s, j + 1] = self._ms_f(R[i, j], L[i, j + 1]) + R[i + s, j]
+            for stage in range(n):
+                span = 1 << stage
+                for block in range(0, N, span * 2):
+                    for i in range(block, block + span):
+                        j = i + span
+                        R[i, stage + 1] = self._ms_f(
+                            R[j, stage + 1] + L[j, stage + 1], R[i, stage]
+                        )
+                        R[j, stage + 1] = (
+                            self._ms_f(R[i, stage], L[i, stage + 1]) + R[j, stage]
+                        )
 
             for i in range(N):
                 u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
