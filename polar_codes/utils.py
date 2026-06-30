@@ -51,18 +51,19 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    采用对称信道互信息：C = 1 - E[log2(1 + exp(-|LLR|))]。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = np.zeros_like(eb_n0_db_list, dtype=np.float64)
-    y_grid = np.linspace(-10, 10, 2001)
+    y_grid = np.linspace(-10, 10, 4001)
 
     for idx, eb_n0_db in enumerate(eb_n0_db_list):
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-        s = np.sqrt(snr)
-        py = np.exp(-0.5 * (y_grid - s) ** 2) / np.sqrt(2 * np.pi)
-        py += np.exp(-0.5 * (y_grid + s) ** 2) / np.sqrt(2 * np.pi)
-        py /= 2.0
-        integrand = py * np.log2(1.0 + np.exp(-2.0 * s * y_grid))
+        sigma = 1.0 / np.sqrt(2.0 * rate * (10 ** (eb_n0_db / 10.0)))
+        p0 = np.exp(-0.5 * ((y_grid - 1) / sigma) ** 2) / (np.sqrt(2 * np.pi) * sigma)
+        p1 = np.exp(-0.5 * ((y_grid + 1) / sigma) ** 2) / (np.sqrt(2 * np.pi) * sigma)
+        py = 0.5 * p0 + 0.5 * p1
+        llr = 2.0 * y_grid / (sigma ** 2)
+        integrand = py * np.log2(1.0 + np.exp(-np.abs(llr)))
         capacities[idx] = 1.0 - np.trapezoid(integrand, y_grid)
 
     return capacities
