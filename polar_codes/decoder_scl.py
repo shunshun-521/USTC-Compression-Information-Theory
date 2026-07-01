@@ -8,9 +8,6 @@ from decoder_sc import (
     f_operation,
     g_operation,
     precompute_sc_indices,
-    active_llr_level,
-    active_bit_level,
-    bit_reversed,
     _prepare_llr,
 )
 

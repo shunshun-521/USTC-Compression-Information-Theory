@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -63,13 +62,13 @@ def load_results_csv(filepath):
 
 def _bpsk_capacity_single(eb_n0_db, rate):
     snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2.0 * np.pi)
-    return 1.0 - val
+    s = np.sqrt(snr)
+    y = np.linspace(-10.0, 10.0, 50001)
+    p = 0.5 * np.exp(-0.5 * (y - s) ** 2) + 0.5 * np.exp(-0.5 * (y + s) ** 2)
+    p /= np.trapezoid(p, y)
+    hy = -np.trapezoid(p * np.log2(p + 1e-300), y)
+    hy_given_x = 0.5 * np.log2(2.0 * np.pi * np.e)
+    return hy - hy_given_x
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -79,23 +78,27 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array([_bpsk_capacity_single(eb, rate) for eb in eb_n0_db_list])
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        lo, hi = eb_n0_range
-        for _ in range(50):
-            mid = (lo + hi) / 2.0
-            if _bpsk_capacity_single(mid, rate) < rate:
-                lo = mid
-            else:
-                hi = mid
-        return (lo + hi) / 2.0
-    return eb_grid[idx]
+    lo, hi = eb_n0_range
+
+    def cap_minus_rate(eb_db):
+        return _bpsk_capacity_single(eb_db, rate) - rate
+
+    if cap_minus_rate(lo) > 0:
+        return lo
+    if cap_minus_rate(hi) < 0:
+        return hi
+
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        if cap_minus_rate(mid) < 0:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2.0
 
 
 def plot_bler_curves(

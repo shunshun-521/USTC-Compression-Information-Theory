@@ -9,7 +9,7 @@ from encoder import polar_encode, bit_reversal_permutation
 
 
 class BPDecoder:
-    """BP 译码器。"""
+    """BP 译码器（因子图 stages 0..n，stage n 为信道端）。"""
 
     LARGE = 1e6
 
@@ -21,64 +21,70 @@ class BPDecoder:
         self.alpha = alpha
         self.rev = bit_reversal_permutation(N)
 
-    def _f_min_sum(self, x, y):
-        return self.alpha * f_operation(x, y)
+    def _f(self, a, b):
+        return self.alpha * f_operation(a, b)
 
     def decode(self, llr_ch):
         """主译码函数，返回 u_hat, num_iters。"""
-        llr_ch = np.asarray(llr_ch, dtype=np.float64)[self.rev]
+        llr = np.asarray(llr_ch, dtype=np.float64)[self.rev]
         n = self.n
         N = self.N
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_bits, 0] = self.LARGE
+        L = np.zeros((n + 1, N), dtype=np.float64)
+        R = np.zeros((n + 1, N), dtype=np.float64)
+        L[n, :] = llr
+        R[0, :] = 0.0
+        R[0, self.frozen_bits] = self.LARGE
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_min_sum(
-                        R[i, j] + L[i + s, j], L[i, j + 1]
-                    )
-                    L[i + s, j - 1] = (
-                        self._f_min_sum(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
-                    )
+            for stage in range(n - 1, -1, -1):
+                stride = 1 << stage
+                for block in range(0, N, 2 * stride):
+                    left = block
+                    right = block + stride
+                    for offset in range(stride):
+                        i = left + offset
+                        j = right + offset
+                        L[stage, i] = self._f(
+                            R[stage, i] + L[stage + 1, j], L[stage + 1, i]
+                        )
+                        L[stage, j] = (
+                            self._f(R[stage, i], L[stage + 1, i])
+                            + L[stage + 1, j]
+                        )
 
-            for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    R[i, j + 1] = self._f_min_sum(
-                        R[i + s, j + 1] + L[i + s, j + 1], R[i, j]
-                    )
-                    R[i + s, j + 1] = (
-                        self._f_min_sum(R[i, j], L[i, j + 1]) + R[i + s, j]
-                    )
+            for stage in range(n):
+                stride = 1 << stage
+                for block in range(0, N, 2 * stride):
+                    left = block
+                    right = block + stride
+                    for offset in range(stride):
+                        i = left + offset
+                        j = right + offset
+                        R[stage + 1, i] = self._f(
+                            R[stage + 1, j] + L[stage + 1, j], R[stage, i]
+                        )
+                        R[stage + 1, j] = (
+                            self._f(R[stage, i], L[stage + 1, i]) + R[stage + 1, j]
+                        )
 
             for i in range(N):
-                if self.frozen_bits[i]:
-                    u_hat[i] = 0
-                else:
-                    u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
+                u_hat[i] = 0 if self.frozen_bits[i] else (
+                    0 if (L[0, i] + R[0, i]) >= 0 else 1
+                )
 
             x_hat = polar_encode(u_hat)
-            hard_decision = (llr_ch < 0).astype(int)
-            x_hat_aligned = x_hat[self.rev]
-            if np.array_equal(x_hat_aligned, hard_decision):
+            if np.array_equal(x_hat[self.rev], (llr < 0).astype(int)):
                 num_iters = it
                 break
             num_iters = it
 
         for i in range(N):
-            if self.frozen_bits[i]:
-                u_hat[i] = 0
-            else:
-                u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
+            u_hat[i] = 0 if self.frozen_bits[i] else (
+                0 if (L[0, i] + R[0, i]) >= 0 else 1
+            )
 
         return u_hat, num_iters
