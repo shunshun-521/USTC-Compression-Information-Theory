@@ -23,19 +23,22 @@ def phi(x):
 
 def phi_inv(y):
     """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 函数的数值逆（二分法）。
+    phi 为单调递减函数：phi(0+)≈1，phi(∞)→0。
     """
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
     if scalar:
         y = y.reshape(1)
-    lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
-    for _ in range(60):
+    y = np.clip(y, 0.0, 1.0)
+    lo = np.full_like(y, 1e-12)
+    hi = np.full_like(y, 1e6)
+    for _ in range(80):
         mid = (lo + hi) / 2
         val = phi(mid)
-        lo = np.where(val < y, mid, lo)
-        hi = np.where(val >= y, mid, hi)
+        # phi 递减：val > y 时增大 m，否则减小 m
+        lo = np.where(val > y, mid, lo)
+        hi = np.where(val <= y, mid, hi)
     result = (lo + hi) / 2
     return result.item() if scalar else result
 
@@ -68,8 +71,9 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         new_len = len(means) * 2
         m_new = np.zeros(new_len, dtype=np.float64)
         for i in range(len(means)):
-            m_new[2 * i] = 2.0 * means[i]
-            m_new[2 * i + 1] = phi_inv(1.0 - (1.0 - phi(means[i])) ** 2)
+            # W^{-}（较差）置于偶数索引，W^{+}（较好）置于奇数索引
+            m_new[2 * i] = phi_inv(1.0 - (1.0 - phi(means[i])) ** 2)
+            m_new[2 * i + 1] = 2.0 * means[i]
         means = m_new
 
     llr_means = means
