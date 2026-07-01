@@ -50,25 +50,25 @@ class BPDecoder:
             for s in range(n - 1, -1, -1):
                 block = 1 << s
                 for j in range(0, N, 2 * block):
-                    for k in range(block):
-                        a, b = j + k, j + k + block
-                        L[s, a] = self._g(
-                            L_old[s + 1, a], L_old[s + 1, b] + R[s, b]
-                        )
-                        L[s, b] = self._g(L_old[s + 1, a], R[s, a]) + L_old[s + 1, b]
+                    a = np.arange(j, j + block)
+                    b = a + block
+                    L[s, a] = self._g(
+                        L_old[s + 1, a], L_old[s + 1, b] + R[s, b]
+                    )
+                    L[s, b] = self._g(L_old[s + 1, a], R[s, a]) + L_old[s + 1, b]
 
             R_old = R.copy()
             for s in range(0, n):
                 block = 1 << s
                 for j in range(0, N, 2 * block):
-                    for k in range(block):
-                        a, b = j + k, j + k + block
-                        R[s + 1, a] = self._g(
-                            R_old[s, a], L_old[s + 1, b] + R_old[s, b]
-                        )
-                        R[s + 1, b] = (
-                            self._g(L_old[s + 1, a], R_old[s, a]) + R_old[s, b]
-                        )
+                    a = np.arange(j, j + block)
+                    b = a + block
+                    R[s + 1, a] = self._g(
+                        R_old[s, a], L_old[s + 1, b] + R_old[s, b]
+                    )
+                    R[s + 1, b] = (
+                        self._g(L_old[s + 1, a], R_old[s, a]) + R_old[s, b]
+                    )
 
             for i in range(N):
                 if self.frozen_mask[i]:
