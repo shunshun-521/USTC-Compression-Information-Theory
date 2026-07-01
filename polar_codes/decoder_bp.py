@@ -4,7 +4,6 @@
 """
 import math
 import numpy as np
-from decoder_sc import f_operation
 from encoder import polar_encode
 
 
@@ -28,12 +27,27 @@ class BPDecoder:
         self.alpha = alpha
         self.LARGE = 1e6
 
-    def _g(self, x, y):
-        return self.alpha * f_operation(x, y)
+        # 预计算各阶段的节点索引，避免译码时重复构造
+        self._left_idx = []
+        self._right_idx = []
+        for s in range(self.n):
+            block = 1 << s
+            left_parts = []
+            right_parts = []
+            for j in range(0, N, 2 * block):
+                left_parts.append(np.arange(j, j + block))
+                right_parts.append(np.arange(j + block, j + 2 * block))
+            self._left_idx.append(np.concatenate(left_parts))
+            self._right_idx.append(np.concatenate(right_parts))
+
+    @staticmethod
+    def _g(alpha, x, y):
+        return alpha * np.sign(x) * np.sign(y) * np.minimum(np.abs(x), np.abs(y))
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, n = self.N, self.n
+        alpha = self.alpha
 
         L = np.zeros((n + 1, N), dtype=np.float64)
         R = np.zeros((n + 1, N), dtype=np.float64)
@@ -46,47 +60,41 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            L_old = L.copy()
+            L_cur = L[n, :].copy()
             for s in range(n - 1, -1, -1):
-                block = 1 << s
-                for j in range(0, N, 2 * block):
-                    a = np.arange(j, j + block)
-                    b = a + block
-                    L[s, a] = self._g(
-                        L_old[s + 1, a], L_old[s + 1, b] + R[s, b]
-                    )
-                    L[s, b] = self._g(L_old[s + 1, a], R[s, a]) + L_old[s + 1, b]
+                a = self._left_idx[s]
+                b = self._right_idx[s]
+                La = L[s + 1, a]
+                Lb = L[s + 1, b]
+                Ra = R[s, a]
+                Rb = R[s, b]
+                L[s, a] = self._g(alpha, La, Lb + Rb)
+                L[s, b] = self._g(alpha, La, Ra) + Lb
+                L_cur = L[s, :]
 
-            R_old = R.copy()
-            for s in range(0, n):
-                block = 1 << s
-                for j in range(0, N, 2 * block):
-                    a = np.arange(j, j + block)
-                    b = a + block
-                    R[s + 1, a] = self._g(
-                        R_old[s, a], L_old[s + 1, b] + R_old[s, b]
-                    )
-                    R[s + 1, b] = (
-                        self._g(L_old[s + 1, a], R_old[s, a]) + R_old[s, b]
-                    )
+            R_cur = R[0, :].copy()
+            for s in range(n):
+                a = self._left_idx[s]
+                b = self._right_idx[s]
+                La = L[s + 1, a]
+                Lb = L[s + 1, b]
+                Ra = R[s, a]
+                Rb = R[s, b]
+                R[s + 1, a] = self._g(alpha, Ra, Lb + Rb)
+                R[s + 1, b] = self._g(alpha, La, Ra) + Rb
+                R_cur = R[s + 1, :]
 
-            for i in range(N):
-                if self.frozen_mask[i]:
-                    u_hat[i] = 0
-                else:
-                    u_hat[i] = 0 if (L[0, i] + R[0, i]) >= 0 else 1
+            total = L[0, :] + R[0, :]
+            u_hat[~self.frozen_mask] = (total[~self.frozen_mask] < 0).astype(int)
 
             x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
+            if np.array_equal(x_hat, (llr_ch < 0).astype(int)):
                 num_iters = it
                 break
             num_iters = it
 
-        for i in range(N):
-            if self.frozen_mask[i]:
-                u_hat[i] = 0
-            else:
-                u_hat[i] = 0 if (L[0, i] + R[0, i]) >= 0 else 1
+        total = L[0, :] + R[0, :]
+        u_hat[~self.frozen_mask] = (total[~self.frozen_mask] < 0).astype(int)
+        u_hat[self.frozen_mask] = 0
 
         return u_hat, num_iters
