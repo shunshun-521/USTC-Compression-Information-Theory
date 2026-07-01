@@ -28,9 +28,10 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+if os.environ.get("POLAR_QUICK"):
+    MAX_FRAMES = 5000
+    MIN_ERRORS = 50
+    EB_N0_RANGE = np.arange(1.0, 4.5, 0.5)
 
 for N in N_LIST:
     K = N // 2
