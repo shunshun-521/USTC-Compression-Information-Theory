@@ -74,7 +74,9 @@ for N in N_LIST:
 
     print(f"\n实验三 N={N}: BP")
     r_bp = run_simulation(
-        N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
+        N, K, EB_N0_RANGE, bp_d, "bp",
+        max_frames=min(MAX_FRAMES, 15000),
+        min_errors=min(MIN_ERRORS, 50),
         info_indices=info_idx,
     )
     all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
