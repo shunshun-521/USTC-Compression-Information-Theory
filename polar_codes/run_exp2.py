@@ -22,28 +22,28 @@ from utils import find_capacity_limit, plot_bler_curves, save_results_csv
 
 
 def run_unit_tests():
-  u = np.array([1, 0, 1, 1])
-  x = polar_encode(u)
+    u = np.array([1, 0, 1, 1])
+    x = polar_encode(u)
     assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
 
-  N, K = 64, 32
-  info_idx, _, _ = ga_construction(N, K, 2.5)
-  frozen_bits = np.ones(N, dtype=int)
-  frozen_bits[info_idx] = 0
-  fb = frozen_bits.astype(bool)
-  sigma = eb_n0_to_sigma(10.0, K / N)
-  rng = np.random.default_rng(0)
-  for _ in range(50):
-    info_bits = rng.integers(0, 2, size=K)
-    u = np.zeros(N, dtype=int)
-    u[info_idx] = info_bits
-    x = polar_encode(u)
-    y = awgn_channel(bpsk_modulate(x), sigma, rng)
-    llr = compute_llr(y, sigma)
-    u_sc = sc_decode(llr, fb)
-    u_scl, _ = SCLDecoder(N, fb, list_size=1).decode(llr)
-    assert np.array_equal(u_sc, u_scl)
-  print("单元测试通过。")
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    fb = frozen_bits.astype(bool)
+    sigma = eb_n0_to_sigma(10.0, K / N)
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        info_bits = rng.integers(0, 2, size=K)
+        u = np.zeros(N, dtype=int)
+        u[info_idx] = info_bits
+        x = polar_encode(u)
+        y = awgn_channel(bpsk_modulate(x), sigma, rng)
+        llr = compute_llr(y, sigma)
+        u_sc = sc_decode(llr, fb)
+        u_scl, _ = SCLDecoder(N, fb, list_size=1).decode(llr)
+        assert np.array_equal(u_sc, u_scl)
+    print("单元测试通过。")
 
 
 os.makedirs("results", exist_ok=True)
