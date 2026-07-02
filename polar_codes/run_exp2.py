@@ -29,10 +29,16 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+if os.environ.get("POLAR_QUICK"):
+    MAX_FRAMES = 5000
+    MIN_ERRORS = 30
+    EB_N0_RANGE = np.arange(1.0, 5.0, 0.5)
+    L_LIST = [2, 4]
+else:
+    MAX_FRAMES = 100000
+    MIN_ERRORS = 100
+    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    L_LIST = [2, 4, 8]
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
