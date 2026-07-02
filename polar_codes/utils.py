@@ -6,7 +6,6 @@ import os
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -54,19 +53,28 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))]
+    通过数值积分计算互信息 I(X;Y)。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10))
-
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
-
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf)
-        C = 1 - integral / np.sqrt(2 * np.pi)
-        capacities.append(C)
+        capacities.append(_bpsk_mutual_info(eb_n0_db, rate))
     return np.array(capacities)
+
+
+def _bpsk_mutual_info(eb_n0_db, rate):
+    """BPSK-AWGN 信道每信道使用互信息。"""
+    eb_n0 = 10 ** (eb_n0_db / 10)
+    gamma = eb_n0 * rate
+    sigma = 1.0 / np.sqrt(2 * gamma)
+    y = np.linspace(-10 * max(sigma, 0.1), 10 * max(sigma, 0.1), 200001)
+    p_y = (
+        0.5 * np.exp(-(y - 1) ** 2 / (2 * sigma ** 2))
+        + 0.5 * np.exp(-(y + 1) ** 2 / (2 * sigma ** 2))
+    )
+    p_y /= np.trapezoid(p_y, y)
+    h_y = -np.trapezoid(p_y * np.log2(p_y + 1e-300), y)
+    h_y_given_x = 0.5 * np.log2(2 * np.pi * np.e * sigma ** 2)
+    return max(h_y - h_y_given_x, 0.0)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
