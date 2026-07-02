@@ -18,6 +18,11 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self._large = 1e6
+        self._layers = []
+        for j in range(1, self.n + 1):
+            s = 1 << (j - 1)
+            idx = np.arange(0, N, 2 * s)[:, None] + np.arange(s)
+            self._layers.append((j, idx.ravel(), (idx + s).ravel()))
 
     def _f_min_sum(self, a, b):
         return self.alpha * f_operation(a, b)
@@ -33,45 +38,27 @@ class BPDecoder:
         R[:, 0] = 0.0
         R[self.frozen_bits, 0] = self._large
 
-        num_iters = 0
-        u_hat = np.zeros(N, dtype=int)
+        num_iters = self.max_iter
+        hard_ch = (llr_ch < 0).astype(int)
 
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    for t in range(s):
-                        idx = i + t
-                        L[idx, j - 1] = self._f_min_sum(
-                            R[idx, j - 1] + L[idx + s, j], L[idx, j]
-                        )
-                        L[idx + s, j - 1] = (
-                            self._f_min_sum(R[idx, j - 1], L[idx, j])
-                            + L[idx + s, j]
-                        )
+            for j, lo, hi in self._layers[::-1]:
+                L[lo, j - 1] = self._f_min_sum(
+                    R[lo, j - 1] + L[hi, j], L[lo, j]
+                )
+                L[hi, j - 1] = self._f_min_sum(R[lo, j - 1], L[lo, j]) + L[hi, j]
 
-            # 左到右更新 R
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    for t in range(s):
-                        idx = i + t
-                        R[idx, j] = self._f_min_sum(
-                            R[idx + s, j - 1] + L[idx + s, j], R[idx, j - 1]
-                        )
-                        R[idx + s, j] = (
-                            self._f_min_sum(R[idx, j - 1], L[idx, j])
-                            + R[idx + s, j - 1]
-                        )
+            for j, lo, hi in self._layers:
+                R[lo, j] = self._f_min_sum(
+                    R[hi, j - 1] + L[hi, j], R[lo, j - 1]
+                )
+                R[hi, j] = self._f_min_sum(R[lo, j - 1], L[lo, j]) + R[hi, j - 1]
 
             total = L[:, 0] + R[:, 0]
             u_hat = (total < 0).astype(int)
             u_hat[self.frozen_bits] = 0
 
-            x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
+            if np.array_equal(polar_encode(u_hat), hard_ch):
                 num_iters = it
                 break
             num_iters = it

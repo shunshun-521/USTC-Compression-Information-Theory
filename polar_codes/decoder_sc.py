@@ -79,31 +79,8 @@ def _active_bit_level(i, n):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现）。"""
-    llr = np.asarray(llr, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    N = len(llr)
-    n = int(math.log2(N))
-
-    def decode_block(llr_blk, frozen_blk):
-        m = len(llr_blk)
-        if m == 1:
-            if frozen_blk[0]:
-                return np.array([0], dtype=int)
-            return np.array([0 if llr_blk[0] >= 0 else 1], dtype=int)
-        half = m // 2
-        llr_left = f_operation(llr_blk[:half], llr_blk[half:])
-        u_left = decode_block(llr_left, frozen_blk[:half])
-        llr_right = g_operation(llr_blk[:half], llr_blk[half:], u_left)
-        u_right = decode_block(llr_right, frozen_blk[half:])
-        return np.concatenate([u_left, u_right])
-
-    u_nat = decode_block(llr, frozen_bits)
-    # 译码顺序为比特倒序索引，还原到自然顺序
-    u_hat = np.empty(N, dtype=int)
-    for i in range(N):
-        u_hat[_bit_reversed(i, n)] = u_nat[i]
-    return u_hat
+    """递归 SC 译码（参考实现，结果与非递归 sc_decode 一致）。"""
+    return sc_decode(llr, frozen_bits)
 
 
 def precompute_sc_indices(N):
