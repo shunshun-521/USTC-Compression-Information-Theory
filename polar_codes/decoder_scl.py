@@ -5,7 +5,7 @@
 import numpy as np
 
 from channel import prepare_channel_llr
-from decoder_sc import _lazy_llr, g_operation, f_operation
+from decoder_sc import _lazy_llr
 
 
 CRC8_POLY = np.array([1, 0, 0, 0, 0, 0, 1, 1, 1], dtype=np.int8)
@@ -38,6 +38,17 @@ def crc_check(bits, crc_length=8):
     return np.array_equal(bits[-crc_length:], _crc_remainder(payload, poly))
 
 
+def _ensure_unique_llrs(active_indices, llrs):
+    """Copy-on-write：多条路径共享 LLR 数组时，在写入前分离副本"""
+    seen = {}
+    for idx in active_indices:
+        arr_id = id(llrs[idx])
+        if arr_id in seen:
+            llrs[idx] = llrs[idx].copy()
+        else:
+            seen[arr_id] = idx
+
+
 class SCLDecoder:
     """SCL 译码器（Lazy Copy 优化）"""
 
@@ -54,28 +65,23 @@ class SCLDecoder:
         llr_ch = prepare_channel_llr(llr_ch)
         N, n, L = self.N, self.n, self.list_size
 
-        llrs = [
-            np.full((n + 1, N), -np.inf, dtype=np.float64) for _ in range(L)
-        ]
-        bits = [np.full((n + 1, N), -1, dtype=np.int8) for _ in range(L)]
-        for l_idx in range(L):
-            llrs[l_idx][n, :] = llr_ch
+        llrs = [np.full((n + 1, N), -np.inf, dtype=np.float64)]
+        bits = [np.full((n + 1, N), -1, dtype=np.int8)]
+        llrs[0][n, :] = llr_ch
 
-        pm = np.full(L, np.inf, dtype=np.float64)
-        pm[0] = 0.0
-        active = [True] * L
+        pm = [0.0]
+        active = [True]
 
         for phi in range(N):
+            active_indices = [i for i, a in enumerate(active) if a]
+            _ensure_unique_llrs(active_indices, llrs)
+
             candidates = []
-
-            for l_idx in range(L):
-                if not active[l_idx]:
-                    continue
-
+            for l_idx in active_indices:
                 if self.frozen_bits[phi]:
                     llrs[l_idx][0, phi] = _lazy_llr(0, phi, llrs[l_idx], bits[l_idx])
-                    bits[l_idx][0, phi] = 0
-                    penalty = 0.0 if llrs[l_idx][0, phi] >= 0 else abs(llrs[l_idx][0, phi])
+                    llr0 = llrs[l_idx][0, phi]
+                    penalty = 0.0 if llr0 >= 0 else abs(llr0)
                     candidates.append((pm[l_idx] + penalty, l_idx, 0))
                 else:
                     llrs[l_idx][0, phi] = _lazy_llr(0, phi, llrs[l_idx], bits[l_idx])
@@ -87,31 +93,26 @@ class SCLDecoder:
             candidates.sort(key=lambda x: x[0])
             candidates = candidates[:L]
 
-            new_llrs = [
-                np.full((n + 1, N), -np.inf, dtype=np.float64) for _ in range(L)
-            ]
-            new_bits = [np.full((n + 1, N), -1, dtype=np.int8) for _ in range(L)]
-            new_pm = np.full(L, np.inf, dtype=np.float64)
-            new_active = [False] * L
-            new_u_partial = [None] * L
+            new_llrs = []
+            new_bits = []
+            new_pm = []
+            new_active = []
 
-            for i, (new_pm_val, parent, bit) in enumerate(candidates):
-                new_llrs[i] = llrs[parent].copy()
-                new_bits[i] = bits[parent].copy()
-                new_pm[i] = new_pm_val
-                new_active[i] = True
-                new_bits[i][0, phi] = 0 if self.frozen_bits[phi] else bit
-                new_llrs[i][0, phi] = llrs[parent][0, phi]
+            for new_pm_val, parent, bit in candidates:
+                new_llrs.append(llrs[parent])
+                new_bits.append(bits[parent].copy())
+                new_pm.append(new_pm_val)
+                new_active.append(True)
+                new_bits[-1][0, phi] = 0 if self.frozen_bits[phi] else bit
 
             llrs, bits, pm, active = new_llrs, new_bits, new_pm, new_active
 
         paths_u = []
         paths_pm = []
-        for l_idx in range(L):
-            if not active[l_idx]:
+        for l_idx, is_active in enumerate(active):
+            if not is_active:
                 continue
-            u_hat = bits[l_idx][0, :].astype(int)
-            paths_u.append(u_hat)
+            paths_u.append(bits[l_idx][0, :].astype(int))
             paths_pm.append(pm[l_idx])
 
         if not paths_u:
