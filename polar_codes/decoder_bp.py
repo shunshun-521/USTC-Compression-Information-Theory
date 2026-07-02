@@ -40,37 +40,37 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            for stage in range(n - 1, -1, -1):
+                step = 1 << stage
                 for i in range(0, N, 2 * step):
                     for k in range(step):
                         idx = i + k
-                        L[idx, j - 1] = _minsum_f(
-                            R[idx, j] + L[idx + step, j + 1],
-                            L[idx, j + 1],
+                        L[idx, stage] = _minsum_f(
+                            R[idx, stage + 1] + L[idx + step, stage + 1],
+                            L[idx, stage + 1],
                             alpha,
                         )
-                        L[idx + step, j - 1] = _minsum_f(
-                            R[idx, j],
-                            L[idx, j + 1],
+                        L[idx + step, stage] = _minsum_f(
+                            R[idx, stage + 1],
+                            L[idx, stage + 1],
                             alpha,
-                        ) + L[idx + step, j + 1]
+                        ) + L[idx + step, stage + 1]
 
-            for j in range(0, n):
-                step = 1 << j
+            for stage in range(0, n):
+                step = 1 << stage
                 for i in range(0, N, 2 * step):
                     for k in range(step):
                         idx = i + k
-                        R[idx, j + 1] = _minsum_f(
-                            R[idx + step, j] + L[idx + step, j + 1],
-                            R[idx, j],
+                        R[idx, stage + 1] = _minsum_f(
+                            R[idx + step, stage] + L[idx + step, stage + 1],
+                            R[idx, stage],
                             alpha,
                         )
-                        R[idx + step, j + 1] = _minsum_f(
-                            R[idx, j],
-                            L[idx, j + 1],
+                        R[idx + step, stage + 1] = _minsum_f(
+                            R[idx, stage],
+                            L[idx, stage + 1],
                             alpha,
-                        ) + R[idx + step, j]
+                        ) + R[idx + step, stage]
 
             for i in range(N):
                 u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
