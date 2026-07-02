@@ -17,10 +17,10 @@ def run_unit_tests(verbose=True):
 
     # GA 构造校验
     info8, frozen8, _ = ga_construction(8, 4, 2.5)
-    assert np.array_equal(info8, [0, 3, 5, 6]), f"GA N=8 构造异常: {info8}"
+    assert np.array_equal(info8, [3, 5, 6, 7]), f"GA N=8 构造异常: {info8}"
 
     info256, _, _ = ga_construction(256, 128, 2.5)
-    expected_first20 = [1, 2, 4, 7, 8, 11, 13, 14, 16, 19, 21, 22, 25, 26, 28, 31, 32, 35, 37, 38]
+    expected_first20 = [55, 59, 61, 62, 63, 79, 87, 91, 93, 94, 95, 103, 106, 107, 108, 109, 110, 111, 113, 114]
     assert np.array_equal(info256[:20], expected_first20), (
         f"GA N=256 前20位不匹配: {info256[:20]}"
     )

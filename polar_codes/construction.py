@@ -35,8 +35,9 @@ def phi_inv(y):
     for _ in range(60):
         mid = (lo + hi) / 2
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
+        # phi(x) 关于 x 单调递减
+        lo = np.where(pm > y, mid, lo)
+        hi = np.where(pm <= y, mid, hi)
 
     result = (lo + hi) / 2
     return float(result[0]) if scalar else result
