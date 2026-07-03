@@ -5,7 +5,7 @@ import time
 import numpy as np
 
 from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
-from encoder import polar_encode, bit_reversal_permutation
+from encoder import polar_encode
 from decoder_scl import crc_encode
 
 
@@ -30,10 +30,9 @@ def run_simulation(
     rng = np.random.default_rng(seed)
     rate = K / N
     K_info = K - crc_length
-    br = bit_reversal_permutation(N)
 
     if info_indices is None:
-        info_indices = np.arange(K)  # fallback
+        info_indices = np.arange(K)
 
     results = []
 
@@ -46,7 +45,6 @@ def run_simulation(
         total_iters = 0
 
         while num_frames < max_frames and num_errors < min_errors:
-            # 生成信息比特
             info_bits = rng.integers(0, 2, K_info)
 
             if crc_length > 0:
@@ -60,7 +58,7 @@ def run_simulation(
             x = polar_encode(u)
             s = bpsk_modulate(x)
             y = awgn_channel(s, sigma, rng)
-            llr = compute_llr(y, sigma)[br]
+            llr = compute_llr(y, sigma)
 
             t0 = time.perf_counter()
             u_hat, aux = decoder(llr)

@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(__file__))
 
 from construction import ga_construction
-from encoder import polar_encode, build_generator_matrix, bit_reversal_permutation
+from encoder import polar_encode, build_generator_matrix
 from channel import bpsk_modulate, compute_llr, eb_n0_to_sigma
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder, crc_encode, crc_check
@@ -33,12 +33,11 @@ def run_unit_tests():
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen = np.ones(N, dtype=bool)
     frozen[info_idx] = False
-    br = bit_reversal_permutation(N)
     rng = np.random.default_rng(0)
     for _ in range(50):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        llr = compute_llr(bpsk_modulate(polar_encode(u)), eb_n0_to_sigma(10.0, 0.5))[br]
+        llr = compute_llr(bpsk_modulate(polar_encode(u)), eb_n0_to_sigma(10.0, 0.5))
         u_sc = sc_decode(llr, frozen)
         u_scl, _ = SCLDecoder(N, frozen, list_size=1).decode(llr)
         assert np.array_equal(u_sc, u_scl), "单路径 SCL 应等价于 SC"

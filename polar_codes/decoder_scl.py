@@ -188,7 +188,7 @@ class SCLDecoder:
 
 
 if __name__ == "__main__":
-    from encoder import polar_encode, bit_reversal_permutation
+    from encoder import polar_encode
     from channel import bpsk_modulate, compute_llr
     from decoder_sc import sc_decode
     from construction import ga_construction
@@ -198,14 +198,12 @@ if __name__ == "__main__":
     info, _, _ = ga_construction(N, K, 2.5)
     frozen = np.ones(N, dtype=bool)
     frozen[info] = False
-    br = bit_reversal_permutation(N)
-
     rng = np.random.default_rng(1)
     mismatch = 0
     for _ in range(20):
         u = np.zeros(N, dtype=int)
         u[info] = rng.integers(0, 2, K)
-        llr = compute_llr(bpsk_modulate(polar_encode(u)), 1e-3)[br]
+        llr = compute_llr(bpsk_modulate(polar_encode(u)), 1e-3)
         u_sc = sc_decode(llr, frozen)
         u_scl, _ = SCLDecoder(N, frozen, list_size=1).decode(llr)
         if not np.array_equal(u_sc, u_scl):

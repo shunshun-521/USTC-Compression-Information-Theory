@@ -17,7 +17,6 @@ from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
 from decoder_sc import sc_decode
 from simulation import run_simulation
 from utils import save_results_csv, plot_bler_curves, save_frozen_set_info, find_capacity_limit
-from encoder import bit_reversal_permutation
 
 
 def run_unit_tests():
@@ -34,7 +33,6 @@ def run_unit_tests():
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen = np.ones(N, dtype=bool)
     frozen[info_idx] = False
-    br = bit_reversal_permutation(N)
     rng = np.random.default_rng(123)
     errors = 0
     sigma = eb_n0_to_sigma(10.0, K / N)
@@ -43,7 +41,7 @@ def run_unit_tests():
         u[info_idx] = rng.integers(0, 2, K)
         x = polar_encode(u)
         y = bpsk_modulate(x) + rng.normal(0, sigma, N)
-        llr = compute_llr(y, sigma)[br]
+        llr = compute_llr(y, sigma)
         u_hat = sc_decode(llr, frozen)
         if not np.array_equal(u[info_idx], u_hat[info_idx]):
             errors += 1

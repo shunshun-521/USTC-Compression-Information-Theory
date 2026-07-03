@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(__file__))
 
 from construction import ga_construction
-from encoder import polar_encode, build_generator_matrix, bit_reversal_permutation
+from encoder import polar_encode, build_generator_matrix
 from channel import bpsk_modulate, compute_llr, eb_n0_to_sigma
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
