@@ -103,6 +103,7 @@ class BPDecoder:
 
         num_iters = self.max_iter
         x_hat = (llr_ch < 0).astype(int)
+        hard_ch = x_hat.copy()
 
         for it in range(1, self.max_iter + 1):
             Lr = np.zeros(self.M, dtype=np.float64)
@@ -111,8 +112,9 @@ class BPDecoder:
                 msgs = np.array([Lq[v] - Rmq[(m, v)] for v in edges])
                 for idx, v in enumerate(edges):
                     others = np.delete(msgs, idx)
-                    prod_sign = np.prod(np.sign(others))
-                    prod_sign = 1.0 if prod_sign == 0 else prod_sign
+                    signs = np.sign(others)
+                    signs[signs == 0] = 1
+                    prod_sign = np.prod(signs)
                     min_abs = np.min(np.abs(others)) if len(others) else 0.0
                     Rmq[(m, v)] = self.alpha * prod_sign * min_abs
 
@@ -123,7 +125,7 @@ class BPDecoder:
                 x_hat[v] = 0 if Lq[v] >= 0 else 1
 
             u_hat = (x_hat @ self.G) % 2
-            if np.array_equal(polar_encode(u_hat), x_hat):
+            if np.array_equal(x_hat, hard_ch):
                 num_iters = it
                 break
 
