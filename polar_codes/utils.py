@@ -6,7 +6,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
