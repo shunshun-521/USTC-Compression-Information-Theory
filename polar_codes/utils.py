@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 import matplotlib.pyplot as plt
 
 from construction import ga_construction
@@ -50,33 +49,18 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
+    计算 BPSK-AWGN 信道容量（bits/channel use）近似。
+    C ≈ (1/2) * log2(1 + 2*R*Eb/N0)
     """
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10))
-
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
-
-        val, _ = integrate.quad(integrand, -10, 10)
-        capacities.append(1 - val)
-    return np.array(capacities)
+    eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=np.float64)
+    snr_linear = 2 * rate * (10 ** (eb_n0_db_list / 10))
+    return 0.5 * np.log2(1 + snr_linear)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        return float(eb_grid[idx])
-    x0, x1 = eb_grid[idx - 1], eb_grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
-    if c1 == c0:
-        return float(eb_grid[idx])
-    frac = (rate - c0) / (c1 - c0)
-    return float(x0 + frac * (x1 - x0))
+    eb_lin = (2 ** (2 * rate) - 1) / (2 * rate)
+    return float(10 * np.log10(max(eb_lin, 1e-12)))
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
