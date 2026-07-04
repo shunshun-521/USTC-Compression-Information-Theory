@@ -40,13 +40,13 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=np.int8)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_ms(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1]
+                    L[i, j] = self._f_ms(
+                        R[i, j + 1] + L[i + s, j + 1], L[i, j + 1]
                     )
-                    L[i + s, j - 1] = self._f_ms(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                    L[i + s, j] = self._f_ms(R[i, j + 1], L[i, j + 1]) + L[i + s, j + 1]
 
             for j in range(0, n):
                 s = 1 << j
