@@ -35,7 +35,7 @@ else:
     N_LIST = [256, 512, 1024]
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+    EB_N0_RANGE = np.arange(0.0, 8.0, 0.25)
 
 RATE = 0.5
 DESIGN_EBN0 = 2.5

@@ -33,7 +33,7 @@ DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 2000 if QUICK else 100000
 MIN_ERRORS = 20 if QUICK else 100
-EB_N0_RANGE = np.arange(1.0, 4.0, 0.5) if QUICK else np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(1.0, 8.0, 0.5) if QUICK else np.arange(1.0, 8.0, 0.25)
 
 for N in N_LIST:
     K = N // 2
