@@ -66,9 +66,8 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))]
- 其中 s = SNR = 2R * 10^{Eb/N0/10}
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    C = 1 - E_y[log2(1 + exp(-s*y^2))]，s = 2R * 10^{Eb/N0/10}
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
@@ -76,9 +75,11 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
 
         def integrand(y):
             p_y = np.exp(-0.5 * y ** 2) / np.sqrt(2 * np.pi)
-            return p_y * np.log2(1 + np.exp(-2 * snr * y))
+            arg = -snr * y ** 2
+            log_term = np.log2(1.0 + np.exp(np.clip(arg, -700, 700)))
+            return p_y * log_term
 
-        cap, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
+        cap, _ = integrate.quad(integrand, -20, 20, limit=200)
         capacities.append(1.0 - cap)
     return np.array(capacities)
 
@@ -88,19 +89,26 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
 
-    if caps[0] < rate:
-        return eb_grid[0]
-    if caps[-1] > rate:
-        return eb_grid[-1]
+    if np.all(np.isnan(caps)):
+        return 0.0
 
-    idx = np.where(caps >= rate)[0][0]
+    valid = ~np.isnan(caps)
+    eb_grid = eb_grid[valid]
+    caps = caps[valid]
+
+    if caps[0] >= rate:
+        return float(eb_grid[0])
+    if caps[-1] <= rate:
+        return float(eb_grid[-1])
+
+    idx = int(np.searchsorted(caps, rate))
     if idx == 0:
-        return eb_grid[0]
+        return float(eb_grid[0])
 
     def func(eb):
         return compute_bpsk_capacity([eb], rate)[0] - rate
 
-    return brentq(func, eb_grid[idx - 1], eb_grid[idx])
+    return float(brentq(func, eb_grid[idx - 1], eb_grid[idx]))
 
 
 def plot_bler_curves(

@@ -31,7 +31,7 @@ def validate_modules():
 
     bits = np.array([1, 0, 1, 1, 0, 0, 1, 0])
     coded = crc_encode(bits[:4], 8)
-    assert crc_check(coded, 8)
+    assert crc_check(coded, 8), f"CRC 校验失败: {coded}"
     print("单元测试通过。")
 
 

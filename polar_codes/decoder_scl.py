@@ -5,7 +5,6 @@
 import numpy as np
 import copy
 
-from encoder import bit_reversal_permutation
 from decoder_sc import (
     f_operation,
     g_operation,
@@ -21,16 +20,15 @@ _CRC8_POLY = 0x07
 _CRC16_POLY = 0x8005
 
 
-def _crc_remainder(bits, poly, crc_length):
-    reg = 0
+def _crc_process(bits, poly, crc_length):
+    """MSB-first CRC LFSR，返回最终寄存器值。"""
+    crc = 0
+    mask = (1 << crc_length) - 1
+    top = 1 << (crc_length - 1)
     for bit in bits:
-        reg ^= int(bit) << (crc_length - 1)
-        for _ in range(8 if crc_length == 8 else 16):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
-            else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
-    return reg
+        feedback = ((crc >> (crc_length - 1)) ^ int(bit)) & 1
+        crc = ((crc << 1) & mask) ^ (poly if feedback else 0)
+    return crc
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -40,7 +38,7 @@ def crc_encode(info_bits, crc_length=8):
     """
     info_bits = np.asarray(info_bits, dtype=int)
     poly = _CRC8_POLY if crc_length == 8 else _CRC16_POLY
-    remainder = _crc_remainder(info_bits, poly, crc_length)
+    remainder = _crc_process(info_bits, poly, crc_length)
     crc_bits = np.array(
         [(remainder >> (crc_length - 1 - i)) & 1 for i in range(crc_length)],
         dtype=int,
@@ -54,7 +52,7 @@ def crc_check(bits, crc_length=8):
     if crc_length == 0:
         return True
     poly = _CRC8_POLY if crc_length == 8 else _CRC16_POLY
-    remainder = _crc_remainder(bits, poly, crc_length)
+    remainder = _crc_process(bits, poly, crc_length)
     return remainder == 0
 
 
