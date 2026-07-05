@@ -125,5 +125,5 @@ def main():
     print("\n实验三完成。")
 
 
-if __name__ "__main__":
+if __name__ == "__main__":
     main()

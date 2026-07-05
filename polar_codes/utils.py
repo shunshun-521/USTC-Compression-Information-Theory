@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -59,19 +58,27 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-  C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    通过数值计算互信息 I(X;Y)，X ∈ {±1}，Y = X + N。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        eb_n0_lin = 10.0 ** (eb_n0_db / 10.0)
+        es_n0_lin = rate * eb_n0_lin
+        var_n = 1.0 / (2.0 * es_n0_lin)
+        std_n = np.sqrt(var_n)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        y_grid = np.linspace(-10 * std_n - 2, 10 * std_n + 2, 20001)
+        dy = y_grid[1] - y_grid[0]
+        p_y = np.zeros_like(y_grid)
+        for x in (-1.0, 1.0):
+            p_y += 0.5 * np.exp(-((y_grid - x) ** 2) / (2.0 * var_n)) / (
+                np.sqrt(2.0 * np.pi * var_n)
+            )
+        p_y = np.maximum(p_y, 1e-300)
+        h_y = -np.sum(p_y * np.log2(p_y)) * dy
+        h_y_given_x = 0.5 * np.log2(2.0 * np.pi * np.e * var_n)
+        capacities.append(h_y - h_y_given_x)
     return np.array(capacities)
 
 
