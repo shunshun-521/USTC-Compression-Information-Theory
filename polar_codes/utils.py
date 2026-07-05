@@ -58,20 +58,43 @@ def load_results_csv(filepath):
     return results
 
 
+def _stable_log2_1_plus_exp(t):
+    """数值稳定的 log2(1 + exp(t))。"""
+    return np.where(
+        t > 0,
+        t / np.log(2) + np.log1p(np.exp(-t)) / np.log(2),
+        np.log1p(np.exp(t)) / np.log(2),
+    )
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    对 ±1 等概率 BPSK，在 Y = X + N, N~N(0,σ²) 下数值积分互信息。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        sigma = 1.0 / np.sqrt(snr)
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+            llr = 2.0 * y / (sigma ** 2)
+            phi = np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi)
+            p_y_given_0 = np.exp(-((y - 1.0) ** 2) / (2.0 * sigma ** 2)) / (
+                np.sqrt(2.0 * np.pi) * sigma
+            )
+            p_y_given_1 = np.exp(-((y + 1.0) ** 2) / (2.0 * sigma ** 2)) / (
+                np.sqrt(2.0 * np.pi) * sigma
+            )
+            p_y = 0.5 * (p_y_given_0 + p_y_given_1)
+            h_cond = (
+                0.5 * p_y_given_0 / p_y * _stable_log2_1_plus_exp(-llr)
+                + 0.5 * p_y_given_1 / p_y * _stable_log2_1_plus_exp(llr)
+            )
+            return h_cond * p_y
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -20, 20, limit=300)
+        capacities.append(max(0.0, 1.0 - val))
     return np.array(capacities)
 
 
