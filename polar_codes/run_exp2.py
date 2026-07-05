@@ -59,7 +59,7 @@ if os.environ.get("POLAR_FAST_SIM", "0") == "1":
     MAX_FRAMES = 3000
     MIN_ERRORS = 15
     EB_N0_RANGE = np.arange(1.5, 5.5, 0.5)
-    L_LIST = [2, 4]
+    L_LIST = [2, 4, 8]
 
 if __name__ == "__main__":
     run_unit_tests()
