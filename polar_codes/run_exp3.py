@@ -28,7 +28,7 @@ DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 5000 if QUICK else 100000
 MIN_ERRORS = 20 if QUICK else 100
-EB_N0_RANGE = np.arange(1.5, 4.5, 0.5) if QUICK else np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(2.0, 5.0, 0.5) if QUICK else np.arange(1.0, 5.5, 0.25)
 
 
 def run_unit_tests():
