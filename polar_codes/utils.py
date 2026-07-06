@@ -64,11 +64,19 @@ def _bpsk_capacity_scalar(eb_n0_db, rate):
     snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y * y)
+        # 数值稳定：避免 exp 溢出
+        t = -2.0 * snr * y
+        if t > 50:
+            log_term = 0.0
+        elif t < -50:
+            log_term = t / np.log(2)
+        else:
+            log_term = np.log2(1.0 + np.exp(t))
+        return log_term * np.exp(-0.5 * y * y)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
+    val, _ = integrate.quad(integrand, -100.0, 100.0, limit=200)
     val /= np.sqrt(2.0 * np.pi)
-    return 1.0 - val
+    return max(0.0, min(1.0, 1.0 - val))
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -86,7 +94,10 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     if np.all(caps > rate):
         return eb_n0_range[0]
 
-    idx = np.where(caps >= rate)[0][0]
+    idx = np.where(caps >= rate)[0]
+    if idx.size == 0:
+        return eb_n0_range[1]
+    idx = idx[0]
     if idx == 0:
         return eb_grid[0]
 
