@@ -41,7 +41,7 @@ if __name__ == "__main__":
     MAX_ITER = 50
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
-    MAX_FRAMES_BP = 30000
+    MAX_FRAMES_BP = 2000
     MIN_ERRORS_BP = 50
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
@@ -56,25 +56,37 @@ if __name__ == "__main__":
         def sc_d(llr_ch):
             return sc_decode(llr_ch, frozen_bits), None
 
-        print(f"\n实验三 SC: N={N}")
-        r_sc = run_simulation(
-            N, K, EB_N0_RANGE, sc_d, "sc", MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, frozen_bits=frozen_bits,
-        )
+        sc_path = f"results/exp3_sc_N{N}_R0.5.csv"
+        if not os.path.exists(sc_path):
+            print(f"\n实验三 SC: N={N}")
+            r_sc = run_simulation(
+                N, K, EB_N0_RANGE, sc_d, "sc", MAX_FRAMES, MIN_ERRORS,
+                info_indices=info_idx, frozen_bits=frozen_bits,
+            )
+            save_results_csv(r_sc, sc_path)
+        else:
+            print(f"跳过（已存在）: {sc_path}")
+            from utils import load_results_csv
+            r_sc = load_results_csv(sc_path)
         all_results["SC"] = r_sc
-        save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
 
         def scl_d(llr_ch):
             u, _ = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
             return u, None
 
-        print(f"SCL L=4: N={N}")
-        r_scl = run_simulation(
-            N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, frozen_bits=frozen_bits,
-        )
+        scl_path = f"results/exp3_scl_N{N}_R0.5.csv"
+        if not os.path.exists(scl_path):
+            print(f"SCL L=4: N={N}")
+            r_scl = run_simulation(
+                N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS,
+                info_indices=info_idx, frozen_bits=frozen_bits,
+            )
+            save_results_csv(r_scl, scl_path)
+        else:
+            print(f"跳过（已存在）: {scl_path}")
+            from utils import load_results_csv
+            r_scl = load_results_csv(scl_path)
         all_results["SCL (L=4)"] = r_scl
-        save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
 
         bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
 
@@ -82,13 +94,19 @@ if __name__ == "__main__":
             u_hat, num_iters = bp_decoder.decode(llr_ch)
             return u_hat, num_iters
 
-        print(f"BP: N={N}")
-        r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS_BP,
-            info_indices=info_idx, frozen_bits=frozen_bits,
-        )
+        bp_path = f"results/exp3_bp_N{N}_R0.5.csv"
+        if not os.path.exists(bp_path):
+            print(f"\nBP 仿真: N={N}")
+            r_bp = run_simulation(
+                N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS_BP,
+                info_indices=info_idx, frozen_bits=frozen_bits,
+            )
+            save_results_csv(r_bp, bp_path)
+        else:
+            print(f"跳过（已存在）: {bp_path}")
+            from utils import load_results_csv
+            r_bp = load_results_csv(bp_path)
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
-        save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
 
         shannon_db = find_capacity_limit(RATE)
         plot_bler_curves(
