@@ -131,11 +131,12 @@ class SCLDecoder:
                 for path in paths:
                     llr = path.L[l, self.n]
                     for bit in (0, 1):
-                        child = Path(self.N, self.n, llr_ch)
+                        child = type(path).__new__(type(path))
                         child.L = path.L.copy()
                         child.B = path.B.copy()
                         child.u_hat = path.u_hat.copy()
                         child.pm = path.pm + self._path_metric_penalty(llr, bit)
+                        child.active = True
                         self._update_bits(child, l, bit)
                         new_paths.append(child)
 
