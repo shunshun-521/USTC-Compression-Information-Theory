@@ -1,0 +1,6 @@
+单元测试通过
+跳过（已存在）: results/exp3_sc_N256_R0.5.csv
+跳过（已存在）: results/exp3_scl_N256_R0.5.csv
+
+BP 仿真: N=256
+  Eb/N0=1.00dB | BLER=5.2632e-01 | BER=1.5304e-01 | Errors=50 | Frames=95 | AvgTime=225.01ms | AvgIter=32.1
