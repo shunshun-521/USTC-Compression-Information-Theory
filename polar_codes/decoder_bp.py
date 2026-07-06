@@ -4,8 +4,6 @@
 """
 import numpy as np
 
-from encoder import polar_encode
-
 
 def _gen_matrix(n):
     F = np.array([[1, 0], [1, 1]])
@@ -15,55 +13,45 @@ def _gen_matrix(n):
     return G % 2
 
 
-def _f_ms(a, b, alpha=0.9375):
-    sa = 1 if np.sign(a) == 0 else np.sign(a)
-    sb = 1 if np.sign(b) == 0 else np.sign(b)
-    return alpha * sa * sb * min(abs(a), abs(b))
-
-
-def _element_update_left(left, right, alpha):
-    return np.array([
-        _f_ms(right[1] + left[1], left[0], alpha),
-        _f_ms(left[0], right[0], alpha) + left[1],
-    ])
-
-
-def _element_update_right(left, right, alpha):
-    return np.array([
-        _f_ms(right[1] + left[1], right[0], alpha),
-        _f_ms(left[0], right[0], alpha) + right[1],
-    ])
+def _f_ms_vec(a, b, alpha):
+    sa = np.sign(a)
+    sb = np.sign(b)
+    sa = np.where(sa == 0, 1, sa)
+    sb = np.where(sb == 0, 1, sb)
+    return alpha * sa * sb * np.minimum(np.abs(a), np.abs(b))
 
 
 def _bp_update_left(left_array, right_array, layer_n, alpha):
     N = len(left_array)
-    interval = 2 ** (layer_n - 1)
-    num = N // (interval * 2)
-    value = np.zeros(N)
+    interval = 1 << (layer_n - 1)
+    num = N // (2 * interval)
+    value = np.empty(N)
     for i in range(num):
-        for j in range(interval):
-            base = 2 * i * interval + j
-            left_ele = np.array([left_array[base], left_array[base + interval]])
-            right_ele = np.array([right_array[base], right_array[base + interval]])
-            out = _element_update_left(left_ele, right_ele, alpha)
-            value[base] = out[0]
-            value[base + interval] = out[1]
+        base = 2 * i * interval
+        idx = np.arange(base, base + interval)
+        l0 = left_array[idx]
+        l1 = left_array[idx + interval]
+        r0 = right_array[idx]
+        r1 = right_array[idx + interval]
+        value[idx] = _f_ms_vec(r1 + l1, l0, alpha)
+        value[idx + interval] = _f_ms_vec(l0, r0, alpha) + l1
     return value
 
 
 def _bp_update_right(left_array, right_array, layer_n, alpha):
     N = len(left_array)
-    interval = 2 ** (layer_n - 1)
-    num = N // (interval * 2)
-    value = np.zeros(N)
+    interval = 1 << (layer_n - 1)
+    num = N // (2 * interval)
+    value = np.empty(N)
     for i in range(num):
-        for j in range(interval):
-            base = 2 * i * interval + j
-            left_ele = np.array([left_array[base], left_array[base + interval]])
-            right_ele = np.array([right_array[base], right_array[base + interval]])
-            out = _element_update_right(left_ele, right_ele, alpha)
-            value[base] = out[0]
-            value[base + interval] = out[1]
+        base = 2 * i * interval
+        idx = np.arange(base, base + interval)
+        l0 = left_array[idx]
+        l1 = left_array[idx + interval]
+        r0 = right_array[idx]
+        r1 = right_array[idx + interval]
+        value[idx] = _f_ms_vec(r1 + l1, r0, alpha)
+        value[idx + interval] = _f_ms_vec(l0, r0, alpha) + r1
     return value
 
 
@@ -74,26 +62,20 @@ class BPDecoder:
         self.N = N
         self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
-        self.info_indices = np.where(~self.frozen_bits)[0]
         self.max_iter = max_iter
         self.alpha = alpha
         self.G = _gen_matrix(self.n)
+        self._inf = 1e9
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         n = self.n
         N = self.N
-        inf = 1e9
 
         left = np.zeros((N, n + 1))
         right = np.zeros((N, n + 1))
         left[:, n] = llr_ch
-
-        for i in range(N):
-            if self.frozen_bits[i]:
-                right[i, 0] = inf
-            else:
-                right[i, 0] = 0.0
+        right[:, 0] = np.where(self.frozen_bits, self._inf, 0.0)
 
         num_iters = self.max_iter
         u_hat = np.zeros(N, dtype=int)
@@ -114,9 +96,7 @@ class BPDecoder:
 
             x_llr = left[:, n] + right[:, n]
             x_hat_hard = (x_llr < 0).astype(int)
-            x_from_u = (u_hat @ self.G) % 2
-
-            if np.array_equal(x_from_u, x_hat_hard):
+            if np.array_equal((u_hat @ self.G) % 2, x_hat_hard):
                 num_iters = it
                 break
 
