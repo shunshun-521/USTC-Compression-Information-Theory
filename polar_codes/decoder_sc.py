@@ -3,24 +3,17 @@
 基于 Permuted SCD 算法（Vangala et al. 2014）
 """
 import math
-import os
-import sys
 
 import numpy as np
 
-# 引用已验证的 SCD 辅助函数
-_REF = os.path.join(os.path.dirname(__file__), '_ref')
-if _REF not in sys.path:
-    sys.path.insert(0, _REF)
-
-from decoder_utils import (  # noqa: E402
+from scd_utils import (
     active_bit_level,
     active_llr_level,
+    bit_reversed,
     hard_decision,
     lower_llr,
     upper_llr,
 )
-from utils import bit_reversed  # noqa: E402
 
 
 def f_operation(La, Lb):
@@ -101,12 +94,3 @@ def precompute_sc_indices(N):
         else:
             bit_layer_vec.append([])
     return llr_layer_vec, bit_layer_vec
-
-
-_SC_CACHE = {}
-
-
-def _get_sc_cache(N):
-    if N not in _SC_CACHE:
-        _SC_CACHE[N] = precompute_sc_indices(N)
-    return _SC_CACHE[N]

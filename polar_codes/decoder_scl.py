@@ -3,23 +3,17 @@
 支持 CRC 辅助（CA-SCL）
 """
 import math
-import os
-import sys
 
 import numpy as np
 
-_REF = os.path.join(os.path.dirname(__file__), '_ref')
-if _REF not in sys.path:
-    sys.path.insert(0, _REF)
-
-from decoder_utils import (  # noqa: E402
+from scd_utils import (
     active_bit_level,
     active_llr_level,
+    bit_reversed,
     hard_decision,
     lower_llr,
     upper_llr,
 )
-from utils import bit_reversed  # noqa: E402
 
 
 CRC_POLYNOMIALS = {8: 0x07, 16: 0x8005}
