@@ -4,7 +4,6 @@
 """
 import math
 import numpy as np
-from encoder import polar_encode
 
 
 def f_operation(La, Lb):
