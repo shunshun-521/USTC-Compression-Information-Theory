@@ -147,7 +147,7 @@ def sc_decode(llr_ch, frozen_bits):
 
 
 def verify_sc_decoders(N=64, K=32, num_frames=100, eb_n0_db=10.0, seed=0):
-    """在极低噪声下验证递归与非递归 SC 译码一致且无错。"""
+    """在极低噪声下验证递归与非递归 SC 译码一致且无错（默认 N=64）。"""
     from construction import ga_construction
     from encoder import polar_encode
     from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma

@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -65,47 +64,32 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    C = 1 - log2(1 + exp(-2 * Es/N0))，Es/N0 = R * Eb/N0（线性）。
     """
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
-    return np.array(capacities)
+    eb_linear = 10.0 ** (np.asarray(eb_n0_db_list, dtype=np.float64) / 10.0)
+    es_no = rate * eb_linear
+    return 1.0 - np.log2(1.0 + np.exp(-2.0 * es_no))
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-3, 5), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        # 线性插值细化
-        for eb in np.linspace(eb_n0_range[0], eb_n0_range[1], 5000):
-            cap = compute_bpsk_capacity([eb], rate)[0]
-            if cap >= rate:
-                return float(eb)
-        return float(eb_grid[idx])
 
-    if caps[idx] == rate:
-        return float(eb_grid[idx])
-    if caps[idx] > rate:
-        i0, i1 = idx - 1, idx
-    else:
-        i0, i1 = idx, idx + 1
-    c0, c1 = caps[i0], caps[i1]
-    e0, e1 = eb_grid[i0], eb_grid[i1]
-    if c1 == c0:
-        return float(e0)
-    return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
+    for i in range(1, len(eb_grid)):
+        if caps[i - 1] < rate <= caps[i]:
+            c0, c1 = caps[i - 1], caps[i]
+            e0, e1 = eb_grid[i - 1], eb_grid[i]
+            if c1 == c0:
+                return float(e0)
+            return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
+
+    if caps[0] >= rate:
+        return float(eb_grid[0])
+    return float(eb_grid[-1])
 
 
 def plot_bler_curves(
