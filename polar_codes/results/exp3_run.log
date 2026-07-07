@@ -1,0 +1,57 @@
+单元测试通过。
+
+SC 仿真 N=256
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8250e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8281e-01 | Errors=100 | Frames=100 | AvgTime=2.15ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.8695e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.8680e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.8461e-01 | Errors=100 | Frames=100 | AvgTime=2.15ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.7797e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.7086e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.6398e-01 | Errors=100 | Frames=100 | AvgTime=2.15ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.7742e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.6539e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.5469e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.5742e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.5258e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.3164e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.3969e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.3820e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.0773e-01 | Errors=100 | Frames=100 | AvgTime=2.15ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.1445e-01 | Errors=100 | Frames=100 | AvgTime=2.14ms
+
+SCL 仿真 N=256
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.4656e-01 | Errors=100 | Frames=100 | AvgTime=449.34ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.4297e-01 | Errors=100 | Frames=100 | AvgTime=450.52ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.5234e-01 | Errors=100 | Frames=100 | AvgTime=451.38ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.4484e-01 | Errors=100 | Frames=100 | AvgTime=450.65ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.3672e-01 | Errors=100 | Frames=100 | AvgTime=450.73ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.2797e-01 | Errors=100 | Frames=100 | AvgTime=451.06ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.0203e-01 | Errors=100 | Frames=100 | AvgTime=451.48ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.0742e-01 | Errors=100 | Frames=100 | AvgTime=451.70ms
+  Eb/N0=3.00dB | BLER=9.9010e-01 | BER=3.9264e-01 | Errors=100 | Frames=101 | AvgTime=452.95ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=3.8602e-01 | Errors=100 | Frames=100 | AvgTime=453.76ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=3.8609e-01 | Errors=100 | Frames=100 | AvgTime=451.51ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=3.3914e-01 | Errors=100 | Frames=100 | AvgTime=449.56ms
+  Eb/N0=4.00dB | BLER=9.9010e-01 | BER=3.3431e-01 | Errors=100 | Frames=101 | AvgTime=450.62ms
+  Eb/N0=4.25dB | BLER=9.9010e-01 | BER=3.1498e-01 | Errors=100 | Frames=101 | AvgTime=451.75ms
+  Eb/N0=4.50dB | BLER=9.9010e-01 | BER=2.8605e-01 | Errors=100 | Frames=101 | AvgTime=451.75ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=2.8555e-01 | Errors=100 | Frames=100 | AvgTime=452.07ms
+  Eb/N0=5.00dB | BLER=9.7087e-01 | BER=2.4939e-01 | Errors=100 | Frames=103 | AvgTime=453.28ms
+  Eb/N0=5.25dB | BLER=9.3458e-01 | BER=2.4029e-01 | Errors=100 | Frames=107 | AvgTime=451.75ms
+
+BP 仿真 N=256
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp3.py", line 83, in <module>
+    r_bp = run_simulation(
+           ^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/simulation.py", line 70, in run_simulation
+    u_hat, aux = decoder(llr)
+                 ^^^^^^^^^^^^
+  File "/workspace/polar_codes/run_exp3.py", line 79, in bp_d
+    u_hat, num_iters = bp_decoder.decode(llr_ch)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/decoder_bp.py", line 63, in decode
+    R[i, j] + L[i + s, j + 1],
+              ~^^^^^^^^^^^^^^
+IndexError: index 9 is out of bounds for axis 1 with size 9
