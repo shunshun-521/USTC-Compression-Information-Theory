@@ -8,7 +8,10 @@ from decoder_sc import f_operation
 
 
 class BPDecoder:
-    """BP 译码器"""
+    """
+    BP 译码器。
+    因子图 n+1 列，列 0 为信源端，列 n 为信道端。
+    """
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -28,10 +31,9 @@ class BPDecoder:
         N = self.N
         brp = self.brp
 
-        channel = llr_ch[brp]
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = channel
+        L[:, n] = llr_ch[brp]
         R[:, 0] = 0.0
         R[self.frozen_bits, 0] = self._large
 
@@ -45,7 +47,9 @@ class BPDecoder:
                     L[i, j - 1] = self._f_ms(
                         R[i, j] + L[i + step, j], L[i, j]
                     )
-                    L[i + step, j - 1] = self._f_ms(R[i, j], L[i, j]) + L[i + step, j]
+                    L[i + step, j - 1] = (
+                        self._f_ms(R[i, j], L[i, j]) + L[i + step, j]
+                    )
 
             for j in range(1, n + 1):
                 step = 1 << (j - 1)
@@ -53,22 +57,23 @@ class BPDecoder:
                     R[i, j] = self._f_ms(
                         R[i + step, j] + L[i + step, j], R[i, j - 1]
                     )
-                    R[i + step, j] = self._f_ms(R[i, j - 1], L[i, j]) + R[i + step, j]
+                    R[i + step, j] = (
+                        self._f_ms(R[i, j - 1], L[i, j]) + R[i + step, j]
+                    )
 
-            u_hat = np.zeros(N, dtype=np.int32)
             total = L[:, 0] + R[:, 0]
+            u_hat = np.zeros(N, dtype=np.int32)
             u_hat[total < 0] = 1
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
-            hard_ch = (channel < 0).astype(np.int32)
-            hard_natural = np.zeros(N, dtype=np.int32)
-            hard_natural[brp] = hard_ch
-            if np.array_equal(x_hat, hard_natural):
+            hard_ch = np.zeros(N, dtype=np.int32)
+            hard_ch[brp] = (llr_ch[brp] < 0).astype(np.int32)
+            if np.array_equal(x_hat, hard_ch):
                 break
 
-        u_hat = np.zeros(N, dtype=np.int32)
         total = L[:, 0] + R[:, 0]
+        u_hat = np.zeros(N, dtype=np.int32)
         u_hat[total < 0] = 1
         u_hat[self.frozen_bits] = 0
         return u_hat, num_iters
