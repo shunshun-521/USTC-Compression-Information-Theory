@@ -8,8 +8,12 @@ from encoder import bit_reversal_permutation
 
 
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算"""
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    """min-sum 近似的 f 运算（LLR=0 时 sign 取 +1）"""
+    sa = np.sign(La)
+    sb = np.sign(Lb)
+    sa = np.where(sa == 0, 1, sa)
+    sb = np.where(sb == 0, 1, sb)
+    return sa * sb * np.minimum(np.abs(La), np.abs(Lb))
 
 
 def g_operation(La, Lb, u_hat):
