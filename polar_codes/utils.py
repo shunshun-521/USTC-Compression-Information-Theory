@@ -61,30 +61,22 @@ def load_results_csv(filepath):
     return results
 
 
-def _log2_one_plus_exp(m):
-    """数值稳定的 log2(1 + exp(m))"""
-    m = np.asarray(m, dtype=np.float64)
-    out = np.empty_like(m)
-    pos = m > 0
-    out[pos] = m[pos] / np.log(2) + np.log2(1 + np.exp(-m[pos]))
-    out[~pos] = np.log2(1 + np.exp(m[~pos]))
-    return out
-
-
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """计算 BPSK 离散输入信道容量（bits/channel use）。"""
+    """计算 BPSK（二进制输入）AWGN 信道容量（bits/channel use）。"""
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10.0))
-        s = snr
+        rho = 2 * rate * (10 ** (eb_n0_db / 10.0))  # Es/N0
 
-        def integrand(y):
-            m = -2 * s * y
-            return _log2_one_plus_exp(m) * np.exp(-(y ** 2) / 2)
+        def integrand(z):
+            m = -2 * rho - 2 * z * np.sqrt(rho)
+            if m > 0:
+                log_term = m / np.log(2) + np.log2(1 + np.exp(-m))
+            else:
+                log_term = np.log2(1 + np.exp(m))
+            return np.exp(-(z ** 2) / 2) * (1 - log_term)
 
         val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+        capacities.append(val / np.sqrt(2 * np.pi))
     return np.array(capacities)
 
 
