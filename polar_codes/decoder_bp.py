@@ -43,19 +43,19 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    L[i:i + s, j - 1] = self._f_min_sum(
-                        R[i:i + s, j] + L[i + s:i + 2 * s, j],
+                    L[i:i + s, j] = self._f_min_sum(
+                        R[i:i + s, j + 1] + L[i + s:i + 2 * s, j + 1],
                         L[i:i + s, j + 1],
                     )
-                    L[i + s:i + 2 * s, j - 1] = self._f_min_sum(
-                        R[i:i + s, j],
+                    L[i + s:i + 2 * s, j] = self._f_min_sum(
+                        R[i:i + s, j + 1],
                         L[i:i + s, j + 1],
                     ) + L[i + s:i + 2 * s, j + 1]
 
-            for j in range(0, n):
+            for j in range(n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
                     R[i:i + s, j + 1] = self._f_min_sum(
