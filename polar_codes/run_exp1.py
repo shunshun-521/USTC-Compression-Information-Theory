@@ -35,15 +35,20 @@ test_sc_lossless()
 os.makedirs("results", exist_ok=True)
 
 QUICK = os.environ.get("POLAR_QUICK", "0") == "1"
+MEDIUM = os.environ.get("POLAR_MEDIUM", "0") == "1"
 
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 500 if QUICK else 100000
-MIN_ERRORS = 5 if QUICK else 100
-EB_N0_RANGE = (
-    np.arange(2.0, 4.0, 0.5) if QUICK else np.arange(0.0, 5.5, 0.25)
-)
+if QUICK:
+    MAX_FRAMES, MIN_ERRORS = 500, 5
+    EB_N0_RANGE = np.arange(2.0, 4.0, 0.5)
+elif MEDIUM:
+    MAX_FRAMES, MIN_ERRORS = 5000, 50
+    EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
+else:
+    MAX_FRAMES, MIN_ERRORS = 100000, 100
+    EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")
 

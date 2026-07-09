@@ -1,6 +1,6 @@
 """
 极化码编码器
-编码：x = u * F^{\otimes n}（mod 2），蝶形 XOR 实现
+编码：x = u * F^(⊗n)（mod 2），蝶形 XOR 实现
 """
 import numpy as np
 
@@ -23,7 +23,7 @@ def bit_reversed(i, n):
 def polar_encode(u):
     """
     极化码编码：Arikan 蝶形结构，O(N log N)。
-    等价于 x = u @ F^{\otimes n}（mod 2），F=[[1,1],[0,1]]。
+    等价于 x = u @ F^(⊗n)（mod 2），F=[[1,1],[0,1]]。
     """
     u = np.asarray(u, dtype=np.int8).copy()
     N = len(u)
