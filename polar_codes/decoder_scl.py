@@ -30,10 +30,7 @@ def _crc_update(reg, bit, poly, crc_length):
 
 
 def crc_encode(info_bits, crc_length=8):
-    """
-    计算 CRC 校验位并附加到信息比特后。
-    CRC-8: 0x07; CRC-16: 0x8005（LSB 优先反射形式）
-    """
+    """计算 CRC 并附加到信息比特后"""
     info_bits = np.asarray(info_bits, dtype=int)
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
     reg = 0
@@ -44,7 +41,7 @@ def crc_encode(info_bits, crc_length=8):
 
 
 def crc_check(bits, crc_length=8):
-    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC"""
+    """检验 CRC 是否正确"""
     bits = np.asarray(bits, dtype=int)
     if len(bits) < crc_length:
         return False
@@ -56,16 +53,18 @@ def crc_check(bits, crc_length=8):
 
 
 class _Path:
-    __slots__ = ("pm", "B", "u_hat")
+    __slots__ = ("pm", "L", "B", "u_hat")
 
-    def __init__(self, N, n):
+    def __init__(self, N, n, llr_ch):
         self.pm = 0.0
+        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
         self.B = np.full((N, n + 1), np.nan)
+        self.L[:, 0] = llr_ch
         self.u_hat = np.zeros(N, dtype=int)
 
 
 class SCLDecoder:
-    """SCL 译码器"""
+    """SCL 译码器（每条路径维护独立 L/B 状态）"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -91,8 +90,11 @@ class SCLDecoder:
                 if j % block_size < branch_size:
                     L[j, s + 1] = f_operation(L[j, s], L[j + branch_size, s])
                 else:
+                    bit = B[j - branch_size, s + 1]
+                    if np.isnan(bit):
+                        bit = 0
                     L[j, s + 1] = g_operation(
-                        L[j - branch_size, s], L[j, s], B[j - branch_size, s + 1]
+                        L[j - branch_size, s], L[j, s], bit
                     )
 
     def _update_bits(self, B, l):
@@ -107,11 +109,10 @@ class SCLDecoder:
                     B[j - branch_size, s - 1] = int(B[j, s]) ^ int(B[j - branch_size, s])
                     B[j, s - 1] = B[j, s]
 
-    def _leaf_llr(self, llr_ch, B, l):
-        L = np.full((self.N, self.n + 1), np.nan, dtype=np.float64)
-        L[:, 0] = llr_ch
-        self._update_llrs(L, B, l)
-        return L[l, self.n]
+    def _advance_path(self, path, l, u):
+        path.B[l, self.n] = u
+        path.u_hat[l] = u
+        self._update_bits(path.B, l)
 
     def decode(self, llr_ch, bit_reversed_codeword=True):
         if self.list_size == 1 and self.crc_length == 0:
@@ -119,35 +120,32 @@ class SCLDecoder:
             return u_hat, 0.0
 
         llr_ch = _align_channel_llrs(llr_ch, bit_reversed_codeword)
-        paths = [_Path(self.N, self.n)]
+        paths = [_Path(self.N, self.n, llr_ch)]
 
         for phi in range(self.N):
             l = _bit_reversed_index(phi, self.n)
             candidates = []
 
             for path in paths:
-                llr_leaf = self._leaf_llr(llr_ch, path.B, l)
+                self._update_llrs(path.L, path.B, l)
+                llr_leaf = path.L[l, self.n]
                 if l in self.frozen_set:
-                    u = 0
-                    pm = self._metric(path.pm, llr_leaf, u)
-                    candidates.append((pm, path, u))
+                    candidates.append((self._metric(path.pm, llr_leaf, 0), path, 0))
                 else:
                     for u in (0, 1):
-                        pm = self._metric(path.pm, llr_leaf, u)
-                        candidates.append((pm, path, u))
+                        candidates.append((self._metric(path.pm, llr_leaf, u), path, u))
 
             candidates.sort(key=lambda x: x[0])
             candidates = candidates[: self.list_size]
 
             new_paths = []
             for pm, parent, u in candidates:
-                child = _Path(self.N, self.n)
+                child = _Path(self.N, self.n, llr_ch)
                 child.pm = pm
+                child.L = parent.L.copy()
                 child.B = parent.B.copy()
                 child.u_hat = parent.u_hat.copy()
-                child.B[l, self.n] = u
-                child.u_hat[l] = u
-                self._update_bits(child.B, l)
+                self._advance_path(child, l, u)
                 new_paths.append(child)
             paths = new_paths
 
@@ -155,11 +153,7 @@ class SCLDecoder:
 
     def _select_best(self, paths):
         if self.crc_length > 0:
-            valid = []
-            for path in paths:
-                info_bits = path.u_hat[self.info_indices]
-                if crc_check(info_bits, self.crc_length):
-                    valid.append(path)
+            valid = [p for p in paths if crc_check(p.u_hat[self.info_indices], self.crc_length)]
             if valid:
                 best = min(valid, key=lambda p: p.pm)
                 return best.u_hat.copy(), best.pm
