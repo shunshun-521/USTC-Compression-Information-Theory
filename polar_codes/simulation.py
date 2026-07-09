@@ -7,7 +7,6 @@ import numpy as np
 from channel import (
     awgn_channel,
     bpsk_modulate,
-    bit_reverse_llr,
     compute_llr,
     eb_n0_to_sigma,
 )
@@ -29,11 +28,9 @@ def run_simulation(
     info_indices=None,
     frozen_bits=None,
     design_eb_n0_db=2.5,
-    use_bit_reverse=True,
+    use_bit_reverse=False,
 ):
-    """
-    蒙特卡洛仿真。
-    """
+    """蒙特卡洛仿真。"""
     rng = np.random.default_rng(seed)
     rate = K / N
     K_info = K - crc_length
@@ -73,14 +70,9 @@ def run_simulation(
                 u[info_indices] = info_payload
 
             x = polar_encode(u)
-            s = bpsk_modulate(x)
+            s = bpsk_modulate(x, eb_n0_db, rate)
             y = awgn_channel(s, sigma, rng=rng)
-            llr_nat = compute_llr(y, sigma)
-
-            if use_bit_reverse and decoder_type in ("sc", "scl"):
-                llr_ch = bit_reverse_llr(llr_nat)
-            else:
-                llr_ch = llr_nat
+            llr_ch = compute_llr(y, eb_n0_db, rate, sigma)
 
             t0 = time.perf_counter()
             u_hat, aux = decoder(llr_ch)
@@ -98,7 +90,9 @@ def run_simulation(
         bler = num_errors / num_frames if num_frames else 1.0
         ber = num_bit_errors / (num_frames * K_info) if num_frames else 1.0
         avg_time = total_decode_time / num_frames if num_frames else 0.0
-        avg_iters = (total_iters / num_frames) if decoder_type == "bp" and num_frames else None
+        avg_iters = (
+            (total_iters / num_frames) if decoder_type == "bp" and num_frames else None
+        )
 
         result = {
             "eb_n0_db": float(eb_n0_db),

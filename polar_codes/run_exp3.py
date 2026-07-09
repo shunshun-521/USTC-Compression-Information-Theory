@@ -94,7 +94,6 @@ for N in N_LIST:
         MIN_ERRORS,
         info_indices=info_idx,
         frozen_bits=frozen_bits,
-        use_bit_reverse=False,
     )
     all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
     save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")

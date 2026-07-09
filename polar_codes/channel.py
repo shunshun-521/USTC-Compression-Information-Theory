@@ -1,13 +1,21 @@
 """
 AWGN 信道 + BPSK 调制/解调
-调制：0 -> +1, 1 -> -1
+调制：0 -> -sqrt(Es), 1 -> +sqrt(Es)，Es = Eb_lin * R
+噪声：N(0, 1/2)（No=1 归一化）
 """
 import numpy as np
 
 
-def bpsk_modulate(x):
-    """将二进制码字 x (0/1) 映射为 BPSK 符号 (+1/-1)"""
-    return 1 - 2 * np.asarray(x, dtype=np.float64)
+def symbol_energy(eb_n0_db, rate):
+    """每符号能量 Es（线性）"""
+    return (10.0 ** (eb_n0_db / 10.0)) * rate
+
+
+def bpsk_modulate(x, eb_n0_db, rate):
+    """将二进制码字 x (0/1) 映射为 BPSK 符号"""
+    es = symbol_energy(eb_n0_db, rate)
+    x = np.asarray(x, dtype=np.float64)
+    return (2.0 * x - 1.0) * np.sqrt(es)
 
 
 def awgn_channel(s, sigma, rng=None):
@@ -18,28 +26,21 @@ def awgn_channel(s, sigma, rng=None):
     return s + noise
 
 
-def compute_llr(y, sigma):
+def compute_llr(y, eb_n0_db, rate, sigma):
     """
     计算 BPSK-AWGN 信道的信道 LLR。
-    LLR(y) = ln P(y|x=0) / P(y|x=1) = 2*y / sigma^2
+    LLR(y) = ln P(y|x=0) / P(y|x=1) = -2*y*sqrt(Es)/sigma^2
     """
-    return 2.0 * np.asarray(y, dtype=np.float64) / (sigma ** 2)
+    es = symbol_energy(eb_n0_db, rate)
+    y = np.asarray(y, dtype=np.float64)
+    return -2.0 * y * np.sqrt(es) / (sigma ** 2)
 
 
 def eb_n0_to_sigma(eb_n0_db, rate):
     """
     将 Eb/N0 (dB) 转换为 AWGN 噪声标准差 sigma。
-    SNR = Eb/N0 * 2R（线性）
-    sigma = 1 / sqrt(SNR) = 1 / sqrt(2R * 10^{Eb/N0/10})
+    采用 No=1 归一化，sigma = sqrt(No/2) = 1/sqrt(2)，与 Eb/N0 无关。
     """
-    snr_linear = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-    return 1.0 / np.sqrt(snr_linear)
-
-
-def bit_reverse_llr(llr):
-    """将自然顺序信道 LLR 重排为 SC/SCL 译码所需的比特倒序顺序"""
-    from encoder import bit_reversal_permutation
-
-    N = len(llr)
-    br = bit_reversal_permutation(N)
-    return np.asarray(llr, dtype=np.float64)[br]
+    _ = eb_n0_db
+    _ = rate
+    return np.sqrt(0.5)

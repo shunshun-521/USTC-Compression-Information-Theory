@@ -15,7 +15,22 @@ def bit_reversed(x, n):
     return result
 
 
+def _logdomain_sum(a, b):
+    """log(exp(a) + exp(b))，数值稳定实现"""
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+    m = np.maximum(a, b)
+    return m + np.log1p(np.exp(-np.abs(a - b)))
+
+
 def f_operation(La, Lb):
+    """f 运算（精确对数域 box-plus）"""
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+
+
+def f_operation_minsum(La, Lb):
     """min-sum 近似的 f 运算"""
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
@@ -110,7 +125,7 @@ def sc_decode(llr_ch, frozen_bits):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现，与 sc_decode 使用相同相位顺序）"""
+    """递归 SC 译码接口（委托给高效非递归实现）"""
     return sc_decode(llr, frozen_bits)
 
 

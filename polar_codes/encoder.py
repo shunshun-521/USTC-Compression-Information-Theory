@@ -8,7 +8,6 @@ import numpy as np
 def bit_reversal_permutation(N):
     """返回长度 N 的比特倒序置换索引数组"""
     n = int(np.log2(N))
-    idx = np.arange(N, dtype=int)
     rev = np.zeros(N, dtype=int)
     for i in range(N):
         r = 0
@@ -22,7 +21,7 @@ def bit_reversal_permutation(N):
 
 def polar_encode(u):
     """
-    极化码编码（含比特倒序置换）。
+    极化码编码（蝶形 XOR，与标准极化码编码器一致）。
 
     参数：
         u: 长度为 N 的源序列（信息位 + 冻结位）
@@ -41,9 +40,7 @@ def polar_encode(u):
             right = u[i + step : i + 2 * step]
             u[i : i + step] = left ^ right
 
-    br = bit_reversal_permutation(N)
-    x = u[br]
-    return x.astype(int)
+    return u.astype(int)
 
 
 def polar_encode_matrix(u):
@@ -55,7 +52,4 @@ def polar_encode_matrix(u):
     G = np.array([[1]], dtype=int)
     for _ in range(n):
         G = np.kron(G, F)
-    br = bit_reversal_permutation(N)
-    P = np.eye(N, dtype=int)[br]
-    GN = (P @ G) % 2
-    return (u @ GN) % 2
+    return (u @ G) % 2
