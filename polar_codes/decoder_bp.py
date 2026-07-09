@@ -13,7 +13,7 @@ def bp_f_operation(x, y, alpha=0.9375):
 
 
 class BPDecoder:
-    """BP 译码器"""
+    """BP 译码器（因子图列 0=信源端，列 n=信道端）"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -32,7 +32,7 @@ class BPDecoder:
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
 
-        L[:, 0] = llr_ch
+        L[:, n] = llr_ch
         R[:, 0] = 0.0
         R[self.frozen_idx, 0] = self.LARGE
 
@@ -46,12 +46,12 @@ class BPDecoder:
                     for k in range(s):
                         idx = i + k
                         idx2 = idx + s
-                        L[idx, j] = bp_f_operation(
-                            R[idx, j - 1] + L[idx2, j - 1], L[idx, j - 1], alpha
+                        L[idx, j - 1] = bp_f_operation(
+                            R[idx, j] + L[idx2, j], L[idx, j], alpha
                         )
-                        L[idx2, j] = bp_f_operation(
-                            R[idx, j - 1], L[idx, j - 1], alpha
-                        ) + L[idx2, j - 1]
+                        L[idx2, j - 1] = bp_f_operation(
+                            R[idx, j], L[idx, j], alpha
+                        ) + L[idx2, j]
 
             for j in range(0, n):
                 s = 1 << j
