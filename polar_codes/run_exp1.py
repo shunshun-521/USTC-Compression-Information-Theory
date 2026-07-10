@@ -31,12 +31,13 @@ def unit_tests():
 
 
 # ========== 参数设置 ==========
-N_LIST = [256, 512, 1024]
+QUICK = os.environ.get("POLAR_QUICK", "")
+N_LIST = [256, 512] if QUICK else [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+MAX_FRAMES = 5000 if QUICK else 100000
+MIN_ERRORS = 30 if QUICK else 100
+EB_N0_RANGE = np.arange(0.0, 5.5, 0.5 if QUICK else 0.25)
 
 if __name__ == "__main__":
     unit_tests()
