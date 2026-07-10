@@ -60,9 +60,19 @@ def main():
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
     L_LIST = [2, 4, 8]
-    MAX_FRAMES = 100000
-    MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    if os.environ.get("POLAR_QUICK"):
+        MAX_FRAMES, MIN_ERRORS = 500, 10
+        EB_N0_RANGE = np.arange(2.0, 4.0, 1.0)
+        L_LIST = [2, 4]
+        N = 256
+        K = N // 2
+    elif os.environ.get("POLAR_MEDIUM"):
+        MAX_FRAMES, MIN_ERRORS = 5000, 50
+        EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
+    else:
+        MAX_FRAMES = 100000
+        MIN_ERRORS = 100
+        EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=int)

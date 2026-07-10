@@ -59,9 +59,17 @@ def main():
     N_LIST = [256, 512, 1024]
     RATE = 0.5
     DESIGN_EBN0 = 2.5
-    MAX_FRAMES = 100000
-    MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+    if os.environ.get("POLAR_QUICK"):
+        MAX_FRAMES, MIN_ERRORS = 500, 10
+        EB_N0_RANGE = np.arange(1.0, 4.0, 1.0)
+        N_LIST = [256]
+    elif os.environ.get("POLAR_MEDIUM"):
+        MAX_FRAMES, MIN_ERRORS = 5000, 50
+        EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
+    else:
+        MAX_FRAMES = 100000
+        MIN_ERRORS = 100
+        EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
     save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")
 

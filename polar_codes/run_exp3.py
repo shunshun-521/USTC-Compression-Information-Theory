@@ -57,9 +57,17 @@ def main():
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50
-    MAX_FRAMES = 100000
-    MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    if os.environ.get("POLAR_QUICK"):
+        MAX_FRAMES, MIN_ERRORS = 500, 10
+        EB_N0_RANGE = np.arange(2.0, 4.0, 1.0)
+        N_LIST = [256]
+    elif os.environ.get("POLAR_MEDIUM"):
+        MAX_FRAMES, MIN_ERRORS = 5000, 50
+        EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
+    else:
+        MAX_FRAMES = 100000
+        MIN_ERRORS = 100
+        EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     for N in N_LIST:
         K = N // 2
