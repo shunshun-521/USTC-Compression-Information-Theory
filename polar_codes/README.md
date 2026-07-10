@@ -6,7 +6,7 @@
 
 - `construction.py` — 高斯近似（GA）构造
 - `encoder.py` — 编码 `x = u @ G_N`
-- `decoder_sc.py` — SC 译码（因子图非递归）
+- `decoder_sc.py` — SC 译码（P/C 非递归主实现 + 递归参考 + 因子图矩阵遍历供 SCL）
 - `decoder_scl.py` — SCL / CA-SCL
 - `decoder_bp.py` — BP（min-sum，早停）
 - `channel.py` — BPSK-AWGN
