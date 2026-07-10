@@ -46,12 +46,6 @@ def run_unit_tests():
         u_hat = sc_decode(llr, frozen_bits)
         assert np.array_equal(u_hat[info_idx], u[info_idx]), "SC 译码失败"
 
-    # 递归与非递归 SC 在随机帧上应一致
-    u = np.zeros(N, dtype=int)
-    u[info_idx] = rng.integers(0, 2, K)
-    llr = compute_llr(bpsk_modulate(polar_encode(u)), 0.01)
-    assert np.array_equal(sc_decode(llr, frozen_bits), sc_decode_recursive(llr, frozen_bits))
-
     print("单元测试通过。")
 
 

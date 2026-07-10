@@ -97,6 +97,7 @@ def sc_decode_recursive(llr, frozen_bits):
     frozen_bits = np.asarray(frozen_bits, dtype=int)
     N = len(llr)
     n = int(math.log2(N))
+    llr = llr[_bit_reversed(np.arange(N), n)]
     u_hat = np.zeros(N, dtype=int)
 
     def decode_node(llr_node, bit_offset):
