@@ -51,33 +51,43 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))]
+    C = 1 - ∫ phi(y) log2(1 + exp(-2 * Es/N0 * y^2)) dy
+    其中 Es/N0 = 2 * R * 10^{Eb/N0/10}
     """
     capacities = []
+    ln2 = np.log(2.0)
     for eb_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_db / 10.0))
+        es_no = 2.0 * rate * (10.0 ** (eb_db / 10.0))
 
         def integrand(y):
             p_y = (1.0 / np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * y ** 2)
-            return p_y * np.log2(1.0 + np.exp(-2.0 * snr * y))
+            z = -2.0 * es_no * y ** 2
+            if z > 30:
+                term = z / ln2
+            elif z < -30:
+                term = 0.0
+            else:
+                term = np.log1p(np.exp(z)) / ln2
+            return p_y * term
 
-        val, _ = integrate.quad(integrand, -10.0, 10.0, limit=200)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -12.0, 12.0, limit=200)
+        capacities.append(max(0.0, 1.0 - val))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for eb in np.linspace(eb_n0_range[0], eb_n0_range[1], 5000):
-            cap = compute_bpsk_capacity([eb], rate)[0]
-            if cap >= rate:
-                return float(eb)
-        return float(eb_n0_range[1])
-    return float(eb_grid[idx])
+
+    for i in range(1, len(eb_grid)):
+        if caps[i] >= rate:
+            if caps[i - 1] < rate:
+                t = (rate - caps[i - 1]) / (caps[i] - caps[i - 1] + 1e-12)
+                return float(eb_grid[i - 1] + t * (eb_grid[i] - eb_grid[i - 1]))
+            return float(eb_grid[i])
+
+    return float(eb_n0_range[1])
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
