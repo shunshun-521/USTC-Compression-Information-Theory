@@ -5,15 +5,63 @@
 import math
 import numpy as np
 
-from encoder import polar_encode, bit_reversal_permutation
+from encoder import polar_encode, build_generator_matrix, bit_reversal_permutation
 
 
 def _f_min_sum(a, b, alpha):
-    sa = np.sign(a)
-    sb = np.sign(b)
-    sa = np.where(sa == 0, 1, sa)
-    sb = np.where(sb == 0, 1, sb)
-    return alpha * sa * sb * np.minimum(np.abs(a), np.abs(b))
+    s1 = np.sign(a)
+    s2 = np.sign(b)
+    if s1 == 0:
+        s1 = 1
+    if s2 == 0:
+        s2 = 1
+    return alpha * s1 * s2 * min(abs(a), abs(b))
+
+
+def _element_update_left(left, right, alpha):
+    value = np.zeros(2)
+    value[0] = _f_min_sum(right[1] + left[1], left[0], alpha)
+    value[1] = _f_min_sum(left[0], right[0], alpha) + left[1]
+    return value
+
+
+def _element_update_right(left, right, alpha):
+    value = np.zeros(2)
+    value[0] = _f_min_sum(right[1] + left[1], right[0], alpha)
+    value[1] = _f_min_sum(left[0], right[0], alpha) + right[1]
+    return value
+
+
+def _bp_update_left(left_array, right_array, stage, alpha):
+    N = left_array.size
+    interval = 2 ** (stage - 1)
+    num = int(N / (interval * 2))
+    value = np.zeros(N)
+    for i in range(num):
+        for j in range(interval):
+            idx = 2 * i * interval + j
+            left_ele = np.array([left_array[idx], left_array[idx + interval]])
+            right_ele = np.array([right_array[idx], right_array[idx + interval]])
+            out = _element_update_left(left_ele, right_ele, alpha)
+            value[idx] = out[0]
+            value[idx + interval] = out[1]
+    return value
+
+
+def _bp_update_right(left_array, right_array, stage, alpha):
+    N = left_array.size
+    interval = 2 ** (stage - 1)
+    num = int(N / (interval * 2))
+    value = np.zeros(N)
+    for i in range(num):
+        for j in range(interval):
+            idx = 2 * i * interval + j
+            left_ele = np.array([left_array[idx], left_array[idx + interval]])
+            right_ele = np.array([right_array[idx], right_array[idx + interval]])
+            out = _element_update_right(left_ele, right_ele, alpha)
+            value[idx] = out[0]
+            value[idx + interval] = out[1]
+    return value
 
 
 class BPDecoder:
@@ -25,54 +73,49 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self.LARGE = 1e6
+        self.info_indices = np.where(~self.frozen_bits)[0]
+        self.information_pos = list(self.info_indices)
         self.br = bit_reversal_permutation(N)
+        self.G = build_generator_matrix(N)
 
     def decode(self, llr_ch):
-        llr_ch = llr_ch.astype(np.float64)[self.br]
+        y_llr = llr_ch.astype(np.float64)[self.br]
         N, n = self.N, self.n
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
 
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_bits, 0] = self.LARGE
+        left_matrix = np.zeros((N, n + 1))
+        right_matrix = np.zeros((N, n + 1))
+        left_matrix[:, n] = y_llr
+        temp = [
+            (1 - 2 * 0) * np.inf if i not in self.information_pos else 0.0
+            for i in range(N)
+        ]
+        right_matrix[:, 0] = temp
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _f_min_sum(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1], self.alpha
-                    )
-                    L[i + s, j - 1] = _f_min_sum(
-                        R[i, j], L[i, j + 1], self.alpha
-                    ) + L[i + s, j + 1]
-
-            for j in range(1, n + 1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    R[i, j] = _f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j - 1], self.alpha
-                    )
-                    R[i + s, j] = _f_min_sum(
-                        R[i, j - 1], L[i, j + 1], self.alpha
-                    ) + R[i + s, j]
+            for i in range(n):
+                left_matrix[:, n - i - 1] = _bp_update_left(
+                    left_matrix[:, n - i], right_matrix[:, n - i - 1], n - i, self.alpha
+                )
+            for i in range(n):
+                right_matrix[:, i + 1] = _bp_update_right(
+                    left_matrix[:, i + 1], right_matrix[:, i], i + 1, self.alpha
+                )
 
             num_iters = it
-            u_hat = np.where(
-                self.frozen_bits, 0, np.where(L[:, 0] + R[:, 0] >= 0, 0, 1)
-            ).astype(int)
+            u_d_llr = left_matrix[:, 0] + right_matrix[:, 0]
+            u_hat = np.array([0 if u_d_llr[i] >= 0 else 1 for i in range(N)], dtype=int)
+            u_hat[self.frozen_bits] = 0
 
-            x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
+            x_d_llr = left_matrix[:, n] + right_matrix[:, n]
+            x_d = np.array([0 if x_d_llr[i] >= 0 else 1 for i in range(N)], dtype=int)
+            x_g = (u_hat @ self.G) % 2
+            if np.array_equal(x_g, x_d):
                 break
 
-        u_hat = np.where(
-            self.frozen_bits, 0, np.where(L[:, 0] + R[:, 0] >= 0, 0, 1)
-        ).astype(int)
+        u_d_llr = left_matrix[:, 0] + right_matrix[:, 0]
+        u_hat = np.array([0 if u_d_llr[i] >= 0 else 1 for i in range(N)], dtype=int)
+        u_hat[self.frozen_bits] = 0
         return u_hat, num_iters
