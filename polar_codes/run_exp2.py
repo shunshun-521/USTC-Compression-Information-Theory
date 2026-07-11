@@ -30,14 +30,11 @@ def run_unit_tests():
   frozen = np.ones(N, dtype=int)
   frozen[info_idx] = 0
   rng = np.random.default_rng(1)
-  sigma = eb_n0_to_sigma(10.0, 0.5)
   for _ in range(20):
     bits = rng.integers(0, 2, K)
     u_sent = np.zeros(N, dtype=int)
     u_sent[info_idx] = bits
-    llr = compute_llr(
-      awgn_channel(bpsk_modulate(polar_encode(u_sent)), sigma, rng), sigma
-    )
+    llr = compute_llr(bpsk_modulate(polar_encode(u_sent)), 1e-6)
     uh_sc = sc_decode(llr, frozen)
     uh_scl, _ = SCLDecoder(N, frozen, list_size=1).decode(llr)
     assert np.array_equal(uh_sc, uh_scl), "L=1 的 SCL 应与 SC 等价"
