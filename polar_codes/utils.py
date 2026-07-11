@@ -54,34 +54,41 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))], s = SNR = 2R * 10^{Eb/N0/10}
-  """
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    C = 1 - (1/ln2) E_u[log(1+exp(-2*Es/N0*u^2))], Es/N0 = R * Eb/N0
+    """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        es_n0 = rate * (10 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+        def integrand(u):
+            arg = -2.0 * es_n0 * u * u
+            if arg < -40.0:
+                log_term = 0.0
+            else:
+                log_term = np.log1p(np.exp(arg))
+            return log_term * np.exp(-0.5 * u * u)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -10.0, 10.0)
+        val /= np.sqrt(2.0 * np.pi) * np.log(2)
+        capacities.append(max(0.0, 1.0 - val))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 8), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        return float(eb_grid[idx])
-    e0, e1 = eb_grid[idx - 1], eb_grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
+    diff = caps - rate
+    sign_change = np.where(np.diff(np.sign(diff)))[0]
+    if len(sign_change) == 0:
+        return float(eb_grid[np.argmin(np.abs(diff))])
+    idx = sign_change[0]
+    e0, e1 = eb_grid[idx], eb_grid[idx + 1]
+    c0, c1 = caps[idx], caps[idx + 1]
     if c1 == c0:
-        return float(eb_grid[idx])
+        return float(e0)
     return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
 
 
