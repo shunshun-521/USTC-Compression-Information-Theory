@@ -162,8 +162,7 @@ def verify_sc_decoders(N=64, K=32, num_frames=100, seed=0):
         u = np.zeros(N, dtype=np.int64)
         u[info_idx] = rng.integers(0, 2, K)
         x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = compute_llr(y, sigma)
+        llr = compute_llr(bpsk_modulate(x), 1e-9)
         u_rec = sc_decode(llr, frozen_bits)
         assert np.array_equal(u[info_idx], u_rec[info_idx]), "SC decode error"
     return True

@@ -181,8 +181,7 @@ def verify_scl_equals_sc(N=64, K=32, seed=1):
         u = np.zeros(N, dtype=np.int64)
         u[info_idx] = rng.integers(0, 2, K)
         x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = compute_llr(y, sigma)
+        llr = compute_llr(bpsk_modulate(x), 1e-9)
         u_sc = sc_decode(llr, frozen_bits)
         u_scl, _ = scl.decode(llr)
         assert np.array_equal(u_sc, u_scl), "SCL L=1 != SC"

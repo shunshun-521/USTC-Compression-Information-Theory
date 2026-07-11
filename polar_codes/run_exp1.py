@@ -22,11 +22,29 @@ from utils import find_capacity_limit, plot_bler_curves, save_frozen_set_info, s
 
 def run_unit_tests():
     """单元测试"""
+    from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma
+
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
     assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
 
     verify_sc_decoders(N=64, K=32, num_frames=100, seed=0)
+
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=bool)
+    frozen_bits[info_idx] = False
+    sigma = eb_n0_to_sigma(11.0, K / N)
+    rng = np.random.default_rng(0)
+    for _ in range(100):
+        u = np.zeros(N, dtype=np.int64)
+        u[info_idx] = rng.integers(0, 2, K)
+        x = polar_encode(u)
+        y = awgn_channel(bpsk_modulate(x), sigma, rng)
+        llr = compute_llr(y, sigma)
+        u_hat = sc_decode(llr, frozen_bits)
+        assert np.array_equal(u[info_idx], u_hat[info_idx]), "SC 极低噪声译码失败"
+
     print("单元测试通过。")
 
 
