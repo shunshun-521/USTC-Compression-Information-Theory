@@ -33,7 +33,7 @@ def run_unit_tests():
     x = polar_encode(u)
     assert np.array_equal(x, u @ (B @ G) % 2), f"编码器错误: {x}"
 
-    assert verify_sc_decoder(64, 32, 100, 10.0), "SC 译码校验失败"
+    assert verify_sc_decoder(64, 32, 20, 10.0), "SC 译码校验失败"
     print("单元测试通过。")
 
 

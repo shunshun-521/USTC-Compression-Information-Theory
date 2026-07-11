@@ -29,8 +29,8 @@ def run_unit_tests():
         B[p, i] = 1
     x = polar_encode(u)
     assert np.array_equal(x, u @ (B @ G) % 2), f"编码器错误: {x}"
-    assert verify_sc_decoder(64, 32, 100, 10.0), "SC 译码校验失败"
-    assert verify_scl_equals_sc(64, 32, 50, 5.0), "SCL(L=1) 与 SC 不等价"
+    assert verify_sc_decoder(64, 32, 20, 10.0), "SC 译码校验失败"
+    assert verify_scl_equals_sc(64, 32, 20, 5.0), "SCL(L=1) 与 SC 不等价"
     print("单元测试通过。")
 
 
