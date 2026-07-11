@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -51,14 +50,18 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    通过蒙特卡洛估计互信息 I(X;Y)。
     """
-    snr = 2 * rate * (10 ** (eb_n0_db / 10))
-
-    def integrand(y):
-        return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
-
-    val, _ = integrate.quad(integrand, -20, 20, limit=200)
-    return 1 - val
+    snr_c = 2 * rate * (10 ** (eb_n0_db / 10))
+    rng = np.random.default_rng(int(abs(eb_n0_db * 1000) % 2 ** 31))
+    n = 200000
+    x = rng.choice([-1.0, 1.0], n)
+    y = np.sqrt(snr_c) * x + rng.standard_normal(n)
+    llr = 2 * np.sqrt(snr_c) * y
+    p0 = 1.0 / (1.0 + np.exp(llr))
+    p0 = np.clip(p0, 1e-12, 1 - 1e-12)
+    h = -p0 * np.log2(p0) - (1 - p0) * np.log2(1 - p0)
+    return float(np.mean(h))
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
