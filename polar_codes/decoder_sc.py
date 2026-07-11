@@ -6,12 +6,27 @@ import math
 import numpy as np
 
 
+def _log_sum(a, b):
+    """log(exp(a) + exp(b)) 的数值稳定实现"""
+    if np.isscalar(a) and np.isscalar(b):
+        if a == np.inf:
+            return b
+        if b == np.inf:
+            return a
+        m = max(a, b)
+        if m == -np.inf:
+            return -np.inf
+        return m + np.log1p(np.exp(-abs(a - b)))
+    return np.vectorize(_log_sum, otypes=[float])(a, b)
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（对数域精确 box-plus，向量化兼容 min-sum 接口）。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _log_sum(La + Lb, 0.0) - _log_sum(La, Lb)
 
 
 def g_operation(La, Lb, u_hat):
