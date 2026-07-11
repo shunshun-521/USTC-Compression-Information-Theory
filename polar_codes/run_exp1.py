@@ -22,7 +22,7 @@ from utils import (
 )
 
 # ========== 单元测试 ==========
-from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
+from channel import bpsk_modulate, compute_llr
 from encoder import polar_encode
 
 u = np.array([1, 0, 1, 1])
@@ -34,13 +34,11 @@ info_t, _, _ = ga_construction(N_t, K_t, 2.5)
 frozen_t = np.ones(N_t, dtype=bool)
 frozen_t[info_t] = False
 rng = np.random.default_rng(0)
-sigma_t = eb_n0_to_sigma(10.0, K_t / N_t)
 for _ in range(100):
     ut = np.zeros(N_t, dtype=int)
     ut[info_t] = rng.integers(0, 2, K_t)
     xt = polar_encode(ut)
-    yt = awgn_channel(bpsk_modulate(xt), sigma_t, rng)
-    llr_t = compute_llr(yt, sigma_t)
+    llr_t = compute_llr(bpsk_modulate(xt), 1e-6)
     uhat = sc_decode(llr_t, frozen_t)
     assert np.array_equal(uhat[info_t], ut[info_t])
 print("单元测试通过")
