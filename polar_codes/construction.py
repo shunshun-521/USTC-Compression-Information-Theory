@@ -37,8 +37,8 @@ def phi_inv(y):
     for _ in range(60):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
+        lo = np.where(pm > y, mid, lo)
+        hi = np.where(pm <= y, mid, hi)
     result = (lo + hi) / 2.0
     return result.item() if scalar else result
 
@@ -46,35 +46,28 @@ def phi_inv(y):
 def ga_construction(N, K, design_eb_n0_db, rate=None):
     """
     高斯近似构造极化码。
-
-    参数：
-        N: 码长（必须是 2 的幂）
-        K: 信息位数
-        design_eb_n0_db: 设计信噪比 Eb/N0（dB）
-        rate: 码率 R=K/N，若为 None 则自动计算
-
-    返回：
-        info_indices: 长度为 K 的数组，信息位在 u 向量中的索引（从 0 开始）
-        frozen_indices: 长度为 N-K 的数组，冻结位索引
-        llr_means: 长度为 N 的数组，每个极化信道的等效 LLR 均值
     """
     if rate is None:
         rate = K / N
     n = int(np.log2(N))
     assert 2 ** n == N, "N must be a power of 2"
 
-    sigma = 10 ** (-design_eb_n0_db / 20.0) / np.sqrt(2.0 * rate)
-    m0 = 2.0 / (sigma ** 2)
+    sigma2 = (1.0 / (2.0 * rate)) * (10.0 ** (-design_eb_n0_db / 10.0))
+    llr0 = 2.0 / sigma2
 
-    m = np.array([m0], dtype=np.float64)
-    for _ in range(n):
-        m_new = np.empty(2 * len(m), dtype=np.float64)
-        for i in range(len(m)):
-            m_new[2 * i] = phi_inv(1.0 - (1.0 - phi(m[i])) ** 2)
-            m_new[2 * i + 1] = 2.0 * m[i]
-        m = m_new
+    llri = np.zeros(N, dtype=np.float64)
+    llrcopy = np.zeros(N, dtype=np.float64)
+    llri[0] = llr0
+    m = 1
+    while m <= N // 2:
+        for k in range(m):
+            llr_temp = llri[k]
+            llrcopy[2 * k] = phi_inv(1.0 - (1.0 - phi(llr_temp)) ** 2)
+            llrcopy[2 * k + 1] = 2.0 * llr_temp
+        llri = llrcopy.copy()
+        m *= 2
 
-    llr_means = m
+    llr_means = llri
     sorted_indices = np.argsort(llr_means)
     info_indices = np.sort(sorted_indices[-K:])
     frozen_mask = np.ones(N, dtype=bool)
