@@ -53,11 +53,17 @@ def _get_up_loc(bit_matrix):
     N = bit_matrix.shape[1]
     n = int(math.log2(N))
     detect_array = bit_matrix[n]
+    if np.all(np.isnan(detect_array)):
+        return 0, 0
     detect = 0
     for i in range(N):
         if np.isnan(detect_array[i]):
             detect = i - 1
             break
+    else:
+        detect = N - 1
+    if detect < 0:
+        return 0, 0
     if detect % 2 == 0:
         return n - 1, detect
     return n - 1, detect - 1
