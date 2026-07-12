@@ -65,32 +65,61 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """计算 BPSK 离散输入信道容量（bits/channel use）。"""
+    """计算 BPSK-AWGN 离散输入信道容量（bits/channel use）。"""
+    from channel import eb_n0_to_sigma
+
     capacities = []
+    sqrt2pi = np.sqrt(2.0 * np.pi)
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        sigma = eb_n0_to_sigma(eb_n0_db, rate)
+        inv_sigma = 1.0 / sigma
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        def pdf_y_given_x(y, x):
+            z = (y - (1 - 2 * x)) * inv_sigma
+            return np.exp(-0.5 * z * z) / (sigma * sqrt2pi)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        def pdf_y(y):
+            return 0.5 * (pdf_y_given_x(y, 0) + pdf_y_given_x(y, 1))
+
+        def entropy_y():
+            def integrand(y):
+                p = pdf_y(y)
+                if p <= 1e-300:
+                    return 0.0
+                return -p * np.log2(p)
+
+            val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
+            return val
+
+        def cond_entropy():
+            def integrand0(y):
+                p = pdf_y_given_x(y, 0)
+                if p <= 1e-300:
+                    return 0.0
+                return -p * np.log2(p)
+
+            h0, _ = integrate.quad(integrand0, -20.0, 20.0, limit=200)
+            return 0.5 * (h0 + h0)
+
+        capacities.append(entropy_y() - cond_entropy())
+
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=4000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for eb in np.linspace(eb_n0_range[0], eb_n0_range[1], 5000):
-            c = compute_bpsk_capacity([eb], rate)[0]
-            if c >= rate:
-                return float(eb)
-        return float(eb_grid[idx])
-    return float(eb_grid[idx])
+    diff = caps - rate
+    idx = int(np.where(diff >= 0)[0][0]) if np.any(diff >= 0) else len(eb_grid) - 1
+    if idx == 0:
+        return float(eb_grid[0])
+    e0, e1 = eb_grid[idx - 1], eb_grid[idx]
+    c0, c1 = caps[idx - 1], caps[idx]
+    if c1 == c0:
+        return float(e1)
+    return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
 
 
 def plot_bler_curves(
