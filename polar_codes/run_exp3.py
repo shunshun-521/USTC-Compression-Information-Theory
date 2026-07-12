@@ -48,8 +48,10 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 50000
+MAX_FRAMES_SCL = 1500
 MAX_FRAMES_BP = 30000
 MIN_ERRORS = 100
+MIN_ERRORS_SCL = 50
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -81,13 +83,21 @@ if __name__ == "__main__":
             return u, None
 
         print(f"SCL L=4: N={N}")
-        r_scl = run_simulation(
-            N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx,
-        )
-        all_results["SCL (L=4)"] = r_scl
-        save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
+        scl_csv = f"results/exp3_scl_N{N}_R0.5.csv"
+        if os.path.exists(scl_csv):
+            from utils import load_results_csv
+            r_scl = load_results_csv(scl_csv)
+            print(f"  已加载 {scl_csv}")
+        else:
+            r_scl = run_simulation(
+                N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES_SCL, MIN_ERRORS_SCL,
+                info_indices=info_idx,
+            )
+            save_results_csv(r_scl, scl_csv)
 
+        all_results["SCL (L=4)"] = r_scl
+
+        bp_csv = f"results/exp3_bp_N{N}_R0.5.csv"
         bp_decoder = BPDecoder(N, frozen_bits.astype(bool), max_iter=MAX_ITER)
 
         def bp_d(llr_ch):
@@ -95,12 +105,17 @@ if __name__ == "__main__":
             return u_hat, num_iters
 
         print(f"BP: N={N}")
-        r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS,
-            info_indices=info_idx,
-        )
+        if os.path.exists(bp_csv):
+            from utils import load_results_csv
+            r_bp = load_results_csv(bp_csv)
+            print(f"  已加载 {bp_csv}")
+        else:
+            r_bp = run_simulation(
+                N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS,
+                info_indices=info_idx,
+            )
+            save_results_csv(r_bp, bp_csv)
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
-        save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
 
         shannon_db = find_capacity_limit(RATE)
         plot_bler_curves(
