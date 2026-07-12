@@ -62,8 +62,8 @@ class Path:
     __slots__ = ('L', 'B', 'pm', 'u_hat', 'active')
 
     def __init__(self, n, N):
-        self.L = np.zeros((N, n + 1), dtype=np.float64)
-        self.B = np.zeros((N, n + 1), dtype=np.int8)
+        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
+        self.B = np.full((N, n + 1), np.nan)
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=np.int8)
         self.active = True
@@ -97,7 +97,7 @@ class SCLDecoder:
                     path.L[j, stage + 1] = _lower_llr(
                         path.L[j, stage],
                         path.L[j - branch_size, stage],
-                        path.B[j - branch_size, stage + 1],
+                        int(path.B[j - branch_size, stage + 1]),
                     )
 
     def _propagate_bits(self, path, leaf):
@@ -108,8 +108,8 @@ class SCLDecoder:
             branch_size = block_size >> 1
             for j in range(leaf, -1, -block_size):
                 if j % block_size >= branch_size:
-                    path.B[j - branch_size, stage - 1] = path.B[j, stage] ^ path.B[j - branch_size, stage]
-                    path.B[j, stage - 1] = path.B[j, stage]
+                    path.B[j - branch_size, stage - 1] = int(path.B[j, stage]) ^ int(path.B[j - branch_size, stage])
+                    path.B[j, stage - 1] = int(path.B[j, stage])
 
     def decode(self, llr_ch):
         llr_tree = _reorder_channel_llr(llr_ch, self.N)

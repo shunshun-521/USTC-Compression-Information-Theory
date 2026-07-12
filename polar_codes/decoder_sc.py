@@ -93,8 +93,8 @@ def _sc_decode_core(llr_tree, frozen_bits):
     n = int(math.log2(N))
     frozen_set = set(np.where(frozen_bits)[0])
 
-    L = np.zeros((N, n + 1), dtype=np.float64)
-    B = np.zeros((N, n + 1), dtype=np.int8)
+    L = np.full((N, n + 1), np.nan, dtype=np.float64)
+    B = np.full((N, n + 1), np.nan)
     L[:, 0] = llr_tree
 
     for phi in range(N):
@@ -107,7 +107,7 @@ def _sc_decode_core(llr_tree, frozen_bits):
                     L[j, stage + 1] = _upper_llr(L[j, stage], L[j + branch_size, stage])
                 else:
                     L[j, stage + 1] = _lower_llr(
-                        L[j, stage], L[j - branch_size, stage], B[j - branch_size, stage + 1]
+                        L[j, stage], L[j - branch_size, stage], int(B[j - branch_size, stage + 1])
                     )
 
         if leaf in frozen_set:
@@ -123,8 +123,8 @@ def _sc_decode_core(llr_tree, frozen_bits):
             branch_size = block_size >> 1
             for j in range(leaf, -1, -block_size):
                 if j % block_size >= branch_size:
-                    B[j - branch_size, stage - 1] = B[j, stage] ^ B[j - branch_size, stage]
-                    B[j, stage - 1] = B[j, stage]
+                    B[j - branch_size, stage - 1] = int(B[j, stage]) ^ int(B[j - branch_size, stage])
+                    B[j, stage - 1] = int(B[j, stage])
 
     return B[:, n].astype(int)
 
