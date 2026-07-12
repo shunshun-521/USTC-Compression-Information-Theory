@@ -77,18 +77,26 @@ def main():
     all_results["SC (L=1)"] = results_sc
 
     for L in L_LIST:
-        print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
+        scl_csv = f"results/exp2_scl_L{L}_N{N}_R0.5.csv"
+        if os.path.exists(scl_csv):
+            from utils import load_results_csv
+            results = load_results_csv(scl_csv)
+            print(f"  跳过 SCL L={L}，加载已有结果: {scl_csv}")
+        else:
+            print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
 
-        def scl_decoder(llr_ch, _L=L):
-            u_hat, _ = SCLDecoder(N, frozen_bits, list_size=_L, crc_length=0).decode(llr_ch)
-            return u_hat, None
+            def scl_decoder(llr_ch, _L=L):
+                u_hat, _ = SCLDecoder(
+                    N, frozen_bits, list_size=_L, crc_length=0
+                ).decode(llr_ch)
+                return u_hat, None
 
-        results = run_simulation(
-            N, K, EB_N0_RANGE, scl_decoder, "scl",
-            MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
-        )
+            results = run_simulation(
+                N, K, EB_N0_RANGE, scl_decoder, "scl",
+                MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+            )
+            save_results_csv(results, scl_csv)
         all_results[f"SCL (L={L})"] = results
-        save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
