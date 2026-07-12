@@ -4,8 +4,8 @@
 """
 import math
 import numpy as np
-from decoder_sc import f_operation, _permute_channel_llr
-from encoder import polar_encode
+from decoder_sc import f_operation
+from encoder import polar_encode, bit_reversal_permutation
 
 
 def _stage_masks(N):
@@ -60,7 +60,8 @@ class BPDecoder:
 
     def decode(self, llr_ch):
         llr_orig = np.asarray(llr_ch, dtype=np.float64)
-        llr_ch = _permute_channel_llr(llr_orig, self.N)
+        br = bit_reversal_permutation(self.N)
+        llr_ch = llr_orig[br]
         n = self.n
         N = self.N
 
