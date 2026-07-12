@@ -58,9 +58,9 @@ DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES_SC = 50000
-MAX_FRAMES_SCL = 3000
+MAX_FRAMES_SCL = {2: 2000, 4: 800, 8: 200}
 MIN_ERRORS = 100
-MIN_ERRORS_SCL = 50
+MIN_ERRORS_SCL = 30
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -92,12 +92,15 @@ if __name__ == "__main__":
             ).decode(llr_ch)
             return u_hat, None
 
+        max_f = MAX_FRAMES_SCL.get(_L, 800)
         results = run_simulation(
             N, K, EB_N0_RANGE, scl_decoder, "scl",
-            MAX_FRAMES_SCL, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
+            max_f, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
         )
         all_results[f"SCL (L={L})"] = results
         save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
+        if L == 4:
+            save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
@@ -109,7 +112,7 @@ if __name__ == "__main__":
 
     results_cascl = run_simulation(
         N, K, EB_N0_RANGE, cascl_decoder, "scl",
-        MAX_FRAMES_SCL, MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
+        MAX_FRAMES_SCL[8], MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
         info_indices=info_idx, verbose=True,
     )
     all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl

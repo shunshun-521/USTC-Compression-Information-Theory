@@ -98,11 +98,17 @@ class SCLDecoder:
             return sc_decode_recursive(llr_ch, self.frozen_bits), 0.0
 
         paths = [{"u_hat": np.zeros(self.N, dtype=int), "pm": 0.0}]
+        llr_cache = {}
 
         for phi in range(self.N):
             new_paths = []
             for path in paths:
-                llr_bit = _llr_at_phi(llr_ch, self.frozen_bits, path["u_hat"], phi)
+                prefix_key = (phi, tuple(path["u_hat"][:phi]))
+                if prefix_key not in llr_cache:
+                    llr_cache[prefix_key] = _llr_at_phi(
+                        llr_ch, self.frozen_bits, path["u_hat"], phi
+                    )
+                llr_bit = llr_cache[prefix_key]
 
                 if self.frozen_bits[phi]:
                     pm = _pm_update(path["pm"], llr_bit, 0)
