@@ -58,9 +58,9 @@ DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES_SC = 50000
-MAX_FRAMES_SCL = {2: 2000, 4: 800, 8: 200}
+MAX_FRAMES_SCL = {2: 400, 4: 200, 8: 100}
 MIN_ERRORS = 100
-MIN_ERRORS_SCL = 30
+MIN_ERRORS_SCL = 20
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -76,15 +76,28 @@ if __name__ == "__main__":
         return sc_decode(llr_ch, frozen_bits), None
 
     print("\nSC 基线 (L=1)")
-    results_sc = run_simulation(
-        N, K, EB_N0_RANGE, sc_decoder, "sc",
-        MAX_FRAMES_SC, MIN_ERRORS, info_indices=info_idx, verbose=True,
-    )
+    sc_csv = f"results/exp2_sc_N{N}_R0.5.csv"
+    if os.path.exists(sc_csv):
+        from utils import load_results_csv
+        results_sc = load_results_csv(sc_csv)
+        print(f"  已加载 {sc_csv}")
+    else:
+        results_sc = run_simulation(
+            N, K, EB_N0_RANGE, sc_decoder, "sc",
+            MAX_FRAMES_SC, MIN_ERRORS, info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(results_sc, sc_csv)
+
     all_results["SC (L=1)"] = results_sc
-    save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
 
     for L in L_LIST:
-        print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
+        scl_csv = f"results/exp2_scl_L{L}_N{N}_R0.5.csv"
+        if os.path.exists(scl_csv):
+            from utils import load_results_csv
+            results = load_results_csv(scl_csv)
+            print(f"\n已加载 SCL L={L}: {scl_csv}")
+        else:
+            print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
 
         def scl_decoder(llr_ch, _L=L):
             u_hat, pm = SCLDecoder(
@@ -92,17 +105,25 @@ if __name__ == "__main__":
             ).decode(llr_ch)
             return u_hat, None
 
-        max_f = MAX_FRAMES_SCL.get(L, 800)
-        results = run_simulation(
-            N, K, EB_N0_RANGE, scl_decoder, "scl",
-            max_f, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
-        )
+        if not os.path.exists(scl_csv):
+            max_f = MAX_FRAMES_SCL.get(L, 200)
+            results = run_simulation(
+                N, K, EB_N0_RANGE, scl_decoder, "scl",
+                max_f, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
+            )
+            save_results_csv(results, scl_csv)
+
         all_results[f"SCL (L={L})"] = results
-        save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
         if L == 4:
             save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
-    print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+    cascl_csv = f"results/exp2_cascl_L8_N{N}_R0.5.csv"
+    if os.path.exists(cascl_csv):
+        from utils import load_results_csv
+        results_cascl = load_results_csv(cascl_csv)
+        print(f"\n已加载 CA-SCL: {cascl_csv}")
+    else:
+        print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
     def cascl_decoder(llr_ch):
         u_hat, pm = SCLDecoder(
@@ -110,13 +131,14 @@ if __name__ == "__main__":
         ).decode(llr_ch)
         return u_hat, None
 
-    results_cascl = run_simulation(
-        N, K, EB_N0_RANGE, cascl_decoder, "scl",
-        MAX_FRAMES_SCL[8], MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
-        info_indices=info_idx, verbose=True,
-    )
+    if not os.path.exists(cascl_csv):
+        results_cascl = run_simulation(
+            N, K, EB_N0_RANGE, cascl_decoder, "scl",
+            MAX_FRAMES_SCL[8], MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
+            info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(results_cascl, cascl_csv)
     all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-    save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
 
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(
