@@ -92,7 +92,7 @@ if __name__ == "__main__":
             ).decode(llr_ch)
             return u_hat, None
 
-        max_f = MAX_FRAMES_SCL.get(_L, 800)
+        max_f = MAX_FRAMES_SCL.get(L, 800)
         results = run_simulation(
             N, K, EB_N0_RANGE, scl_decoder, "scl",
             max_f, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
