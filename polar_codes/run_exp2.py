@@ -58,10 +58,11 @@ DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES_SC = 50000
-MAX_FRAMES_SCL = {2: 400, 4: 200, 8: 100}
+MAX_FRAMES_SCL = {2: 150, 4: 80, 8: 50}
 MIN_ERRORS = 100
-MIN_ERRORS_SCL = 20
+MIN_ERRORS_SCL = 15
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE_SCL = np.arange(1.5, 4.5, 0.5)
 
 if __name__ == "__main__":
     run_unit_tests()
@@ -108,7 +109,7 @@ if __name__ == "__main__":
         if not os.path.exists(scl_csv):
             max_f = MAX_FRAMES_SCL.get(L, 200)
             results = run_simulation(
-                N, K, EB_N0_RANGE, scl_decoder, "scl",
+                N, K, EB_N0_RANGE_SCL, scl_decoder, "scl",
                 max_f, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
             )
             save_results_csv(results, scl_csv)
@@ -133,7 +134,7 @@ if __name__ == "__main__":
 
     if not os.path.exists(cascl_csv):
         results_cascl = run_simulation(
-            N, K, EB_N0_RANGE, cascl_decoder, "scl",
+            N, K, EB_N0_RANGE_SCL, cascl_decoder, "scl",
             MAX_FRAMES_SCL[8], MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
             info_indices=info_idx, verbose=True,
         )
