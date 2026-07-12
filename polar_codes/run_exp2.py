@@ -57,8 +57,10 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-MAX_FRAMES = 100000
+MAX_FRAMES_SC = 50000
+MAX_FRAMES_SCL = 3000
 MIN_ERRORS = 100
+MIN_ERRORS_SCL = 50
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     print("\nSC 基线 (L=1)")
     results_sc = run_simulation(
         N, K, EB_N0_RANGE, sc_decoder, "sc",
-        MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+        MAX_FRAMES_SC, MIN_ERRORS, info_indices=info_idx, verbose=True,
     )
     all_results["SC (L=1)"] = results_sc
     save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
@@ -92,7 +94,7 @@ if __name__ == "__main__":
 
         results = run_simulation(
             N, K, EB_N0_RANGE, scl_decoder, "scl",
-            MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+            MAX_FRAMES_SCL, MIN_ERRORS_SCL, info_indices=info_idx, verbose=True,
         )
         all_results[f"SCL (L={L})"] = results
         save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
@@ -107,7 +109,7 @@ if __name__ == "__main__":
 
     results_cascl = run_simulation(
         N, K, EB_N0_RANGE, cascl_decoder, "scl",
-        MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
+        MAX_FRAMES_SCL, MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
         info_indices=info_idx, verbose=True,
     )
     all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl

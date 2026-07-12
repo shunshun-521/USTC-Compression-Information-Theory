@@ -47,7 +47,8 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 100000
+MAX_FRAMES = 50000
+MAX_FRAMES_BP = 30000
 MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
@@ -95,7 +96,7 @@ if __name__ == "__main__":
 
         print(f"BP: N={N}")
         r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
+            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES_BP, MIN_ERRORS,
             info_indices=info_idx,
         )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp

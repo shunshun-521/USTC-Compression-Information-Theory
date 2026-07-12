@@ -65,6 +65,7 @@ RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
+MAX_FRAMES_BY_N = {256: 100000, 512: 50000, 1024: 20000}
 EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 if __name__ == "__main__":
@@ -93,7 +94,7 @@ if __name__ == "__main__":
             eb_n0_db_list=EB_N0_RANGE,
             decoder=decoder,
             decoder_type="sc",
-            max_frames=MAX_FRAMES,
+            max_frames=MAX_FRAMES_BY_N.get(N, MAX_FRAMES),
             min_errors=MIN_ERRORS,
             info_indices=info_idx,
             verbose=True,
