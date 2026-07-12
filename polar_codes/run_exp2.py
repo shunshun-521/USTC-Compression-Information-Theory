@@ -48,9 +48,9 @@ def main():
     DESIGN_EBN0 = 2.5
     CRC_LENGTH = 8
     L_LIST = [2, 4, 8]
-    MAX_FRAMES = 100000
-    MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    MAX_FRAMES = 5000
+    MIN_ERRORS = 50
+    EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
     frozen_bits = np.ones(N, dtype=int)
@@ -62,12 +62,19 @@ def main():
         return sc_decode(llr_ch, frozen_bits), None
 
     print("SC 基线 (L=1)")
-    results_sc = run_simulation(
-        N, K, EB_N0_RANGE, sc_decoder, "sc",
-        MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
-    )
+    sc_csv = f"results/exp2_sc_N{N}_R0.5.csv"
+    if os.path.exists(sc_csv):
+        from utils import load_results_csv
+        results_sc = load_results_csv(sc_csv)
+        print(f"  跳过 SC 仿真，加载已有结果: {sc_csv}")
+    else:
+        results_sc = run_simulation(
+            N, K, EB_N0_RANGE, sc_decoder, "sc",
+            MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(results_sc, sc_csv)
+
     all_results["SC (L=1)"] = results_sc
-    save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
 
     for L in L_LIST:
         print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
@@ -98,6 +105,9 @@ def main():
     )
     all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
     save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+
+    if "SCL (L=4)" in all_results:
+        save_results_csv(all_results["SCL (L=4)"], f"results/exp2_scl_N{N}_R0.5.csv")
 
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(

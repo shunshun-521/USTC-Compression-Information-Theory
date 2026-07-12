@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from decoder_sc import f_operation, g_operation, sc_decode_recursive, _xor_paths
+from decoder_sc import f_operation, g_operation, _xor_paths
 
 
 CRC8_POLY = [1, 0, 0, 0, 0, 0, 1, 1, 1]  # x^8 + x^2 + x + 1
@@ -49,8 +49,18 @@ def _metric_penalty(llr, bit):
     return 0.0 if bit == hard else abs(llr)
 
 
+def _path_return(nv, node, size):
+    """计算子树路径返回值（与 SC 递归 xor 合并一致）。"""
+    if size == 1:
+        return [int(nv[node])]
+    h = size // 2
+    left = _path_return(nv, 2 * node, h)
+    right = _path_return(nv, 2 * node + 1, h)
+    return _xor_paths(left, right)
+
+
 class SCLDecoder:
-    """SCL 译码器，树结构与 SC 递归实现保持一致。"""
+    """SCL 译码器：多路径共享子树遍历，仅在叶节点分裂。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -63,25 +73,25 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        paths = self._decode_node(llr_ch, 0, 0, [(0.0, np.zeros(self.N, dtype=int))])
+        paths = self._scl_rec(llr_ch, 0, 0, self.N, [(0.0, np.zeros(self.N, dtype=np.int8))])
         paths.sort(key=lambda x: x[0])
 
         if self.crc_length > 0:
             for pm, nv in paths:
                 if crc_check(nv[self.info_indices], self.crc_length):
-                    return nv, pm
+                    return nv.astype(int), pm
 
-        return paths[0][1], paths[0][0]
+        return paths[0][1].astype(int), paths[0][0]
 
     def _prune(self, paths):
         paths.sort(key=lambda x: x[0])
         return paths[: self.list_size]
 
-    def _decode_node(self, y, depth, node, active_paths):
+    def _scl_rec(self, y, depth, node, size, paths):
         if depth == self.n - 1:
             llr = y[0]
             expanded = []
-            for pm, nv in active_paths:
+            for pm, nv in paths:
                 if node in self.frozen_set:
                     nv = nv.copy()
                     nv[node] = 0
@@ -93,57 +103,23 @@ class SCLDecoder:
                         expanded.append((pm + _metric_penalty(llr, bit), nv2))
             return self._prune(expanded)
 
-        half = len(y) // 2
+        half = size // 2
         l1 = y[:half]
         l2 = y[half:]
         left_llr = f_operation(l1, l2)
+        left_paths = self._scl_rec(left_llr, depth + 1, 2 * node, half, paths)
 
-        left_expanded = []
-        for pm, nv in active_paths:
-            for pm2, nv2, arr1 in self._decode_node_with_path(
-                left_llr, depth + 1, 2 * node, pm, nv
-            ):
-                right_llr = g_operation(l1, l2, arr1)
-                for pm3, nv3, _ in self._decode_node_with_path(
-                    right_llr, depth + 1, 2 * node + 1, pm2, nv2
-                ):
-                    left_expanded.append((pm3, nv3))
+        groups = {}
+        for pm, nv in left_paths:
+            arr1 = tuple(_path_return(nv, 2 * node, half))
+            groups.setdefault(arr1, []).append((pm, nv))
 
-        return self._prune(left_expanded)
-
-    def _decode_node_with_path(self, y, depth, node, pm, nv):
-        """返回 (pm, nv, path_return) 三元组。"""
-        if depth == self.n - 1:
-            llr = y[0]
-            results = []
-            if node in self.frozen_set:
-                nv2 = nv.copy()
-                nv2[node] = 0
-                results.append((pm + _metric_penalty(llr, 0), nv2, [0]))
-            else:
-                for bit in (0, 1):
-                    nv2 = nv.copy()
-                    nv2[node] = bit
-                    results.append((pm + _metric_penalty(llr, bit), nv2, [bit]))
-            results.sort(key=lambda x: x[0])
-            return results[: self.list_size]
-
-        half = len(y) // 2
-        l1 = y[:half]
-        l2 = y[half:]
-        left_llr = f_operation(l1, l2)
-
-        merged = []
-        left_results = self._decode_node_with_path(
-            left_llr, depth + 1, 2 * node, pm, nv
-        )
-        for pm2, nv2, arr1 in left_results:
-            right_llr = g_operation(l1, l2, arr1)
-            right_results = self._decode_node_with_path(
-                right_llr, depth + 1, 2 * node + 1, pm2, nv2
+        right_all = []
+        for arr1, group in groups.items():
+            right_llr = g_operation(l1, l2, list(arr1))
+            right_paths = self._scl_rec(
+                right_llr, depth + 1, 2 * node + 1, half, group
             )
-            for pm3, nv3, arr2 in right_results:
-                merged.append((pm3, nv3, _xor_paths(arr1, arr2)))
+            right_all.extend(right_paths)
 
-        merged.sort(key=lambda x: x[0])
-        return merged[: self.list_size]
+        return self._prune(right_all)
