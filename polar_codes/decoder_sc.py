@@ -58,6 +58,10 @@ def sc_decode_recursive(llr, frozen_bits):
     n = int(math.log2(N))
     frozen_set = set(np.where(frozen_bits)[0])
 
+    L = np.zeros((N, n + 1), dtype=np.float64)
+    B = np.zeros((N, n + 1), dtype=int)
+    L[:, 0] = llr
+
     for i in range(N):
         l = bit_reversed(i, n)
         for s in range(n - active_llr_level(l, n), n):
