@@ -57,7 +57,8 @@ class BPDecoder:
                         )
                         L[idx + s, j - 1] = bp_f(
                             R[idx, j],
-                            L[idx, j]
+                            L[idx, j],
+                            alpha
                         ) + L[idx + s, j]
 
             for j in range(0, n):
@@ -72,7 +73,8 @@ class BPDecoder:
                         )
                         R[idx + s, j + 1] = bp_f(
                             R[idx, j],
-                            L[idx, j + 1]
+                            L[idx, j + 1],
+                            alpha
                         ) + R[idx + s, j]
 
             for i in range(N):
