@@ -1,10 +1,10 @@
 """工具函数：结果保存、绘图、容量计算"""
 import csv
+import math
 import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -53,38 +53,33 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    计算 BPSK-AWGN 信道容量（bits/channel use）的常用近似。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-        sigma = 1.0 / np.sqrt(snr)
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / (2 * sigma ** 2))
-
-        integral, _ = integrate.quad(integrand, -10 * sigma, 10 * sigma)
-        c = 1.0 - integral / np.sqrt(2 * np.pi * sigma ** 2)
-        capacities.append(c)
+        eb_no = 10 ** (eb_n0_db / 10.0)
+        pe = 0.5 * math.erfc(math.sqrt(eb_no * rate))
+        if pe <= 0.0:
+            capacities.append(1.0)
+        elif pe >= 1.0:
+            capacities.append(0.0)
+        else:
+            h2 = -pe * np.log2(pe) - (1 - pe) * np.log2(1 - pe)
+            capacities.append(1.0 - h2)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 6), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
     eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_vals, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_vals) - 1:
-        for i in range(len(eb_vals) - 1):
-            c0, c1 = caps[i], caps[i + 1]
-            if (c0 - rate) * (c1 - rate) <= 0:
-                t = (rate - c0) / (c1 - c0)
-                return eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i])
-        return eb_vals[idx]
-    return eb_vals[idx]
+    for i in range(len(eb_vals) - 1):
+        if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
+            t = (rate - caps[i]) / (caps[i + 1] - caps[i])
+            return eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i])
+    return float(eb_vals[np.argmin(np.abs(caps - rate))])
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
