@@ -66,43 +66,53 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    通过条件/无条件微分熵数值积分得到互信息 I(X;Y)。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        eb = 10 ** (eb_n0_db / 10.0)
+        sigma2 = 1.0 / (2.0 * rate * eb)
+        s = np.sqrt(sigma2)
 
-        def integrand(y):
-            t = -2.0 * snr * y
-            # 数值稳定：log2(1+exp(t)) = log2(1+exp(t)) 用 log1p
-            if t < -30:
-                log_term = t / np.log(2)
-            else:
-                log_term = np.log1p(np.exp(t)) / np.log(2)
-            return log_term * np.exp(-0.5 * y ** 2)
+        def entropy_cond(xsign):
+            def integrand(y):
+                p = np.exp(-0.5 * (y - xsign) ** 2 / sigma2) / (
+                    s * np.sqrt(2.0 * np.pi)
+                )
+                if p < 1e-300:
+                    return 0.0
+                return -p * np.log2(p)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+            h, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
+            return h
+
+        h_cond = 0.5 * (entropy_cond(1.0) + entropy_cond(-1.0))
+
+        def integrand_y(y):
+            p0 = np.exp(-0.5 * (y - 1.0) ** 2 / sigma2) / (s * np.sqrt(2.0 * np.pi))
+            p1 = np.exp(-0.5 * (y + 1.0) ** 2 / sigma2) / (s * np.sqrt(2.0 * np.pi))
+            p = 0.5 * (p0 + p1)
+            if p < 1e-300:
+                return 0.0
+            return -p * np.log2(p)
+
+        h_y, _ = integrate.quad(integrand_y, -20.0, 20.0, limit=200)
+        capacities.append(h_y - h_cond)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
-    这是香农限，用于在 BLER 图中标注参考竖线。
     """
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i])
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
-        return float(eb_grid[idx])
+    for i in range(len(eb_grid) - 1):
+        if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
+            t = (rate - caps[i]) / (caps[i + 1] - caps[i])
+            return float(eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i]))
+    idx = int(np.argmin(np.abs(caps - rate)))
     return float(eb_grid[idx])
 
 
