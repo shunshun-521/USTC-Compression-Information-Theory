@@ -68,41 +68,54 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_one_plus_exp(x):
+    """数值稳定的 log2(1 + exp(x))。"""
+    if x >= 0:
+        return (x + np.log1p(np.exp(-x))) / np.log(2.0)
+    return np.log1p(np.exp(x)) / np.log(2.0)
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
 
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    C = 1 - E_{y}[log2(1 + e^{-2*Es/N0*y^2})]，Es/N0 = 2 * 10^{Eb/N0/10}
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        snr = 2.0 * (10.0 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
+        def integrand(y, _snr=snr):
+            return _log2_one_plus_exp(-_snr * y * y) * np.exp(-(y ** 2) / 2.0)
 
         val, _ = integrate.quad(integrand, -np.inf, np.inf)
         capacities.append(1.0 - val / np.sqrt(2.0 * np.pi))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 4), num_points=200):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     这是香农限，用于在 BLER 图中标注参考竖线。
     """
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            c0, c1 = caps[i], caps[i + 1]
-            if (c0 - rate) * (c1 - rate) <= 0:
-                t = (rate - c0) / (c1 - c0)
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
+    lo, hi = eb_n0_range
+    caps_lo = compute_bpsk_capacity([lo], rate)[0]
+    caps_hi = compute_bpsk_capacity([hi], rate)[0]
+    if (caps_lo - rate) * (caps_hi - rate) > 0:
+        eb_grid = np.linspace(lo, hi, num_points)
+        caps = compute_bpsk_capacity(eb_grid, rate)
+        idx = int(np.argmin(np.abs(caps - rate)))
         return float(eb_grid[idx])
-    return float(eb_grid[idx])
+
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        cap = compute_bpsk_capacity([mid], rate)[0]
+        if cap > rate:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2.0
 
 
 def plot_bler_curves(
