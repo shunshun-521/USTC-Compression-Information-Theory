@@ -26,9 +26,10 @@ os.makedirs('results', exist_ok=True)
 N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_ITER = 50
+MAX_ITER = 30
 MAX_FRAMES = 20000
 MIN_ERRORS = 100
+MAX_FRAMES_BP = 5000
 EB_N0_RANGE = np.arange(2.0, 8.5, 0.5)
 
 if __name__ == '__main__':
@@ -74,7 +75,7 @@ if __name__ == '__main__':
 
         print(f'\n实验三 BP: N={N}')
         r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
+            N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES_BP, MIN_ERRORS,
             info_indices=info_idx, verbose=True,
         )
         all_results[f'BP (max_iter={MAX_ITER})'] = r_bp
