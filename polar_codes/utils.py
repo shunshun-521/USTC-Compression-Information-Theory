@@ -64,6 +64,7 @@ def load_results_csv(filepath):
 
 def _binary_entropy_from_llr(llr):
     """由 LLR 计算条件熵 H(X|Y=y)"""
+    llr = np.clip(llr, -500.0, 500.0)
     p0 = 1.0 / (1.0 + np.exp(-llr))
     p1 = 1.0 - p0
     h = np.zeros_like(llr, dtype=np.float64)
