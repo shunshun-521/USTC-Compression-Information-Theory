@@ -62,31 +62,41 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_capacity_scalar(snr_linear):
+def _binary_entropy_from_llr(llr):
+    """由 LLR 计算条件熵 H(X|Y=y)"""
+    p0 = 1.0 / (1.0 + np.exp(-llr))
+    p1 = 1.0 - p0
+    h = np.zeros_like(llr, dtype=np.float64)
+    mask = p0 > 0
+    h[mask] -= p0[mask] * np.log2(p0[mask])
+    mask = p1 > 0
+    h[mask] -= p1[mask] * np.log2(p1[mask])
+    return h
+
+
+def _bpsk_capacity_scalar(eb_n0_db, rate):
     """单点 BPSK 容量（bits/channel use）"""
+    es_n0 = rate * (10.0 ** (eb_n0_db / 10.0))
+    sigma2 = 1.0 / (2.0 * es_n0)
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-0.5 * y * y)
+        llr = 2.0 * y / sigma2
+        return _binary_entropy_from_llr(llr) * np.exp(-0.5 * y * y)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
+    val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
     return 1.0 - val / np.sqrt(2.0 * np.pi)
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """计算 BPSK 离散输入信道容量列表"""
-    caps = []
-    for eb in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb / 10.0))
-        caps.append(_bpsk_capacity_scalar(snr))
-    return np.array(caps)
+    return np.array([_bpsk_capacity_scalar(eb, rate) for eb in eb_n0_db_list])
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
 
     def cap_minus_rate(eb_db):
-        snr = 2.0 * rate * (10.0 ** (eb_db / 10.0))
-        return _bpsk_capacity_scalar(snr) - rate
+        return _bpsk_capacity_scalar(eb_db, rate) - rate
 
     grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     vals = [cap_minus_rate(e) for e in grid]
