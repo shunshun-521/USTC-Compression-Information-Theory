@@ -51,7 +51,7 @@ DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.concatenate([np.arange(1.0, 5.5, 0.5), np.arange(6.0, 8.5, 0.5)])
+EB_N0_RANGE = np.concatenate([np.arange(1.0, 5.5, 0.5), np.arange(6.0, 12.0, 1.0)])
 
 for N in N_LIST:
     K = N // 2
