@@ -54,14 +54,26 @@ def crc_check(bits, crc_length=8):
 
 
 class _Path:
-    __slots__ = ("L", "B", "pm", "u_hat")
+    __slots__ = ("L", "B", "pm", "u_hat", "_owns_lb")
 
-    def __init__(self, N, n, llr_ch):
-        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
-        self.B = np.zeros((N, n + 1), dtype=int)
-        self.L[:, 0] = llr_ch
+    def __init__(self, N, n, llr_ch, parent=None):
+        if parent is None:
+            self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
+            self.B = np.zeros((N, n + 1), dtype=int)
+            self.L[:, 0] = llr_ch
+            self._owns_lb = True
+        else:
+            self.L = parent.L
+            self.B = parent.B
+            self._owns_lb = False
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=int)
+
+    def _ensure_owned(self):
+        if not self._owns_lb:
+            self.L = self.L.copy()
+            self.B = self.B.copy()
+            self._owns_lb = True
 
 
 class SCLDecoder:
@@ -76,11 +88,13 @@ class SCLDecoder:
         self.info_indices = np.where(~self.frozen_bits)[0]
 
     def _llr_at(self, path, phi):
+        path._ensure_owned()
         l = _bit_reversed(phi, self.n)
         _update_llrs(path.L, path.B, l, self.n, self.N)
         return path.L[l, self.n], l
 
     def _propagate_bit(self, path, l, bit):
+        path._ensure_owned()
         path.B[l, self.n] = bit
         _update_bits(path.B, l, self.n, self.N)
 
@@ -98,19 +112,17 @@ class SCLDecoder:
                 llr, l = self._llr_at(path, phi)
                 if self.frozen_bits[phi]:
                     pm_new = path.pm + self._pm_penalty(llr, 0)
-                    candidates.append((pm_new, pidx, 0, llr, l))
+                    candidates.append((pm_new, pidx, 0, l))
                 else:
                     for u in (0, 1):
                         pm_new = path.pm + self._pm_penalty(llr, u)
-                        candidates.append((pm_new, pidx, u, llr, l))
+                        candidates.append((pm_new, pidx, u, l))
 
             candidates.sort(key=lambda x: x[0])
             new_paths = []
-            for pm_new, pidx, u, llr, l in candidates[: self.list_size]:
+            for pm_new, pidx, u, l in candidates[: self.list_size]:
                 parent = paths[pidx]
-                child = _Path(self.N, self.n, llr_ch)
-                child.L = parent.L.copy()
-                child.B = parent.B.copy()
+                child = _Path(self.N, self.n, llr_ch, parent=parent)
                 child.pm = pm_new
                 child.u_hat = parent.u_hat.copy()
                 child.u_hat[phi] = u
