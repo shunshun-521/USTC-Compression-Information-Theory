@@ -56,39 +56,41 @@ def load_results_csv(filepath):
     return results
 
 
-def compute_bpsk_capacity(eb_n0_db_list, rate):
+def compute_bpsk_capacity(eb_n0_db_list, rate=None):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))]
+    采用 BI-AWGN 互信息数值积分（ρ = Eb/N0 线性）。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        rho = 10 ** (eb_n0_db / 10.0)
 
-        def integrand(y):
-            t = -2.0 * snr * y
-            if t > 50.0:
-                term = t / np.log(2.0)
-            elif t < -50.0:
-                term = 0.0
+        def integrand(z):
+            t = -2.0 * rho - 2.0 * np.sqrt(rho) * z
+            if t < -50.0:
+                inner = 0.0
+            elif t > 50.0:
+                inner = t / np.log(2.0)
             else:
-                term = np.log2(1.0 + np.exp(t))
-            return term * np.exp(-0.5 * y * y) / np.sqrt(2.0 * np.pi)
+                inner = np.log2(1.0 + np.exp(t))
+            return np.exp(-0.5 * z * z) / np.sqrt(2.0 * np.pi) * (1.0 - inner)
 
         val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
-        capacities.append(1.0 - val)
+        capacities.append(val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        return float(eb_grid[idx])
-    x0, x1 = eb_grid[idx - 1], eb_grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
+    caps = compute_bpsk_capacity(eb_grid)
+    idx = np.searchsorted(caps, rate)
+    if idx == 0:
+        return float(eb_grid[0])
+    if idx >= len(eb_grid):
+        return float(eb_grid[-1])
+    x0, x1 = eb_grid[idx - 1], eb_grid[idx]
+    c0, c1 = caps[idx - 1], caps[idx]
     if c1 != c0:
         frac = (rate - c0) / (c1 - c0)
         return float(x0 + frac * (x1 - x0))

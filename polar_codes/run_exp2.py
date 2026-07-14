@@ -28,10 +28,10 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
-MAX_FRAMES = 20000
+L_LIST = [2, 4]
+MAX_FRAMES = 15000
 MIN_ERRORS = 50
-EB_N0_RANGE = np.arange(2.0, 10.5, 0.5)
+EB_N0_RANGE = np.arange(4.0, 10.5, 1.0)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
@@ -64,18 +64,18 @@ for L in L_LIST:
     all_results[f"SCL (L={L})"] = results
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
 
-print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+print(f"\nCA-SCL 仿真: N={N}, K={K}, L=4, CRC={CRC_LENGTH}")
 
 def cascl_decoder(llr_ch):
-    u_hat, pm = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+    u_hat, pm = SCLDecoder(N, frozen_bits, list_size=4, crc_length=CRC_LENGTH).decode(llr_ch)
     return u_hat, None
 
 results_cascl = run_simulation(
     N, K, EB_N0_RANGE, cascl_decoder, "scl", MAX_FRAMES, MIN_ERRORS,
     crc_length=CRC_LENGTH, info_indices=info_idx, verbose=True,
 )
-all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+all_results[f"CA-SCL (L=4, CRC={CRC_LENGTH})"] = results_cascl
+save_results_csv(results_cascl, f"results/exp2_cascl_L4_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
