@@ -40,3 +40,4 @@
   Eb/N0=7.50dB | BLER=3.3784e-01 | BER=2.4916e-02 | Errors=50 | Frames=148 | AvgTime=16.89ms
   Eb/N0=8.00dB | BLER=1.7361e-01 | BER=8.1923e-03 | Errors=50 | Frames=288 | AvgTime=16.96ms
   Eb/N0=8.50dB | BLER=8.1169e-02 | BER=2.9297e-03 | Errors=50 | Frames=616 | AvgTime=16.81ms
+  Eb/N0=9.00dB | BLER=2.2862e-02 | BER=7.4660e-04 | Errors=50 | Frames=2187 | AvgTime=16.88ms
