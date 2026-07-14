@@ -8,8 +8,10 @@ import numpy as np
 
 
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算"""
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    """f 运算（对数域 boxplus）"""
+    la = np.clip(np.asarray(La, dtype=np.float64), -30.0, 30.0)
+    lb = np.clip(np.asarray(Lb, dtype=np.float64), -30.0, 30.0)
+    return np.log1p(np.exp(la + lb)) - np.logaddexp(la, lb)
 
 
 def g_operation(La, Lb, u_hat):

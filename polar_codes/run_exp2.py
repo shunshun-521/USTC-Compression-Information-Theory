@@ -50,7 +50,7 @@ CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.concatenate([np.arange(1.0, 5.5, 0.5), np.arange(6.0, 8.5, 0.5)])
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
@@ -80,10 +80,11 @@ save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
 
 for L in L_LIST:
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
+    scl_inst = SCLDecoder(N, frozen_bits, list_size=L, crc_length=0)
 
-    def make_scl_decoder(_L):
+    def make_scl_decoder(decoder_inst):
         def scl_decoder(llr_ch):
-            u_hat, _ = SCLDecoder(N, frozen_bits, list_size=_L, crc_length=0).decode(llr_ch)
+            u_hat, _ = decoder_inst.decode(llr_ch)
             return u_hat, None
 
         return scl_decoder
@@ -92,7 +93,7 @@ for L in L_LIST:
         N,
         K,
         EB_N0_RANGE,
-        make_scl_decoder(L),
+        make_scl_decoder(scl_inst),
         "scl",
         MAX_FRAMES,
         MIN_ERRORS,
@@ -103,10 +104,11 @@ for L in L_LIST:
     save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+cascl_inst = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH)
 
 
 def cascl_decoder(llr_ch):
-    u_hat, _ = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+    u_hat, _ = cascl_inst.decode(llr_ch)
     return u_hat, None
 
 
