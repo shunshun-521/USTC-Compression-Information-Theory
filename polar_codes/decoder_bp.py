@@ -50,11 +50,11 @@ class BPDecoder:
                         idx_i = i + k
                         idx_is = i + k + s
                         L[idx_i, j - 1] = self._f_min_sum(
-                            R[idx_i, j] + L[idx_is, j + 1], L[idx_i, j + 1]
+                            R[idx_i, j] + L[idx_is, j], L[idx_i, j]
                         )
                         L[idx_is, j - 1] = self._f_min_sum(
-                            R[idx_i, j], L[idx_i, j + 1]
-                        ) + L[idx_is, j + 1]
+                            R[idx_i, j], L[idx_i, j]
+                        ) + L[idx_is, j]
 
             for j in range(0, n):
                 s = 1 << j
