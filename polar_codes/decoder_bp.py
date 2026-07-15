@@ -39,17 +39,18 @@ class BPDecoder:
         R[self.frozen_idx, 0] = LARGE
 
         num_iters = self.max_iter
+        u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        L[idx, j - 1] = self._f_min_sum(
+                        L[idx, j] = self._f_min_sum(
                             R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_min_sum(
+                        L[idx + s, j] = self._f_min_sum(
                             R[idx, j], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
