@@ -30,7 +30,9 @@ DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+MAX_FRAMES_BP = 5000
+MIN_ERRORS_BP = 50
+EB_N0_RANGE = np.arange(1.5, 7.0, 0.25)
 
 for N in N_LIST:
     K = N // 2
@@ -90,8 +92,8 @@ for N in N_LIST:
         EB_N0_RANGE,
         bp_d,
         "bp",
-        MAX_FRAMES,
-        MIN_ERRORS,
+        MAX_FRAMES_BP,
+        MIN_ERRORS_BP,
         info_indices=info_idx,
         frozen_bits=frozen_bits,
     )

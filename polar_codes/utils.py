@@ -63,14 +63,18 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity_per_snr(snr_linear):
-  """单点 BPSK 容量（bits/channel use）"""
+    """单点 BPSK-AWGN 对称容量（bits/channel use）"""
 
-  def integrand(y):
-      return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-0.5 * y * y)
+    def integrand(y):
+        t = 2.0 * snr_linear * (y ** 2)
+        if t > 50.0:
+            log_term = 0.0
+        else:
+            log_term = np.log2(1.0 + np.exp(-t))
+        return log_term * np.exp(-0.5 * y * y) / np.sqrt(2.0 * np.pi)
 
-  val, _ = integrate.quad(integrand, -np.inf, np.inf)
-  val /= np.sqrt(2.0 * np.pi)
-  return 1.0 - val
+    val, _ = integrate.quad(integrand, -10.0, 10.0, limit=200)
+    return 1.0 - val
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
