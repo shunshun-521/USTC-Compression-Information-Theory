@@ -55,7 +55,7 @@ def load_results_csv(filepath):
 def bpsk_capacity(snr_linear):
     """计算 BPSK 离散输入信道容量（bits/channel use）"""
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-y ** 2 / 2.0)
+        return np.log2(1.0 + np.exp(-np.clip(2.0 * snr_linear * y, None, 500.0))) * np.exp(-y ** 2 / 2.0)
 
     val, _ = integrate.quad(integrand, -20.0, 20.0)
     return 1.0 - val / np.sqrt(2.0 * np.pi)
