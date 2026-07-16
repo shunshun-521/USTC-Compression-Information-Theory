@@ -11,6 +11,14 @@ def _f_min_sum(a, b, alpha):
     return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
 
+def _stage_indices(N, ind_s):
+    ind_range = np.arange(N // 2)
+    ind_1 = ind_range * 2 - np.mod(ind_range, 2 ** ind_s)
+    ind_2 = ind_1 + 2 ** ind_s
+    ind_inv = np.argsort(np.concatenate([ind_1, ind_2]))
+    return ind_1, ind_2, ind_inv
+
+
 class BPDecoder:
     """BP 译码器（基于 Sionna/Arikan 因子图结构）"""
 
@@ -23,6 +31,7 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits == 1)[0]
+        self._stage_cache = [_stage_indices(N, s) for s in range(self.n)]
 
     def _hard_decision(self, llr_vec):
         u_hat = (llr_vec < 0).astype(int)
@@ -41,7 +50,6 @@ class BPDecoder:
         msg_r_in[self.frozen_idx] = self.LLR_MAX
 
         msg_l_prev = None
-        msg_r_cur = None
         num_iters = 0
 
         for it in range(self.max_iter):
@@ -49,9 +57,7 @@ class BPDecoder:
             msg_r = [None] * (n_stages + 1)
 
             for ind_s in range(n_stages):
-                ind_range = np.arange(N // 2)
-                ind_1 = ind_range * 2 - np.mod(ind_range, 2 ** ind_s)
-                ind_2 = ind_1 + 2 ** ind_s
+                ind_1, ind_2, ind_inv = self._stage_cache[ind_s]
 
                 if ind_s == n_stages - 1:
                     l1_in = llr_ch[ind_1]
@@ -74,16 +80,10 @@ class BPDecoder:
 
                 r1_out = _f_min_sum(r1_in, l2_in + r2_in, alpha)
                 r2_out = _f_min_sum(r1_in, l1_in, alpha) + r2_in
-
-                ind_inv = np.argsort(np.concatenate([ind_1, ind_2]))
-                r_out = np.concatenate([r1_out, r2_out])[ind_inv]
-                msg_r[ind_s + 1] = r_out
+                msg_r[ind_s + 1] = np.concatenate([r1_out, r2_out])[ind_inv]
 
             for ind_s in range(n_stages - 1, -1, -1):
-                ind_range = np.arange(N // 2)
-                ind_1 = ind_range * 2 - np.mod(ind_range, 2 ** ind_s)
-                ind_2 = ind_1 + 2 ** ind_s
-                ind_inv = np.argsort(np.concatenate([ind_1, ind_2]))
+                ind_1, ind_2, ind_inv = self._stage_cache[ind_s]
 
                 if ind_s == n_stages - 1:
                     l1_in = llr_ch[ind_1]
@@ -103,18 +103,14 @@ class BPDecoder:
 
                 l1_out = _f_min_sum(l1_in, l2_in + r2_in, alpha)
                 l2_out = _f_min_sum(r1_in, l1_in, alpha) + l2_in
-
-                l_out = np.concatenate([l1_out, l2_out])[ind_inv]
-                msg_l[ind_s] = l_out
+                msg_l[ind_s] = np.concatenate([l1_out, l2_out])[ind_inv]
 
             msg_l_prev = msg_l
-            msg_r_cur = msg_r
             num_iters = it + 1
 
             u_hat = self._hard_decision(msg_l[0])
             x_hat = polar_encode(u_hat)
-            x_hard = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, x_hard):
+            if np.array_equal(x_hat, (llr_ch < 0).astype(int)):
                 break
 
         u_hat = self._hard_decision(msg_l_prev[0])
