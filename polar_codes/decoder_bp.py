@@ -38,7 +38,7 @@ class BPDecoder:
 
         L[:, n] = llr
         R[:, 0] = 0.0
-        R[self.frozen_bits, 0] = self.LARGE
+        R[self.br_inv[self.frozen_bits], 0] = self.LARGE
 
         num_iters = self.max_iter
         u_hat = np.zeros(N, dtype=int)
@@ -46,30 +46,33 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
+                jc = min(j + 1, n)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _f_min_sum(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1], self.alpha
+                        R[i, j] + L[i + s, jc], L[i, jc], self.alpha
                     )
                     L[i + s, j - 1] = (
-                        _f_min_sum(R[i, j], L[i, j + 1], self.alpha) + L[i + s, j + 1]
+                        _f_min_sum(R[i, j], L[i, jc], self.alpha) + L[i + s, jc]
                     )
 
             for j in range(0, n):
                 s = 1 << j
+                jc = min(j + 1, n)
                 for i in range(0, N, 2 * s):
                     R[i, j + 1] = _f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j], self.alpha
+                        R[i + s, j] + L[i + s, jc], R[i, j], self.alpha
                     )
                     R[i + s, j + 1] = (
-                        _f_min_sum(R[i, j], L[i, j + 1], self.alpha) + R[i + s, j]
+                        _f_min_sum(R[i, j], L[i, jc], self.alpha) + R[i + s, j]
                     )
 
             for i in range(N):
+                nat_i = self.br_inv[i]
                 total = L[i, 0] + R[i, 0]
-                if self.frozen_bits[i]:
-                    u_hat[i] = 0
+                if self.frozen_bits[nat_i]:
+                    u_hat[nat_i] = 0
                 else:
-                    u_hat[i] = 0 if total >= 0 else 1
+                    u_hat[nat_i] = 0 if total >= 0 else 1
 
             x_hat = polar_encode(u_hat)
             hard = (llr_nat < 0).astype(int)
@@ -78,10 +81,11 @@ class BPDecoder:
                 break
 
         for i in range(N):
+            nat_i = self.br_inv[i]
             total = L[i, 0] + R[i, 0]
-            if self.frozen_bits[i]:
-                u_hat[i] = 0
+            if self.frozen_bits[nat_i]:
+                u_hat[nat_i] = 0
             else:
-                u_hat[i] = 0 if total >= 0 else 1
+                u_hat[nat_i] = 0 if total >= 0 else 1
 
         return u_hat, num_iters
