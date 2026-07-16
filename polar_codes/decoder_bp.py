@@ -6,7 +6,7 @@ import math
 
 import numpy as np
 
-from encoder import bit_reversal_permutation, polar_encode
+from encoder import polar_encode
 
 
 def _f_min_sum(a, b, alpha):
@@ -24,68 +24,67 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self.br = bit_reversal_permutation(N)
-        self.br_inv = np.argsort(self.br)
 
     def decode(self, llr_ch):
         """返回 (u_hat, num_iters)"""
         N, n = self.N, self.n
-        llr_nat = np.asarray(llr_ch, dtype=np.float64)
-        llr = llr_nat[self.br].copy()
+        llr = np.asarray(llr_ch, dtype=np.float64)
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
 
         L[:, n] = llr
         R[:, 0] = 0.0
-        R[self.br_inv[self.frozen_bits], 0] = self.LARGE
+        R[self.frozen_bits, 0] = self.LARGE
 
         num_iters = self.max_iter
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
+            L_new = L.copy()
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
                 jc = min(j + 1, n)
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _f_min_sum(
+                    L_new[i, j - 1] = _f_min_sum(
                         R[i, j] + L[i + s, jc], L[i, jc], self.alpha
                     )
-                    L[i + s, j - 1] = (
+                    L_new[i + s, j - 1] = (
                         _f_min_sum(R[i, j], L[i, jc], self.alpha) + L[i + s, jc]
                     )
+            L = L_new
 
+            R_new = R.copy()
             for j in range(0, n):
                 s = 1 << j
                 jc = min(j + 1, n)
                 for i in range(0, N, 2 * s):
-                    R[i, j + 1] = _f_min_sum(
+                    R_new[i, j + 1] = _f_min_sum(
                         R[i + s, j] + L[i + s, jc], R[i, j], self.alpha
                     )
-                    R[i + s, j + 1] = (
+                    R_new[i + s, j + 1] = (
                         _f_min_sum(R[i, j], L[i, jc], self.alpha) + R[i + s, j]
                     )
+            R = R_new
 
             for i in range(N):
-                nat_i = self.br_inv[i]
                 total = L[i, 0] + R[i, 0]
-                if self.frozen_bits[nat_i]:
-                    u_hat[nat_i] = 0
+                if self.frozen_bits[i]:
+                    u_hat[i] = 0
                 else:
-                    u_hat[nat_i] = 0 if total >= 0 else 1
+                    u_hat[i] = 0 if total >= 0 else 1
 
             x_hat = polar_encode(u_hat)
-            hard = (llr_nat < 0).astype(int)
+            hard = (llr < 0).astype(int)
             if np.array_equal(x_hat, hard):
                 num_iters = it
                 break
 
         for i in range(N):
-            nat_i = self.br_inv[i]
             total = L[i, 0] + R[i, 0]
-            if self.frozen_bits[nat_i]:
-                u_hat[nat_i] = 0
+            if self.frozen_bits[i]:
+                u_hat[i] = 0
             else:
-                u_hat[nat_i] = 0 if total >= 0 else 1
+                u_hat[i] = 0 if total >= 0 else 1
 
         return u_hat, num_iters
