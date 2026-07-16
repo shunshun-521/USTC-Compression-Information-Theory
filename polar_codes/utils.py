@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -51,33 +50,40 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    计算 BPSK-AWGN 信道容量（bits/channel use），数值积分。
+    0->+1, 1->-1，Es=1，sigma^2 = 1/(2R*Eb/N0)。
     """
     capacities = []
+    y_max = 12.0
+    y_grid = np.linspace(-y_max, y_max, 4001)
+    dy = y_grid[1] - y_grid[0]
+    norm = 1.0 / np.sqrt(2.0 * np.pi)
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        sigma = 1.0 / np.sqrt(2.0 * rate * (10.0 ** (eb_n0_db / 10.0)))
+        scale = norm / sigma
+        p0 = scale * np.exp(-((y_grid - 1.0) ** 2) / (2.0 * sigma ** 2))
+        p1 = scale * np.exp(-((y_grid + 1.0) ** 2) / (2.0 * sigma ** 2))
+        py = 0.5 * (p0 + p1)
+        py = np.maximum(py, 1e-300)
+        p0 = np.maximum(p0, 1e-300)
+        p1 = np.maximum(p1, 1e-300)
+        hy = -np.sum(py * np.log2(py)) * dy
+        hy_x = -0.5 * np.sum(p0 * np.log2(p0) + p1 * np.log2(p1)) * dy
+        capacities.append(max(hy - hy_x, 0.0))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_vals, rate)
     idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == num_points - 1:
-        for i in range(num_points - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i])
-                return eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i])
-        return eb_vals[idx]
+    if idx > 0 and idx < num_points - 1:
+        y0, y1 = caps[idx - 1] - rate, caps[idx + 1] - rate
+        if y0 * y1 < 0:
+            t = (rate - caps[idx - 1]) / (caps[idx + 1] - caps[idx - 1])
+            return eb_vals[idx - 1] + t * (eb_vals[idx + 1] - eb_vals[idx - 1])
     return eb_vals[idx]
 
 
