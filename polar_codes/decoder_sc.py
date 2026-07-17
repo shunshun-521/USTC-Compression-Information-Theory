@@ -27,6 +27,8 @@ def f_operation(La, Lb):
   """精确 log-domain box-plus f 运算。"""
   La = np.asarray(La, dtype=np.float64)
   Lb = np.asarray(Lb, dtype=np.float64)
+  if La.ndim == 0 and Lb.ndim == 0:
+    return float(_logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb))
   return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
 
 
