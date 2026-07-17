@@ -68,8 +68,10 @@ if __name__ == "__main__":
         all_results["SC"] = r_sc
         save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
 
-        def scl_d(llr_ch):
-            u, _ = SCLDecoder(N, frozen_bool, list_size=4).decode(llr_ch)
+        scl_decoder_obj = SCLDecoder(N, frozen_bool, list_size=4)
+
+        def scl_d(llr_ch, _dec=scl_decoder_obj):
+            u, _ = _dec.decode(llr_ch)
             return u, None
 
         print(f"实验三 SCL: N={N}")

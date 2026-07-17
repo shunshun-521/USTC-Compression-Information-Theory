@@ -13,7 +13,7 @@ from decoder_sc import (
     _lower_llr,
     _upper_llr,
 )
-from encoder import bit_reversal_permutation, polar_encode
+from encoder import bit_reversal_permutation
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -42,16 +42,21 @@ def crc_check(bits, crc_length=8):
 
 
 class Path:
-  __slots__ = ("L", "B", "pm", "parent", "branch_bit")
+    __slots__ = ("L", "B", "pm")
 
-  def __init__(self, N, n, llr_ch):
-      self.L = np.zeros((N, n + 1), dtype=np.float64)
-      self.B = np.zeros((N, n + 1), dtype=int)
-      br = bit_reversal_permutation(N)
-      self.L[:, 0] = llr_ch[br]
-      self.pm = 0.0
-      self.parent = None
-      self.branch_bit = 0
+    def __init__(self, N, n, llr_ch):
+        br = bit_reversal_permutation(N)
+        self.L = np.zeros((N, n + 1), dtype=np.float64)
+        self.B = np.zeros((N, n + 1), dtype=int)
+        self.L[:, 0] = llr_ch[br]
+        self.pm = 0.0
+
+    def copy(self):
+        new_path = Path.__new__(Path)
+        new_path.L = self.L.copy()
+        new_path.B = self.B.copy()
+        new_path.pm = self.pm
+        return new_path
 
 
 class SCLDecoder:
@@ -65,14 +70,6 @@ class SCLDecoder:
         self.crc_length = crc_length
         self.info_indices = np.where(~self.frozen_bits)[0]
         self.decode_order = [_bit_reversed(i, self.n) for i in range(N)]
-
-    def _copy_path(self, path):
-        new_path = Path(self.N, self.n, np.zeros(self.N))
-        new_path.L = path.L.copy()
-        new_path.B = path.B.copy()
-        new_path.pm = path.pm
-        new_path.parent = path
-        return new_path
 
     def _update_llrs(self, path, l):
         for s in range(self.n - _active_llr_level(l, self.n), self.n):
@@ -101,7 +98,8 @@ class SCLDecoder:
                     )
                     path.B[j, s - 1] = path.B[j, s]
 
-    def _path_metric_penalty(self, llr, bit):
+    @staticmethod
+    def _path_metric_penalty(llr, bit):
         hard = 0 if llr >= 0 else 1
         return 0.0 if bit == hard else abs(llr)
 
@@ -109,27 +107,22 @@ class SCLDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         paths = [Path(self.N, self.n, llr_ch)]
 
-        for phi_nat in range(self.N):
-            l = self.decode_order[phi_nat]
+        for l in self.decode_order:
             candidates = []
-
             for path in paths:
                 self._update_llrs(path, l)
                 llr = path.L[l, self.n]
 
                 if self.frozen_bits[l]:
-                    penalty = self._path_metric_penalty(llr, 0)
-                    new_path = self._copy_path(path)
-                    new_path.pm += penalty
-                    new_path.B[l, self.n] = 0
-                    self._update_bits(new_path, l)
-                    candidates.append(new_path)
+                    path.pm += self._path_metric_penalty(llr, 0)
+                    path.B[l, self.n] = 0
+                    self._update_bits(path, l)
+                    candidates.append(path)
                 else:
                     for bit in (0, 1):
-                        new_path = self._copy_path(path)
+                        new_path = path.copy()
                         new_path.pm += self._path_metric_penalty(llr, bit)
                         new_path.B[l, self.n] = bit
-                        new_path.branch_bit = bit
                         self._update_bits(new_path, l)
                         candidates.append(new_path)
 
@@ -154,6 +147,7 @@ if __name__ == "__main__":
     from channel import compute_llr, eb_n0_to_sigma
     from construction import ga_construction
     from decoder_sc import sc_decode
+    from encoder import polar_encode
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
