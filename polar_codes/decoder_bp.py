@@ -48,35 +48,35 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                step = 1 << j
                 for i in range(0, N, 2 * step):
                     for k in range(step):
                         idx_l = i + k
                         idx_r = i + k + step
-                        L[idx_l, j - 1] = _f_min_sum(
-                            R[idx_l, j] + L[idx_r, j + 1],
+                        L[idx_l, j] = _f_min_sum(
+                            R[idx_l, j + 1] + L[idx_r, j + 1],
                             L[idx_l, j + 1],
                             alpha,
                         )
-                        L[idx_r, j - 1] = _f_min_sum(
-                            R[idx_l, j], L[idx_l, j + 1], alpha
+                        L[idx_r, j] = _f_min_sum(
+                            R[idx_l, j + 1], L[idx_l, j + 1], alpha
                         ) + L[idx_r, j + 1]
 
-            for j in range(1, n + 1):
-                step = 1 << (j - 1)
+            for j in range(n):
+                step = 1 << j
                 for i in range(0, N, 2 * step):
                     for k in range(step):
                         idx_l = i + k
                         idx_r = i + k + step
-                        R[idx_l, j - 1] = _f_min_sum(
-                            R[idx_r, j] + L[idx_r, j + 1],
-                            R[idx_l, j - 1],
+                        R[idx_l, j + 1] = _f_min_sum(
+                            R[idx_r, j + 1] + L[idx_r, j + 1],
+                            R[idx_l, j],
                             alpha,
                         )
-                        R[idx_r, j - 1] = _f_min_sum(
-                            R[idx_l, j - 1], L[idx_l, j + 1], alpha
-                        ) + R[idx_r, j]
+                        R[idx_r, j + 1] = _f_min_sum(
+                            R[idx_l, j], L[idx_l, j + 1], alpha
+                        ) + R[idx_r, j + 1]
 
             for i in range(N):
                 u_hat[i] = 0 if self.frozen_bits[i] else (
