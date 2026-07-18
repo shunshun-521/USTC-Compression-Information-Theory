@@ -83,7 +83,7 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
                 t = (rate - caps[i]) / (caps[i + 1] - caps[i])
                 return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
         return eb_grid[idx]
-  # linear interpolation around crossing
+
     if caps[idx] == rate:
         return eb_grid[idx]
     if caps[idx] > rate:

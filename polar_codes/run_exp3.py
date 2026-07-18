@@ -1,62 +1,123 @@
-"""Experiment 3: block-length comparison at fixed rate R=0.5."""
-
+"""
+实验三：BP 译码
+- 码长 N = 256, 512
+- 码率 R = 1/2
+- 与 SC、SCL（L=4）对比
+"""
 import os
+import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
 
-from construction import ga_construction
-from decoder_scl import SCLDecoder
-from simulation import run_simulation
-from utils import plot_bler_curves, save_results_csv
+sys.path.insert(0, os.path.dirname(__file__))
 
-EB_N0_LIST = list(np.arange(1.0, 5.5 + 0.25, 0.5))
-BLOCK_LENGTHS = [64, 128, 256, 512]
-RATE = 0.5
-LIST_SIZE = 8
-CRC_LENGTH = 8
-RESULTS_DIR = os.path.join(os.path.dirname(__file__), "results")
+from construction import ga_construction
+from decoder_bp import BPDecoder
+from decoder_sc import sc_decode, verify_sc_lossless
+from decoder_scl import SCLDecoder, verify_scl_equals_sc
+from encoder import build_generator_matrix, polar_encode
+from simulation import run_simulation
+from utils import find_capacity_limit, plot_bler_curves, save_results_csv
+
+os.makedirs("results", exist_ok=True)
+
+
+def run_unit_tests():
+    u = np.array([1, 0, 1, 1])
+    x = polar_encode(u)
+    G = build_generator_matrix(4)
+    assert np.array_equal(x, (u @ G) % 2), f"编码器错误: {x}"
+    assert verify_sc_lossless(N=64, K=32, num_frames=50), "SC 无损校验失败"
+    assert verify_scl_equals_sc(N=64, K=32), "SCL(L=1) 与 SC 不等价"
+    print("单元测试通过。")
 
 
 def _mc_params():
     if os.environ.get("POLAR_QUICK"):
-        return 500, 20
+        return 2000, 50
     return 100000, 100
 
 
-def main() -> None:
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+N_LIST = [256, 512]
+RATE = 0.5
+DESIGN_EBN0 = 2.5
+MAX_ITER = 50
+EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+
+
+def main():
+    run_unit_tests()
     max_frames, min_errors = _mc_params()
 
-    curves = {}
-    for n in BLOCK_LENGTHS:
-        k = n // 2
-        info_idx, _, _ = ga_construction(n, k, 2.0)
-        frozen = np.ones(n, dtype=np.int8)
-        frozen[info_idx] = 0
-        decoder = SCLDecoder(n, frozen, list_size=LIST_SIZE, crc_length=CRC_LENGTH)
+    for N in N_LIST:
+        K = N // 2
+        info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
+        frozen_bits = np.ones(N, dtype=int)
+        frozen_bits[info_idx] = 0
 
-        label = f"N={n}"
-        print(f"\n=== {label} (K={k}, CRC-{CRC_LENGTH}) ===")
-        results = run_simulation(
-            n,
-            k,
-            EB_N0_LIST,
-            decoder.decode,
-            decoder_type="scl",
-            max_frames=max_frames,
-            min_errors=min_errors,
-            crc_length=CRC_LENGTH,
+        all_results = {}
+
+        def sc_d(llr_ch):
+            return sc_decode(llr_ch, frozen_bits), None
+
+        print(f"\n{'=' * 60}\n实验三 SC: N={N}\n{'=' * 60}")
+        r_sc = run_simulation(
+            N, K, EB_N0_RANGE, sc_d, "sc", max_frames, min_errors,
             info_indices=info_idx,
         )
-        save_results_csv(results, os.path.join(RESULTS_DIR, f"exp3_N{n}.csv"))
-        curves[label] = results
+        all_results["SC"] = r_sc
+        save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
 
-    plot_bler_curves(
-        curves,
-        f"Exp3: Block length (R={RATE}, SCL-{LIST_SIZE}+CRC)",
-        os.path.join(RESULTS_DIR, "exp3_bler.png"),
-    )
-    print("\nExperiment 3 complete.")
+        def scl_d(llr_ch):
+            u, _ = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+            return u, None
+
+        print(f"\n实验三 SCL: N={N}\n{'=' * 60}")
+        r_scl = run_simulation(
+            N, K, EB_N0_RANGE, scl_d, "scl", max_frames, min_errors,
+            info_indices=info_idx,
+        )
+        all_results["SCL (L=4)"] = r_scl
+        save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
+
+        bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
+
+        def bp_d(llr_ch):
+            u_hat, num_iters = bp_decoder.decode(llr_ch)
+            return u_hat, num_iters
+
+        print(f"\n实验三 BP: N={N}\n{'=' * 60}")
+        r_bp = run_simulation(
+            N, K, EB_N0_RANGE, bp_d, "bp", max_frames, min_errors,
+            info_indices=info_idx,
+        )
+        all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
+        save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
+
+        shannon_db = find_capacity_limit(RATE)
+        plot_bler_curves(
+            all_results,
+            f"SC vs SCL vs BP (N={N}, R={RATE})",
+            f"results/fig3_bp_N{N}_bler.png",
+            shannon_limit_db=shannon_db,
+        )
+
+        eb_n0_vals = [r["eb_n0_db"] for r in r_bp]
+        avg_iters = [r["avg_iters"] for r in r_bp]
+
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(eb_n0_vals, avg_iters, "o-", color="purple")
+        ax.set_xlabel("Eb/N0 (dB)")
+        ax.set_ylabel("Avg Iterations")
+        ax.set_title(f"BP Average Iterations (N={N}, max_iter={MAX_ITER})")
+        ax.grid(True, alpha=0.4)
+        plt.tight_layout()
+        plt.savefig(f"results/fig3_bp_N{N}_iters.png", dpi=150)
+        plt.savefig(f"results/fig3_bp_N{N}_iters.pdf")
+        plt.close()
+
+    print("\n实验三完成。")
 
 
 if __name__ == "__main__":
