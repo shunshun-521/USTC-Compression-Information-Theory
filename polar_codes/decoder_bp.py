@@ -48,12 +48,12 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=np.int8)
 
         for it in range(1, self.max_iter + 1):
-            # 从右到左更新 L
-            for j in range(n, 0, -1):
+            # 从右到左更新 L（列 n 为信道 LLR，已初始化）
+            for j in range(n, 1, -1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_ms(R[i, j] + L[i + s, j + 1], L[i, j + 1])
-                    L[i + s, j - 1] = self._f_ms(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                    L[i, j - 1] = self._f_ms(R[i, j] + L[i + s, j], L[i, j])
+                    L[i + s, j - 1] = self._f_ms(R[i, j], L[i, j]) + L[i + s, j]
 
             # 从左到右更新 R
             for j in range(0, n):
