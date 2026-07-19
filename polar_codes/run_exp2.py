@@ -88,8 +88,10 @@ if __name__ == '__main__':
             N, K, EB_N0_RANGE, scl_decoder, 'scl',
             MAX_FRAMES, MIN_ERRORS, design_eb_n0_db=DESIGN_EBN0, verbose=True,
         )
-        all_results[f'SCL (L={L})'] = results
-        save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+    all_results[f'SCL (L={L})'] = results
+    save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+    if L == 8:
+        save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
