@@ -64,34 +64,44 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
+    计算 BPSK-AWGN 信道容量（bits/channel use，离散输入数值积分）。
     """
-    eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
+    eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=np.float64).ravel()
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        es_n0 = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        def integrand(x):
+            # 对称 BPSK 互信息：1 - E[log2(1+exp(-2*Es/N0*x^2))]
+            arg = -2.0 * es_n0 * (x ** 2)
+            if arg < -60:
+                penalty = 0.0
+            elif arg > 60:
+                penalty = arg / np.log(2)
+            else:
+                penalty = np.log2(1.0 + np.exp(arg))
+            return penalty * np.exp(-(x ** 2)) / np.sqrt(np.pi)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, 0.0, np.inf, limit=200)
+        capacities.append(max(0.0, min(1.0, 1.0 - val)))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
-    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
+def find_capacity_limit(rate, eb_n0_range=(-5, 10), num_points=2000):
+    """
+    找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
+    若数值积分未找到交点，则回退到连续输入 AWGN 香农限。
+    """
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i] + 1e-15)
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
-        return eb_grid[idx]
-    return eb_grid[idx]
+    diff = caps - rate
+    for i in range(len(eb_grid) - 1):
+        if diff[i] * diff[i + 1] <= 0:
+            t = (rate - caps[i]) / (caps[i + 1] - caps[i] + 1e-15)
+            return float(eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i]))
+    # 连续输入 AWGN 香农限（常用参考）
+    snr_linear = 2.0 ** (2.0 * rate) - 1.0
+    return float(10.0 * np.log10(snr_linear / (2.0 * rate)))
 
 
 def plot_bler_curves(
