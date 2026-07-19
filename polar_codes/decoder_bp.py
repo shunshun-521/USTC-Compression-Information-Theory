@@ -16,7 +16,7 @@ class BPDecoder:
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
         self.n = int(np.log2(N))
-        self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
+        self.frozen_bits = np.asarray(frozen_bits).astype(bool)
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits)[0]

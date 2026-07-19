@@ -61,7 +61,7 @@ class SCLDecoder:
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
         self.n = int(math.log2(N))
-        self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
+        self.frozen_bits = np.asarray(frozen_bits).astype(bool)
         self.list_size = list_size
         self.crc_length = crc_length
         self.rev = bit_reversal_permutation(N)

@@ -80,7 +80,7 @@ def sc_decode(llr_ch, frozen_bits):
     与 encoder.polar_encode（蝶形 + 比特倒序）配套使用。
     """
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
+    frozen_bits = np.asarray(frozen_bits).astype(bool)
     N = len(llr_ch)
     n = int(math.log2(N))
     rev = bit_reversal_permutation(N)
