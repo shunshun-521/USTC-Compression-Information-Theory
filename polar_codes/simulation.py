@@ -98,7 +98,8 @@ def run_simulation(
                 f"  Eb/N0={eb_n0_db:.2f}dB | BLER={bler:.4e} | BER={ber:.4e} "
                 f"| Errors={num_errors} | Frames={num_frames} "
                 f"| AvgTime={avg_time * 1000:.2f}ms"
-                + (f" | AvgIter={avg_iters:.1f}" if avg_iters is not None else "")
+                + (f" | AvgIter={avg_iters:.1f}" if avg_iters is not None else ""),
+                flush=True,
             )
 
     return results
