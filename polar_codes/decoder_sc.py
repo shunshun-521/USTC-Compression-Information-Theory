@@ -12,10 +12,24 @@ def _llr_sign(x):
     return np.where(x >= 0, 1.0, -1.0)
 
 
+def _logdomain_sum(x, y):
+    """对数域求和（数值稳定）。"""
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    larger = np.maximum(x, y)
+    smaller = np.minimum(x, y)
+    return larger + np.log1p(np.exp(smaller - larger))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算（box-plus 的 min-sum 近似）。
+    box-plus 运算（SC 译码使用精确对数域实现）。
     """
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+
+
+def f_operation_min_sum(La, Lb):
+    """min-sum 近似的 f 运算（BP 译码使用）。"""
     return _llr_sign(La) * _llr_sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 

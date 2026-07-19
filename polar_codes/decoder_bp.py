@@ -6,7 +6,7 @@ import math
 import numpy as np
 
 from decoder_sc import (
-    f_operation,
+    f_operation_min_sum,
     _prepare_channel_llr,
     _bit_reversed_index,
     _active_llr_level,
@@ -30,7 +30,7 @@ class BPDecoder:
         self.large = 1e6
 
     def _f(self, a, b):
-        return self.alpha * f_operation(a, b)
+        return self.alpha * f_operation_min_sum(a, b)
 
     def _g(self, a, b, u):
         return (1.0 - 2.0 * u) * a + b
