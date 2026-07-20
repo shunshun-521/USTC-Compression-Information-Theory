@@ -93,7 +93,6 @@ if __name__ == "__main__":
             MAX_FRAMES,
             MIN_ERRORS,
             info_indices=info_idx,
-            use_natural_llr=True,
         )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
         save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
