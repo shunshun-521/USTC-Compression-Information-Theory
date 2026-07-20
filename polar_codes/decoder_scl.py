@@ -3,7 +3,7 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import _li, sc_decode_layered
+from decoder_sc import _li
 
 
 CRC8_POLY = 0x07
@@ -21,7 +21,6 @@ def _crc_remainder(bits, poly, crc_length):
 
 
 def crc_encode(info_bits, crc_length=8):
-    """计算 CRC 校验位并附加到信息比特后"""
     info_bits = np.asarray(info_bits, dtype=int)
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
     extended = np.concatenate([info_bits, np.zeros(crc_length, dtype=int)])
@@ -34,11 +33,9 @@ def crc_encode(info_bits, crc_length=8):
 
 
 def crc_check(bits, crc_length=8):
-    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC"""
     bits = np.asarray(bits, dtype=int)
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    remainder = _crc_remainder(bits, poly, crc_length)
-    return remainder == 0
+    return _crc_remainder(bits, poly, crc_length) == 0
 
 
 class SCLDecoder:
@@ -52,7 +49,7 @@ class SCLDecoder:
         self.crc_length = crc_length
         self.info_indices = np.where(self.frozen_bits == 0)[0]
 
-    def _init_state(self, llr_ch):
+    def _init_path(self, llr_ch):
         llrs = np.full((self.n + 1, self.N), -np.inf, dtype=np.float64)
         llrs[self.n, :] = llr_ch.copy()
         s = -np.ones((self.n + 1, self.N), dtype=np.int32)
@@ -62,67 +59,55 @@ class SCLDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         L = self.list_size
 
-        llrs_paths = []
-        s_paths = []
-        llrs, s = self._init_state(llr_ch)
-        llrs_paths.append(llrs)
-        s_paths.append(s)
-        pm = np.array([0.0])
+        llrs, s = self._init_path(llr_ch)
+        llrs_list = [llrs]
+        s_list = [s]
+        pm = [0.0]
 
         for phi in range(self.N):
-            cand_llrs = []
-            cand_s = []
-            cand_pm = []
+            candidates_llrs = []
+            candidates_s = []
+            candidates_pm = []
 
-            for pidx in range(len(llrs_paths)):
-                llrs = llrs_paths[pidx]
-                s = s_paths[pidx]
+            for pidx in range(len(llrs_list)):
+                llrs = llrs_list[pidx]
+                s = s_list[pidx]
                 cur_pm = pm[pidx]
                 llrs[0, phi] = _li(0, phi, llrs, s)
+                llr_val = llrs[0, phi]
 
                 if self.frozen_bits[phi]:
+                    candidates_llrs.append(llrs)
+                    candidates_s.append(s)
+                    candidates_pm.append(cur_pm + (-llr_val * (llr_val < 0)))
                     s[0, phi] = 0
-                    penalty = -llrs[0, phi] * (llrs[0, phi] < 0)
-                    cand_llrs.append(llrs)
-                    cand_s.append(s)
-                    cand_pm.append(cur_pm + penalty)
                 else:
-                    dm = abs(llrs[0, phi])
-                    hard = 1 if llrs[0, phi] < 0 else 0
+                    hard = 0 if llr_val >= 0 else 1
+                    for bit in (0, 1):
+                        llrs_c = llrs.copy()
+                        s_c = s.copy()
+                        s_c[0, phi] = bit
+                        penalty = 0.0 if bit == hard else abs(llr_val)
+                        candidates_llrs.append(llrs_c)
+                        candidates_s.append(s_c)
+                        candidates_pm.append(cur_pm + penalty)
 
-                    llrs0 = llrs.copy()
-                    s0 = s.copy()
-                    s0[0, phi] = 0
-                    cand_llrs.append(llrs0)
-                    cand_s.append(s0)
-                    cand_pm.append(cur_pm + (0.0 if hard == 0 else dm))
+            order = np.argsort(candidates_pm)[:L]
+            llrs_list = [candidates_llrs[i] for i in order]
+            s_list = [candidates_s[i] for i in order]
+            pm = [candidates_pm[i] for i in order]
 
-                    llrs1 = llrs.copy()
-                    s1 = s.copy()
-                    s1[0, phi] = 1
-                    cand_llrs.append(llrs1)
-                    cand_s.append(s1)
-                    cand_pm.append(cur_pm + (0.0 if hard == 1 else dm))
-
-            cand_pm = np.array(cand_pm)
-            keep = np.argsort(cand_pm)[:L]
-            llrs_paths = [cand_llrs[i] for i in keep]
-            s_paths = [cand_s[i] for i in keep]
-            pm = cand_pm[keep]
-
-        best_idx = int(np.argmin(pm))
+        best = int(np.argmin(pm))
         if self.crc_length > 0:
-            valid = [i for i, s in enumerate(s_paths)
+            valid = [i for i, s in enumerate(s_list)
                      if crc_check(s[0, self.info_indices], self.crc_length)]
             if valid:
-                best_idx = valid[int(np.argmin(pm[valid]))]
+                best = valid[int(np.argmin([pm[i] for i in valid]))]
 
-        u_hat = s_paths[best_idx][0, :].astype(int)
-        return u_hat, float(pm[best_idx])
+        return s_list[best][0, :].astype(int), float(pm[best])
 
 
 def verify_scl_equals_sc():
-    """单路径 SCL 应等价于 SC"""
     from construction import ga_construction
     from encoder import polar_encode
     from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
@@ -132,7 +117,6 @@ def verify_scl_equals_sc():
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
-
     rng = np.random.default_rng(1)
     sigma = eb_n0_to_sigma(5.0, K / N)
     scl = SCLDecoder(N, frozen_bits, list_size=1)
