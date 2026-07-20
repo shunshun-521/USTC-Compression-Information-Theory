@@ -10,9 +10,22 @@ from encoder import bit_reversed
 # ==================== 基本运算 ====================
 
 
+def _logdomain_sum(x, y):
+    """对数域加法（数值稳定）"""
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算"""
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    """
+    精确 f 运算（box-plus，LLR 域）：
+    f(La, Lb) = log((1+exp(La+Lb))/(1+exp(La)+exp(Lb)-exp(La+Lb)))
+    等价于 2*atanh(tanh(La/2)*tanh(Lb/2))
+    """
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
 
 
 def g_operation(La, Lb, u_hat):
