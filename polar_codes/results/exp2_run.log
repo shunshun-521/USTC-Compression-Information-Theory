@@ -96,3 +96,9 @@ CA-SCL 仿真: N=512, K=256, L=8, CRC=8
   Eb/N0=3.75dB | BLER=9.0909e-01 | BER=2.9344e-01 | Errors=100 | Frames=110 | AvgTime=66.12ms
   Eb/N0=4.00dB | BLER=8.8496e-01 | BER=2.6741e-01 | Errors=100 | Frames=113 | AvgTime=66.13ms
   Eb/N0=4.25dB | BLER=7.5188e-01 | BER=1.7093e-01 | Errors=100 | Frames=133 | AvgTime=66.24ms
+  Eb/N0=4.50dB | BLER=5.8140e-01 | BER=1.2399e-01 | Errors=100 | Frames=172 | AvgTime=66.25ms
+  Eb/N0=4.75dB | BLER=4.0486e-01 | BER=8.3502e-02 | Errors=100 | Frames=247 | AvgTime=66.79ms
+  Eb/N0=5.00dB | BLER=2.9851e-01 | BER=5.7102e-02 | Errors=100 | Frames=335 | AvgTime=66.14ms
+  Eb/N0=5.25dB | BLER=2.1692e-01 | BER=3.2503e-02 | Errors=100 | Frames=461 | AvgTime=66.11ms
+
+实验二完成。

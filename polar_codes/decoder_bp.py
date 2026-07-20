@@ -23,7 +23,7 @@ class BPDecoder:
 
     LLR_MAX = 19.3
 
-    def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375, use_minsum=False):
+    def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375, use_minsum=True):
         self.N = N
         self.n_stages = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=int)
@@ -128,11 +128,12 @@ class BPDecoder:
                 else:
                     u_hat[i] = 0 if msg_l[0][i] >= 0 else 1
 
-            x_hat = polar_encode(u_hat)
-            llr_nat = self._natural_llr(llr_ch)
-            hard_ch = (llr_nat < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
-                break
+            if ind_it % 5 == 4 or ind_it == self.max_iter - 1:
+                x_hat = polar_encode(u_hat)
+                llr_nat = self._natural_llr(llr_ch)
+                hard_ch = (llr_nat < 0).astype(int)
+                if np.array_equal(x_hat, hard_ch):
+                    break
 
         for i in range(N):
             if self.frozen_bits[i]:
