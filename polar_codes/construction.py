@@ -27,6 +27,7 @@ def phi(x):
 def phi_inv(y):
     """
     phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 在 (0, inf) 上单调递减。
     """
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
@@ -40,9 +41,10 @@ def phi_inv(y):
     for _ in range(60):
         mid = (lo + hi) / 2.0
         val = phi(mid)
-        go_right = val < y
-        lo = np.where(go_right, mid, lo)
-        hi = np.where(go_right, hi, mid)
+        # phi 递减：val > y 说明 x 太小，需要增大下界
+        go_left = val > y
+        lo = np.where(go_left, mid, lo)
+        hi = np.where(go_left, hi, mid)
 
     result = (lo + hi) / 2.0
     return result[0] if scalar else result
