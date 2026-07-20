@@ -4,7 +4,7 @@
 """
 import math
 import numpy as np
-from encoder import polar_encode, bit_reversal_permutation
+from encoder import polar_encode
 from channel import hard_decision_llr
 
 LARGE = 1e6
@@ -15,7 +15,11 @@ def _f_min_sum(a, b, alpha):
 
 
 class BPDecoder:
-    """BP 译码器（因子图 min-sum，含早停）"""
+    """
+    BP 译码器。
+    因子图：列 0 为信源端，列 n 为信道端。
+    L[i,j]：从右向左的 LLR 消息；R[i,j]：从左向右的 LLR 消息。
+    """
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -32,7 +36,8 @@ class BPDecoder:
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, 0] = llr_ch
+
+        L[:, n] = llr_ch
         R[:, 0] = 0.0
         R[self.frozen_idx, 0] = LARGE
 
@@ -40,35 +45,41 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for s in range(n):
-                block = 1 << (s + 1)
-                half = block // 2
-                for j in range(0, N, block):
-                    for k in range(half):
-                        idx = j + k
-                        idx2 = j + k + half
-                        L[idx, s + 1] = _f_min_sum(
-                            R[idx, s] + L[idx2, s], L[idx, s], self.alpha
+            # 从右到左更新 L 消息（列 n 到列 1）
+            for j in range(n, 0, -1):
+                s = 1 << (j - 1)
+                for i in range(0, N, 2 * s):
+                    for k in range(s):
+                        idx = i + k
+                        idx2 = i + k + s
+                        L[idx, j - 1] = _f_min_sum(
+                            R[idx, j - 1] + L[idx2, j],
+                            L[idx, j],
+                            self.alpha,
                         )
-                        L[idx2, s + 1] = (
-                            _f_min_sum(R[idx, s], L[idx, s], self.alpha) + L[idx2, s]
-                        )
-
-            for s in range(n - 1, -1, -1):
-                block = 1 << (s + 1)
-                half = block // 2
-                for j in range(0, N, block):
-                    for k in range(half):
-                        idx = j + k
-                        idx2 = j + k + half
-                        R[idx, s + 1] = _f_min_sum(
-                            R[idx2, s] + L[idx2, s + 1], R[idx, s], self.alpha
-                        )
-                        R[idx2, s + 1] = (
-                            _f_min_sum(R[idx, s], L[idx, s + 1], self.alpha) + R[idx2, s]
+                        L[idx2, j - 1] = (
+                            _f_min_sum(R[idx, j - 1], L[idx, j], self.alpha)
+                            + L[idx2, j]
                         )
 
-            total = L[:, n] + R[:, n]
+            # 从左到右更新 R 消息（列 0 到列 n-1）
+            for j in range(0, n):
+                s = 1 << j
+                for i in range(0, N, 2 * s):
+                    for k in range(s):
+                        idx = i + k
+                        idx2 = i + k + s
+                        R[idx, j + 1] = _f_min_sum(
+                            R[idx2, j] + L[idx2, j + 1],
+                            R[idx, j],
+                            self.alpha,
+                        )
+                        R[idx2, j + 1] = (
+                            _f_min_sum(R[idx, j], L[idx2, j + 1], self.alpha)
+                            + R[idx2, j]
+                        )
+
+            total = L[:, 0] + R[:, 0]
             u_hat = (total < 0).astype(int)
             u_hat[self.frozen_idx] = 0
 
@@ -78,7 +89,7 @@ class BPDecoder:
                 num_iters = it
                 break
 
-        total = L[:, n] + R[:, n]
+        total = L[:, 0] + R[:, 0]
         u_hat = (total < 0).astype(int)
         u_hat[self.frozen_idx] = 0
         return u_hat, num_iters
