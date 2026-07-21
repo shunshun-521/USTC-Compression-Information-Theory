@@ -39,8 +39,8 @@ def run_unit_tests():
         u_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
         assert np.array_equal(u_sc, u_scl), "SCL L=1 与 SC 不等价"
 
-    bits = np.array([1, 0, 1, 1, 0, 0, 1, 0])
-    coded = crc_encode(bits[:4], 8)
+    bits = np.array([1, 0, 1, 1])
+    coded = crc_encode(bits, 8)
     assert crc_check(coded, 8), "CRC 编解码失败"
     print("单元测试通过。")
 

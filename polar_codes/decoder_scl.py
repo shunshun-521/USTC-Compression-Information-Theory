@@ -15,22 +15,21 @@ from decoder_sc import (
 from encoder import bit_reversal_permutation
 
 
-# CRC 多项式
+# CRC 多项式（不含最高位）
 _CRC8_POLY = 0x07
 _CRC16_POLY = 0x8005
 
 
-def _crc_remainder(bits, poly, crc_length):
-    """计算 CRC 余数"""
-    reg = 0
-    for bit in bits:
-        reg ^= int(bit) << (crc_length - 1)
-        for _ in range(crc_length):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
-            else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
-    return reg
+def _crc_mod(msg_bits, width, poly):
+    """GF(2) 多项式除法求 CRC 余数"""
+    msg = list(map(int, msg_bits)) + [0] * width
+    divisor = (1 << width) | poly
+    for i in range(len(msg) - width):
+        if msg[i]:
+            for j in range(width + 1):
+                if (divisor >> (width - j)) & 1:
+                    msg[i + j] ^= 1
+    return np.array(msg[-width:], dtype=int)
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -44,11 +43,7 @@ def crc_encode(info_bits, crc_length=8):
         poly = _CRC16_POLY
     else:
         raise ValueError("crc_length must be 8 or 16")
-
-    remainder = _crc_remainder(info_bits, poly, crc_length)
-    crc_bits = np.array(
-        [(remainder >> (crc_length - 1 - i)) & 1 for i in range(crc_length)], dtype=int
-    )
+    crc_bits = _crc_mod(info_bits, crc_length, poly)
     return np.concatenate([info_bits, crc_bits])
 
 
@@ -61,8 +56,15 @@ def crc_check(bits, crc_length=8):
         poly = _CRC16_POLY
     else:
         raise ValueError("crc_length must be 8 or 16")
-    remainder = _crc_remainder(bits, poly, crc_length)
-    return remainder == 0
+    msg = list(map(int, bits))
+    width = crc_length
+    divisor = (1 << width) | poly
+    for i in range(len(msg) - width + 1):
+        if i < len(msg) and msg[i]:
+            for j in range(width + 1):
+                if i + j < len(msg) and ((divisor >> (width - j)) & 1):
+                    msg[i + j] ^= 1
+    return sum(msg[-width:]) == 0
 
 
 def _update_llrs_path(L, B, l, n):
