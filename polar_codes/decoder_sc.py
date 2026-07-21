@@ -67,6 +67,26 @@ def _active_bit_level(i, n):
     return min(count, n)
 
 
+def precompute_sc_indices(N):
+    """预计算非递归 SC 译码所需的辅助向量（保留接口）"""
+    n = int(math.log2(N))
+    lambda_offset = [1 << i for i in range(n + 1)]
+    llr_layer_vec = []
+    bit_layer_vec = []
+
+    for phi in range(N):
+        l = bit_reversed(phi, n)
+        layers = list(range(n - _active_llr_level(l, n), n))
+        llr_layer_vec.append(layers)
+
+        bit_layers = []
+        if l >= N // 2:
+            bit_layers = list(range(n, n - _active_bit_level(l, n), -1))
+        bit_layer_vec.append(bit_layers)
+
+    return lambda_offset, llr_layer_vec, bit_layer_vec
+
+
 def sc_decode_recursive(llr, frozen_bits):
     """递归 SC 译码（参考实现）"""
     llr = np.asarray(llr, dtype=np.float64)
