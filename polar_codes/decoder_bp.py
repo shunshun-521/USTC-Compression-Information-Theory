@@ -4,9 +4,14 @@
 """
 import numpy as np
 from encoder import polar_encode, bit_reversal_permutation
-from decoder_sc import f_operation, channel_llr
+from decoder_sc import f_operation
 
 LARGE = 1e6
+
+
+def _bp_channel_llr(llr_ch):
+    """BP 因子图使用自然序信道 LLR"""
+    return np.asarray(llr_ch, dtype=np.float64)
 
 
 class BPDecoder:
@@ -50,7 +55,7 @@ class BPDecoder:
         """
         N = self.N
         n = self.n
-        llr_br = channel_llr(llr_ch)
+        llr_br = _bp_channel_llr(llr_ch)
 
         # L[i][j]: 从右到左的消息; R[i][j]: 从左到右的消息
         # 使用字典或二维列表，索引 i 为节点（0..N-1），j 为层（0..n）
