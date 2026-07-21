@@ -56,42 +56,44 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
 
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
-    通过高斯数值积分计算。
+  使用标准 BI-AWGN 容量公式：
+    C = 1 - (1/ln2) ∫ φ(z) ln(1 + exp(-2ρ - 2z√ρ)) dz
+  其中 ρ = R · Eb/N0（线性）。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        rho = rate * (10.0 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        def integrand(z):
+            arg = -2.0 * rho - 2.0 * z * np.sqrt(rho)
+            if arg < -30.0:
+                log_term = 0.0
+            elif arg > 30.0:
+                log_term = arg
+            else:
+                log_term = float(np.log(1.0 + np.exp(arg)))
+            return np.exp(-0.5 * z ** 2) / np.sqrt(2.0 * np.pi) * log_term
 
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacity = 1.0 - integral / np.sqrt(2.0 * np.pi)
-        capacities.append(capacity)
+        integral, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
+        capacities.append(1.0 - integral / np.log(2.0))
     return np.array(capacities)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
-    这是香农限，用于在 BLER 图中标注参考竖线。
     """
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        lo, hi = eb_n0_range
-        for _ in range(50):
-            mid = (lo + hi) / 2.0
-            cap = compute_bpsk_capacity(mid, rate)
-            if cap > rate:
-                hi = mid
-            else:
-                lo = mid
-        return (lo + hi) / 2.0
-    return eb_grid[idx]
+    idx = np.where(caps >= rate)[0]
+    if len(idx) == 0:
+        return eb_n0_range[1]
+    if idx[0] == 0:
+        return eb_grid[0]
+    i = idx[0]
+    return eb_grid[i]
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
