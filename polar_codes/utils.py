@@ -51,41 +51,43 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_1_plus_exp(x):
+    """Numerically stable log2(1 + exp(-|x|))."""
+    x = abs(x)
+    if x < 50:
+        return np.log2(1.0 + np.exp(-x))
+    return 0.0
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    SNR = 2*R*Eb/N0（线性），C = 1 - E[log2(1+exp(-2*SNR*y))]
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+            return _log2_1_plus_exp(2.0 * snr * y) * np.exp(-y ** 2 / 2.0)
 
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf)
+        integral, _ = integrate.quad(integrand, -15.0, 15.0)
         C = 1.0 - integral / np.sqrt(2.0 * np.pi)
         capacities.append(C)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == num_points - 1:
-        # Binary search refinement
-        lo, hi = eb_n0_range[0], eb_n0_range[1]
-        for _ in range(50):
-            mid = (lo + hi) / 2
-            c = compute_bpsk_capacity([mid], rate)[0]
-            if c > rate:
-                hi = mid
-            else:
-                lo = mid
-        return (lo + hi) / 2
-    return eb_grid[idx]
+    lo, hi = eb_n0_range
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        c = compute_bpsk_capacity([mid], rate)[0]
+        if c > rate:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2.0
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
