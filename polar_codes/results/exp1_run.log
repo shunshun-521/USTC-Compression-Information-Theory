@@ -1,0 +1,31 @@
+✓ 编码器校验通过
+✓ SC 无损校验通过 (100 帧)
+✓ SC 递归/非递归一致性通过
+✓ SCL L=1 等价 SC 校验通过
+✓ CRC 校验通过
+
+所有单元测试通过。
+
+============================================================
+SC 仿真: N=256, K=128, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=8.9286e-01 | BER=3.5331e-01 | Errors=100 | Frames=112 | AvgTime=1.74ms
+  Eb/N0=0.25dB | BLER=8.4034e-01 | BER=3.0850e-01 | Errors=100 | Frames=119 | AvgTime=1.74ms
+  Eb/N0=0.50dB | BLER=8.1301e-01 | BER=2.9637e-01 | Errors=100 | Frames=123 | AvgTime=1.74ms
+  Eb/N0=0.75dB | BLER=7.2464e-01 | BER=2.4094e-01 | Errors=100 | Frames=138 | AvgTime=1.75ms
+  Eb/N0=1.00dB | BLER=4.7847e-01 | BER=1.4859e-01 | Errors=100 | Frames=209 | AvgTime=1.74ms
+  Eb/N0=1.25dB | BLER=3.9526e-01 | BER=1.0755e-01 | Errors=100 | Frames=253 | AvgTime=1.75ms
+  Eb/N0=1.50dB | BLER=2.7100e-01 | BER=7.4547e-02 | Errors=100 | Frames=369 | AvgTime=1.74ms
+  Eb/N0=1.75dB | BLER=2.4038e-01 | BER=6.4641e-02 | Errors=100 | Frames=416 | AvgTime=1.74ms
+  Eb/N0=2.00dB | BLER=1.4728e-01 | BER=4.0225e-02 | Errors=100 | Frames=679 | AvgTime=1.74ms
+  Eb/N0=2.25dB | BLER=8.4602e-02 | BER=2.4759e-02 | Errors=100 | Frames=1182 | AvgTime=1.74ms
+  Eb/N0=2.50dB | BLER=4.6577e-02 | BER=1.1262e-02 | Errors=100 | Frames=2147 | AvgTime=1.74ms
+  Eb/N0=2.75dB | BLER=2.8082e-02 | BER=6.6124e-03 | Errors=100 | Frames=3561 | AvgTime=1.75ms
+  Eb/N0=3.00dB | BLER=1.1643e-02 | BER=2.2576e-03 | Errors=100 | Frames=8589 | AvgTime=1.74ms
+  Eb/N0=3.25dB | BLER=6.4708e-03 | BER=1.2284e-03 | Errors=100 | Frames=15454 | AvgTime=1.78ms
+  Eb/N0=3.50dB | BLER=2.8634e-03 | BER=4.6395e-04 | Errors=100 | Frames=34924 | AvgTime=2.22ms
+  Eb/N0=3.75dB | BLER=1.2391e-03 | BER=1.4734e-04 | Errors=100 | Frames=80701 | AvgTime=2.25ms
+  Eb/N0=4.00dB | BLER=6.4000e-04 | BER=7.2734e-05 | Errors=64 | Frames=100000 | AvgTime=2.22ms
+  Eb/N0=4.25dB | BLER=3.0000e-04 | BER=3.5625e-05 | Errors=30 | Frames=100000 | AvgTime=2.22ms
+  Eb/N0=4.50dB | BLER=1.5000e-04 | BER=1.4453e-05 | Errors=15 | Frames=100000 | AvgTime=2.23ms
+  Eb/N0=4.75dB | BLER=3.0000e-05 | BER=1.5625e-06 | Errors=3 | Frames=100000 | AvgTime=2.24ms
