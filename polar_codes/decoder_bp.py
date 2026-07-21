@@ -13,6 +13,7 @@ from encoder import polar_encode
 class BPDecoder:
     """
     BP 译码器。
+    因子图有 n+1 列（列 0 到列 n），每列 N 个节点。
     """
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
@@ -23,17 +24,12 @@ class BPDecoder:
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits)[0]
         self.info_idx = np.where(~self.frozen_bits)[0]
-        self._init_messages()
-
-    def _init_messages(self):
-        N, n = self.N, self.n
-        self.L = np.zeros((N, n + 1), dtype=np.float64)
-        self.R = np.zeros((N, n + 1), dtype=np.float64)
 
     def _minsum_f(self, a, b):
         return self.alpha * f_operation(a, b)
 
-    def _update_L(self):
+    def _update_L(self, L, R):
+        """从右向左更新 L 消息"""
         N, n = self.N, self.n
         for j in range(n, 0, -1):
             s = 1 << (j - 1)
@@ -41,15 +37,15 @@ class BPDecoder:
                 for k in range(s):
                     idx1 = i + k
                     idx2 = i + k + s
-                    self.L[idx1, j - 1] = self._minsum_f(
-                        self.R[idx1, j] + self.L[idx2, j],
-                        self.L[idx1, j],
-                    )
-                    self.L[idx2, j - 1] = self._minsum_f(
-                        self.R[idx1, j], self.L[idx1, j]
-                    ) + self.L[idx2, j]
+                    lin1 = L[idx1, j]
+                    lin2 = L[idx2, j]
+                    rin1 = R[idx1, j - 1]
+                    rin2 = R[idx2, j - 1]
+                    L[idx1, j - 1] = self._minsum_f(lin1, lin2 + rin2)
+                    L[idx2, j - 1] = self._minsum_f(rin1, lin1) + lin2
 
-    def _update_R(self):
+    def _update_R(self, L, R):
+        """从左向右更新 R 消息"""
         N, n = self.N, self.n
         for j in range(0, n):
             s = 1 << j
@@ -57,18 +53,17 @@ class BPDecoder:
                 for k in range(s):
                     idx1 = i + k
                     idx2 = i + k + s
-                    self.R[idx1, j + 1] = self._minsum_f(
-                        self.R[idx2, j] + self.L[idx2, j + 1],
-                        self.R[idx1, j],
-                    )
-                    self.R[idx2, j + 1] = self._minsum_f(
-                        self.R[idx1, j], self.L[idx1, j + 1]
-                    ) + self.R[idx2, j]
+                    rin1 = R[idx1, j]
+                    rin2 = R[idx2, j]
+                    lin1 = L[idx1, j + 1]
+                    lin2 = L[idx2, j + 1]
+                    R[idx1, j + 1] = self._minsum_f(rin1, lin2 + rin2)
+                    R[idx2, j + 1] = self._minsum_f(rin1, lin1) + rin2
 
-    def _hard_decision(self):
+    def _hard_decision(self, L, R):
         u_hat = np.zeros(self.N, dtype=int)
         for i in range(self.N):
-            total = self.L[i, 0] + self.R[i, 0]
+            total = L[i, 0] + R[i, 0]
             u_hat[i] = 0 if total >= 0 else 1
         u_hat[self.frozen_idx] = 0
         return u_hat
@@ -79,27 +74,24 @@ class BPDecoder:
         return np.array_equal(x_hat, hard_ch)
 
     def decode(self, llr_ch):
-        """
-        主译码函数。
-        返回：u_hat, num_iters
-        """
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, n = self.N, self.n
         LARGE = 1e6
 
-        self._init_messages()
-        self.L[:, n] = llr_ch
-        self.R[:, 0] = 0.0
-        self.R[self.frozen_idx, 0] = LARGE
+        L = np.zeros((N, n + 1), dtype=np.float64)
+        R = np.zeros((N, n + 1), dtype=np.float64)
+        L[:, n] = llr_ch
+        R[:, 0] = 0.0
+        R[self.frozen_idx, 0] = LARGE
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            self._update_L()
-            self._update_R()
-            u_hat = self._hard_decision()
+            self._update_L(L, R)
+            self._update_R(L, R)
+            u_hat = self._hard_decision(L, R)
             if self._check_early_stop(u_hat, llr_ch):
                 num_iters = it
                 break
 
-        u_hat = self._hard_decision()
+        u_hat = self._hard_decision(L, R)
         return u_hat, num_iters
