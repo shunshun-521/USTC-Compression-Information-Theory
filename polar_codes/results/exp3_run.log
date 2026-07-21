@@ -1,0 +1,22 @@
+✓ 编码器校验通过
+✓ SC 无损校验通过 (100 帧)
+✓ SC 递归/非递归一致性通过
+✓ SCL L=1 等价 SC 校验通过
+✓ CRC 校验通过
+
+所有单元测试通过。
+  Eb/N0=1.00dB | BLER=5.5866e-01 | BER=1.8135e-01 | Errors=100 | Frames=179 | AvgTime=1.95ms
+  Eb/N0=1.25dB | BLER=4.3478e-01 | BER=1.4280e-01 | Errors=100 | Frames=230 | AvgTime=2.15ms
+  Eb/N0=1.50dB | BLER=2.6455e-01 | BER=7.2069e-02 | Errors=100 | Frames=378 | AvgTime=1.95ms
+  Eb/N0=1.75dB | BLER=2.0964e-01 | BER=5.7767e-02 | Errors=100 | Frames=477 | AvgTime=2.09ms
+  Eb/N0=2.00dB | BLER=1.5924e-01 | BER=4.0456e-02 | Errors=100 | Frames=628 | AvgTime=2.25ms
+  Eb/N0=2.25dB | BLER=8.8496e-02 | BER=2.4267e-02 | Errors=100 | Frames=1130 | AvgTime=2.45ms
+  Eb/N0=2.50dB | BLER=4.2265e-02 | BER=1.0187e-02 | Errors=100 | Frames=2366 | AvgTime=2.40ms
+  Eb/N0=2.75dB | BLER=2.7020e-02 | BER=6.6325e-03 | Errors=100 | Frames=3701 | AvgTime=2.25ms
+  Eb/N0=3.00dB | BLER=1.1836e-02 | BER=2.2932e-03 | Errors=100 | Frames=8449 | AvgTime=2.26ms
+  Eb/N0=3.25dB | BLER=6.3910e-03 | BER=1.1943e-03 | Errors=100 | Frames=15647 | AvgTime=2.21ms
+  Eb/N0=3.50dB | BLER=2.8498e-03 | BER=4.6176e-04 | Errors=100 | Frames=35090 | AvgTime=2.26ms
+  Eb/N0=3.75dB | BLER=1.2391e-03 | BER=1.4734e-04 | Errors=100 | Frames=80701 | AvgTime=2.24ms
+  Eb/N0=4.00dB | BLER=6.4000e-04 | BER=7.2734e-05 | Errors=64 | Frames=100000 | AvgTime=2.26ms
+  Eb/N0=4.25dB | BLER=3.0000e-04 | BER=3.5625e-05 | Errors=30 | Frames=100000 | AvgTime=2.25ms
+  Eb/N0=4.50dB | BLER=1.5000e-04 | BER=1.4453e-05 | Errors=15 | Frames=100000 | AvgTime=2.25ms
