@@ -7,10 +7,15 @@ import numpy as np
 
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（box-plus 精确 LLR 合并）。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = float(La)
+    Lb = float(Lb)
+    if abs(La) < 30 and abs(Lb) < 30:
+        a = np.clip(La, -30, 30)
+        b = np.clip(Lb, -30, 30)
+        return float(2.0 * np.arctanh(np.tanh(a / 2.0) * np.tanh(b / 2.0)))
+    return np.sign(La) * np.sign(Lb) * min(abs(La), abs(Lb))
 
 
 def g_operation(La, Lb, u_hat):
