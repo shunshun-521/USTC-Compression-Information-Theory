@@ -37,33 +37,33 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for stage in range(n - 1, -1, -1):
+                s = 1 << stage
                 for i in range(0, N, 2 * s):
-                    L[i : i + s, j - 1] = _f_min_sum(
-                        R[i : i + s, j] + L[i + s : i + 2 * s, j],
-                        L[i : i + s, j + 1],
+                    L[i : i + s, stage] = _f_min_sum(
+                        R[i : i + s, stage] + L[i + s : i + 2 * s, stage + 1],
+                        L[i : i + s, stage + 1],
                         self.alpha,
                     )
-                    L[i + s : i + 2 * s, j - 1] = _f_min_sum(
-                        R[i : i + s, j],
-                        L[i : i + s, j + 1],
+                    L[i + s : i + 2 * s, stage] = _f_min_sum(
+                        R[i : i + s, stage],
+                        L[i : i + s, stage + 1],
                         self.alpha,
-                    ) + L[i + s : i + 2 * s, j + 1]
+                    ) + L[i + s : i + 2 * s, stage + 1]
 
-            for j in range(0, n):
-                s = 1 << j
+            for stage in range(0, n):
+                s = 1 << stage
                 for i in range(0, N, 2 * s):
-                    R[i : i + s, j + 1] = _f_min_sum(
-                        R[i + s : i + 2 * s, j] + L[i + s : i + 2 * s, j + 1],
-                        R[i : i + s, j],
+                    R[i : i + s, stage + 1] = _f_min_sum(
+                        R[i + s : i + 2 * s, stage] + L[i + s : i + 2 * s, stage + 1],
+                        R[i : i + s, stage],
                         self.alpha,
                     )
-                    R[i + s : i + 2 * s, j + 1] = _f_min_sum(
-                        R[i : i + s, j],
-                        L[i : i + s, j + 1],
+                    R[i + s : i + 2 * s, stage + 1] = _f_min_sum(
+                        R[i : i + s, stage],
+                        L[i : i + s, stage + 1],
                         self.alpha,
-                    ) + R[i + s : i + 2 * s, j]
+                    ) + R[i + s : i + 2 * s, stage]
 
             posterior = L[:, 0] + R[:, 0]
             u_hat = (posterior < 0).astype(int)
