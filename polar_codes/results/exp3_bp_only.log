@@ -1,0 +1,6 @@
+BP 仿真: N=256, K=128
+  Eb/N0=1.00dB | BLER=5.3476e-01 | BER=1.4860e-01 | Errors=100 | Frames=187 | AvgTime=299.17ms | AvgIter=50.0
+  Eb/N0=1.25dB | BLER=4.0650e-01 | BER=1.1325e-01 | Errors=100 | Frames=246 | AvgTime=298.70ms | AvgIter=50.0
+  Eb/N0=1.50dB | BLER=2.5445e-01 | BER=6.4707e-02 | Errors=100 | Frames=393 | AvgTime=299.00ms | AvgIter=50.0
+  Eb/N0=1.75dB | BLER=1.7794e-01 | BER=4.0745e-02 | Errors=100 | Frames=562 | AvgTime=300.20ms | AvgIter=50.0
+  Eb/N0=2.00dB | BLER=1.1455e-01 | BER=2.5353e-02 | Errors=100 | Frames=873 | AvgTime=299.42ms | AvgIter=50.0
