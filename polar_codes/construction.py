@@ -4,6 +4,8 @@
 """
 import numpy as np
 
+from encoder import bit_reversal_permutation
+
 
 def phi(x):
     """
@@ -78,8 +80,10 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         m = m_new
 
     llr_means = m
-    info_indices = np.argsort(llr_means)[-K:]
-    info_indices = np.sort(info_indices)
+    br = bit_reversal_permutation(N)
+    llr_natural = np.empty(N, dtype=np.float64)
+    llr_natural[br] = llr_means
+    info_indices = np.sort(np.argsort(llr_natural)[-K:])
     all_indices = np.arange(N)
     frozen_mask = np.ones(N, dtype=bool)
     frozen_mask[info_indices] = False
