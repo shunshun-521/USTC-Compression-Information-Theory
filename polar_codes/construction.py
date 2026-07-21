@@ -36,12 +36,13 @@ def phi_inv(y):
         y = y.reshape(1)
 
     lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
+    hi = np.full_like(y, 1000.0)
     for _ in range(60):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
+        # phi(x) 随 x 单调递减
+        lo = np.where(pm > y, mid, lo)
+        hi = np.where(pm <= y, mid, hi)
 
     result = (lo + hi) / 2.0
     return result[0] if scalar else result
