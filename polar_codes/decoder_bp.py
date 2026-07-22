@@ -50,22 +50,22 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             num_iters = it
 
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         li = i + k
                         li_s = i + k + s
-                        L[li, j - 1] = self._minsum(
+                        L[li, j] = self._minsum(
                             R[li, j] + L[li_s, j + 1],
                             L[li, j + 1],
                         )
-                        L[li_s, j - 1] = self._minsum(
+                        L[li_s, j] = self._minsum(
                             R[li, j],
                             L[li, j + 1],
                         ) + L[li_s, j + 1]
 
-            for j in range(0, n):
+            for j in range(n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
