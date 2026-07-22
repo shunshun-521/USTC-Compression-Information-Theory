@@ -4,8 +4,7 @@
 """
 import numpy as np
 
-from encoder import polar_encode, bit_reversal_permutation
-from decoder_sc import f_operation
+from encoder import polar_encode
 
 
 class BPDecoder:
@@ -20,7 +19,9 @@ class BPDecoder:
         self._large = 1e6
 
     def _f_min_sum(self, a, b):
-        return self.alpha * f_operation(a, b)
+        a = np.asarray(a, dtype=np.float64)
+        b = np.asarray(b, dtype=np.float64)
+        return self.alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
     def decode(self, llr_ch):
         """
