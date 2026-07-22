@@ -46,13 +46,14 @@ class BPDecoder:
 
         L_msg = np.zeros((n + 1, N), dtype=np.float64)
         R_msg = np.zeros((n + 1, N), dtype=np.float64)
-        L_msg[n, :] = llr_internal
         R_msg[0, self.frozen_bits] = self.LARGE
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
+            L_msg[n, :] = llr_internal
+
             for stage in range(n, 0, -1):
                 step = 1 << (stage - 1)
                 for block in range(0, N, 2 * step):
