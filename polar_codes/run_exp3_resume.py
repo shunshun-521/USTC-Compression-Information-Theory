@@ -27,8 +27,8 @@ def main():
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50
-    MAX_FRAMES = 100000
-    MIN_ERRORS = 100
+    MAX_FRAMES = 5000
+    MIN_ERRORS = 50
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     for N in N_LIST:
@@ -45,19 +45,24 @@ def main():
         if os.path.exists(scl_path):
             all_results["SCL (L=4)"] = load_results_csv(scl_path)
 
-        bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
+        bp_path = f"results/exp3_bp_N{N}_R0.5.csv"
+        if os.path.exists(bp_path):
+            print(f"跳过已存在的 {bp_path}")
+            all_results[f"BP (max_iter={MAX_ITER})"] = load_results_csv(bp_path)
+        else:
+            bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
 
-        def bp_d(llr_ch):
-            u_hat, num_iters = bp_decoder.decode(llr_ch)
-            return u_hat, num_iters
+            def bp_d(llr_ch, _bp=bp_decoder):
+                u_hat, num_iters = _bp.decode(llr_ch)
+                return u_hat, num_iters
 
-        print(f"\nBP N={N}")
-        r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, verbose=True,
-        )
-        all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
-        save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
+            print(f"\nBP N={N}")
+            r_bp = run_simulation(
+                N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
+                info_indices=info_idx, verbose=True,
+            )
+            all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
+            save_results_csv(r_bp, bp_path)
 
         shannon_db = find_capacity_limit(RATE)
         plot_bler_curves(
