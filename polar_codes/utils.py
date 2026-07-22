@@ -61,13 +61,23 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_1_plus_exp(x):
+    """数值稳定的 log2(1 + exp(x))"""
+    if x > 30:
+        return x / np.log(2)
+    if x < -30:
+        return np.exp(x) / np.log(2)
+    return np.log1p(np.exp(x)) / np.log(2)
+
+
 def _bpsk_capacity_scalar(snr_linear):
     """单点 BPSK 容量（bits/channel use）"""
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-0.5 * y * y)
+        x = -2.0 * snr_linear * y
+        return _log2_1_plus_exp(x) * np.exp(-0.5 * y * y)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
+    val, _ = integrate.quad(integrand, -50, 50, limit=200)
     val /= np.sqrt(2.0 * np.pi)
     return 1.0 - val
 
@@ -82,22 +92,25 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        lo, hi = eb_n0_range
-        for _ in range(50):
-            mid = (lo + hi) / 2
-            cap = compute_bpsk_capacity(mid, rate)[0]
-            if cap < rate:
-                lo = mid
-            else:
-                hi = mid
-        return (lo + hi) / 2
-    return eb_grid[idx]
+    idx = np.where(caps >= rate)[0]
+    if len(idx) == 0:
+        return eb_n0_range[1]
+    if idx[0] == 0:
+        return eb_grid[0]
+    i = idx[0]
+    lo, hi = eb_grid[i - 1], eb_grid[i]
+    for _ in range(50):
+        mid = (lo + hi) / 2
+        cap = compute_bpsk_capacity(mid, rate)[0]
+        if cap < rate:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
 
 
 def plot_bler_curves(
