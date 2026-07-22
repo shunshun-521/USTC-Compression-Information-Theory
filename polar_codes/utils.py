@@ -61,23 +61,30 @@ def load_results_csv(filepath):
     return results
 
 
-def _log2_1_plus_exp(x):
-    """数值稳定的 log2(1 + exp(x))"""
-    if x > 30:
-        return x / np.log(2)
-    if x < -30:
-        return np.exp(x) / np.log(2)
-    return np.log1p(np.exp(x)) / np.log(2)
+def _log2_1_plus_exp(a):
+    """数值稳定的 log2(1 + exp(a))"""
+    if a > 30:
+        return a / np.log(2)
+    if a < -30:
+        return np.exp(a) / np.log(2)
+    if a > 0:
+        return (a + np.log1p(np.exp(-a))) / np.log(2)
+    return np.log1p(np.exp(a)) / np.log(2)
 
 
 def _bpsk_capacity_scalar(snr_linear):
-    """单点 BPSK 容量（bits/channel use）"""
+    """
+    单点 BPSK 容量（bits/channel use）。
+    snr_linear = 2*R*Eb/N0（线性）
+  使用高斯数值积分：C = 1 - E_y[log2(1 + exp(-2*snr*y^2))]
+    """
+    snr = snr_linear
 
     def integrand(y):
-        x = -2.0 * snr_linear * y
-        return _log2_1_plus_exp(x) * np.exp(-0.5 * y * y)
+        a = -2.0 * snr * y * y
+        return _log2_1_plus_exp(a) * np.exp(-0.5 * y * y)
 
-    val, _ = integrate.quad(integrand, -50, 50, limit=200)
+    val, _ = integrate.quad(integrand, -20, 20, limit=200)
     val /= np.sqrt(2.0 * np.pi)
     return 1.0 - val
 
