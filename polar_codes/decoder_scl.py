@@ -13,31 +13,45 @@ CRC8_POLY = 0x07
 CRC16_POLY = 0x8005
 
 
-def _crc_divide(info_bits, poly, crc_length):
-    reg = [0] * crc_length
-    poly_bits = [(poly >> i) & 1 for i in range(crc_length - 1, -1, -1)]
-    for bit in info_bits:
-        msb = reg[0]
-        reg = reg[1:] + [bit ^ msb]
-        if msb:
-            reg = [reg[i] ^ poly_bits[i + 1] for i in range(crc_length)]
-    return np.array(reg, dtype=int)
+def _crc_bits_to_int(bits):
+    bits = np.asarray(bits, dtype=int)
+    val = 0
+    for b in bits:
+        val = (val << 1) | int(b)
+    return val
+
+
+def _int_to_crc_bits(val, crc_length):
+    return np.array(
+        [(val >> i) & 1 for i in range(crc_length - 1, -1, -1)], dtype=int
+    )
 
 
 def crc_encode(info_bits, crc_length=8):
+    """CRC-8 (0x07) 或 CRC-16 (0x8005) 校验位生成。"""
     info_bits = np.asarray(info_bits, dtype=int)
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    remainder = _crc_divide(info_bits, poly, crc_length)
+    reg = 0
+    mask = (1 << crc_length) - 1
+    for bit in info_bits:
+        reg ^= int(bit) << (crc_length - 1)
+        for _ in range(8):
+            if reg & (1 << (crc_length - 1)):
+                reg = ((reg << 1) ^ poly) & mask
+            else:
+                reg = (reg << 1) & mask
+    remainder = _int_to_crc_bits(reg, crc_length)
     return np.concatenate([info_bits, remainder])
 
 
 def crc_check(bits, crc_length=8):
+    """检验 bits 是否通过 CRC。"""
     bits = np.asarray(bits, dtype=int)
     if len(bits) < crc_length:
         return False
-    poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    remainder = _crc_divide(bits, poly, crc_length)
-    return np.all(remainder == 0)
+    info = bits[:-crc_length]
+    expected = crc_encode(info, crc_length)[-crc_length:]
+    return np.array_equal(bits[-crc_length:], expected)
 
 
 class Path(SCState):
