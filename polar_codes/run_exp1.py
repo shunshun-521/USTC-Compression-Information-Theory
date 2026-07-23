@@ -33,9 +33,9 @@ run_unit_tests()
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+MAX_FRAMES = 50000
+MIN_ERRORS = 50
+EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
 
 # ========== 保存信息位/冻结位集合 ==========
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")

@@ -37,11 +37,3 @@ def eb_n0_to_sigma(eb_n0_db, rate):
     """
     snr_linear = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
     return 1.0 / np.sqrt(snr_linear)
-
-
-def reorder_channel_llr(llr):
-    """将信道 LLR 重排为译码器所需顺序（比特倒序）。"""
-    llr = np.asarray(llr, dtype=np.float64)
-    N = len(llr)
-    br = bit_reversal_permutation(N)
-    return llr[br]
