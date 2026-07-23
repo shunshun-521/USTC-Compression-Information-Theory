@@ -2,7 +2,6 @@
 import numpy as np
 import csv
 import os
-from scipy import integrate
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
