@@ -88,10 +88,10 @@ save_results_csv(results_sc, f"results/exp2_sc_N{N}_R0.5.csv")
 for L in L_LIST:
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
 
-    def scl_decoder(llr_ch, list_size=L):
-        u_hat, _ = SCLDecoder(N, frozen_bool, list_size=list_size, crc_length=0).decode(
-            llr_ch
-        )
+    def scl_decoder(llr_ch, _L=L):
+        u_hat, _ = SCLDecoder(
+            N, frozen_bool, list_size=_L, crc_length=0
+        ).decode(llr_ch)
         return u_hat, None
 
     results = run_simulation(
