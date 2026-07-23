@@ -95,11 +95,11 @@ if __name__ == "__main__":
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
-        def cascl_decoder(llr_ch):
-            u_hat, pm = SCLDecoder(
-                N, frozen_bits, list_size=8, crc_length=CRC_LENGTH, info_indices=info_idx
-            ).decode(llr_ch)
-            return u_hat, None
+    def cascl_decoder(llr_ch):
+        u_hat, pm = SCLDecoder(
+            N, frozen_bits, list_size=8, crc_length=CRC_LENGTH, info_indices=info_idx
+        ).decode(llr_ch)
+        return u_hat, None
 
     results_cascl = run_simulation(
         N, K, EB_N0_RANGE, cascl_decoder, "scl",
