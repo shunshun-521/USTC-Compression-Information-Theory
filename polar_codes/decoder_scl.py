@@ -2,7 +2,6 @@
 极化码 SCL（串行抵消列表）译码器
 支持 CRC 辅助（CA-SCL）
 """
-import copy
 import math
 
 import numpy as np
@@ -65,6 +64,14 @@ class SCLDecoder:
         hard = 0 if llr >= 0 else 1
         return 0.0 if u_bit == hard else abs(llr)
 
+    def _clone_path(self, path):
+        new = Path(self.N)
+        new.llrs = path.llrs.copy()
+        new.bits = path.bits.copy()
+        new.pm = path.pm
+        new.u_hat = path.u_hat.copy()
+        return new
+
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         paths = [Path(self.N)]
@@ -79,7 +86,7 @@ class SCLDecoder:
                 llr = path.llrs[0]
 
                 if self.frozen_bits[j]:
-                    new_path = copy.deepcopy(path)
+                    new_path = self._clone_path(path)
                     new_path.pm += self._metric_penalty(llr, 0)
                     new_path.u_hat[j] = 0
                     new_path.decoded_bit = 0
@@ -87,7 +94,7 @@ class SCLDecoder:
                     candidates.append(new_path)
                 else:
                     for u_bit in (0, 1):
-                        new_path = copy.deepcopy(path)
+                        new_path = self._clone_path(path)
                         new_path.pm += self._metric_penalty(llr, u_bit)
                         new_path.u_hat[j] = u_bit
                         new_path.decoded_bit = u_bit
