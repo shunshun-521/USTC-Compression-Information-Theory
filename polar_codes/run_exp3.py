@@ -45,7 +45,7 @@ for N in N_LIST:
     print(f"N={N} SCL L=4 仿真")
     r_scl = run_simulation(
         N, K, EB_N0_RANGE,
-        lambda llr: SCLDecoder(N, frozen_bits, list_size=4).decode(llr) + (None,),
+        lambda llr: (lambda u, _: (u, None))(*SCLDecoder(N, frozen_bits, list_size=4).decode(llr)),
         'scl', MAX_FRAMES, MIN_ERRORS, info_indices=info_idx,
     )
     all_results['SCL (L=4)'] = r_scl

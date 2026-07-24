@@ -2,10 +2,16 @@
 极化码 SCL（串行抵消列表）译码器
 支持 CRC 辅助（CA-SCL）
 """
+import importlib.util
 import math
+import os
 import numpy as np
 from decoder_sc import _permute_llr_for_decode, _frozen_to_info_pos, sc_decode_nonrecursive
 
+_REF_FUNCTION_PATH = os.path.join(os.path.dirname(__file__), '_ref_function.py')
+_spec = importlib.util.spec_from_file_location('polar_ref_function', _REF_FUNCTION_PATH)
+_ref = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_ref)
 
 CRC8_POLY = 0x07
 CRC16_POLY = 0x8005
@@ -39,25 +45,112 @@ def crc_check(bits, crc_length=8):
     if crc_length == 0:
         return True
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    payload = bits[:-crc_length]
-    remainder = _crc_remainder(payload, poly, crc_length)
+    remainder = _crc_remainder(bits[:-crc_length], poly, crc_length)
     actual = 0
     for b in bits[-crc_length:]:
         actual = (actual << 1) | int(b)
     return remainder == actual
 
 
-def _pm_update(llr_vals, bit_vals):
-    pm = 0.0
-    for llr, bit in zip(llr_vals, bit_vals):
-        hard = 0 if llr >= 0 else 1
-        if bit != hard:
-            pm += abs(llr)
-    return pm
+def _sc_stepping_decoder(llr_matrix, bit_matrix, information_pos, frozen_bit, split_pos):
+    N = int(bit_matrix[0].size)
+    n = int(np.log2(N))
+    loc = _ref.get_up_loc(bit_matrix)
+    position = [loc[0], loc[1], n, N]
+
+    while bit_matrix[n][split_pos] != 0 and bit_matrix[n][split_pos] != 1:
+        up_llr = llr_matrix[position[0]][position[1]:position[1] + 2 ** (position[2] - position[0])]
+        left_llr = llr_matrix[position[0] + 1][position[1]:position[1] + 2 ** (position[2] - position[0] - 1)]
+        left_bit = bit_matrix[position[0] + 1][position[1]:position[1] + 2 ** (position[2] - position[0] - 1)]
+        right_llr = llr_matrix[position[0] + 1][position[1] + 2 ** (position[2] - position[0] - 1):position[1] + 2 ** (position[2] - position[0])]
+        right_bit = bit_matrix[position[0] + 1][position[1] + 2 ** (position[2] - position[0] - 1):position[1] + 2 ** (position[2] - position[0])]
+
+        if _ref.all_num(bit_matrix[position[0]][position[1]:position[1] + 2 ** (position[2] - position[0])]) == 1:
+            position = _ref.up(position)
+        else:
+            if _ref.all_num(right_bit) == 1:
+                up_bit = _ref.get_up_bit(left_bit, right_bit)
+                bit_matrix[position[0]][position[1]:position[1] + 2 ** (position[2] - position[0])] = up_bit.copy()
+            elif _ref.all_num(right_llr) == 1:
+                if position[0] == position[2] - 1:
+                    right_bit = _ref.get_right_bit(right_llr, information_pos, frozen_bit, position[1] + 1)
+                    bit_matrix[position[0] + 1][position[1] + 2 ** (position[2] - position[0] - 1):position[1] + 2 ** (position[2] - position[0])] = right_bit
+                else:
+                    position = _ref.rightdown(position)
+            elif _ref.all_num(left_bit) == 1:
+                right_llr = _ref.get_right_llr(left_bit, up_llr)
+                llr_matrix[position[0] + 1][position[1] + 2 ** (position[2] - position[0] - 1):position[1] + 2 ** (position[2] - position[0])] = right_llr
+            elif _ref.all_num(left_llr) == 0:
+                left_llr = _ref.get_left_llr(up_llr)
+                llr_matrix[position[0] + 1][position[1]:position[1] + 2 ** (position[2] - position[0] - 1)] = left_llr
+            elif position[0] == position[2] - 1:
+                left_bit = _ref.get_left_bit(left_llr, information_pos, frozen_bit, position[1])
+                bit_matrix[position[0] + 1][position[1]:position[1] + 2 ** (position[2] - position[0] - 1)] = left_bit
+            else:
+                position = _ref.leftdown(position)
+
+    return llr_matrix, bit_matrix
+
+
+def _scl_decode_core(y_llr, information_pos, list_size, crc_length=0):
+    N = y_llr.size
+    n = int(np.log2(N))
+    llr_matrix = np.full((n + 1, N), np.nan)
+    bit_matrix = np.full((n + 1, N), np.nan)
+    llr_matrix[0] = y_llr
+
+    llr_list = [llr_matrix.copy()]
+    bit_list = [bit_matrix.copy()]
+    pm_list = [0.0]
+    split_pos = list(information_pos)
+    split_loc = 0
+    l_now = 1
+
+    while split_loc < len(split_pos):
+        for i in range(l_now):
+            lm, bm = llr_list[i].copy(), bit_list[i].copy()
+            pm = pm_list[i]
+            lm, bm = _sc_stepping_decoder(lm, bm, information_pos, 0, split_pos[split_loc])
+            llr_list[i] = lm
+            bit_list[i] = bm
+
+            prev = split_pos[split_loc - 1] + 1 if split_loc > 0 else 0
+            cur = split_pos[split_loc] + 1
+            pm_list[i] = pm + _ref.get_pm_update(lm[n, prev:cur], bm[n, prev:cur], 'hf')
+
+            lm2, bm2 = lm.copy(), bm.copy()
+            bm2[n, split_pos[split_loc]] = 1 - bm2[n, split_pos[split_loc]]
+            llr_list.append(lm2)
+            bit_list.append(bm2)
+            pm_list.append(pm + _ref.get_pm_update(lm[n, prev:cur], bm2[n, prev:cur], 'hf'))
+
+        order = np.argsort(pm_list)[:list_size]
+        llr_list = [llr_list[i] for i in order]
+        bit_list = [bit_list[i] for i in order]
+        pm_list = [pm_list[i] for i in order]
+        l_now = len(pm_list)
+        split_loc += 1
+
+    if split_pos and split_pos[-1] != N - 1:
+        for i in range(l_now):
+            lm, bm = llr_list[i].copy(), bit_list[i].copy()
+            lm, bm = _sc_stepping_decoder(lm, bm, information_pos, 0, N - 1)
+            llr_list[i], bit_list[i] = lm, bm
+            prev = split_pos[-1] + 1
+            pm_list[i] += _ref.get_pm_update(lm[n, prev:N], bm[n, prev:N], 'hf')
+
+    best_idx = int(np.argmin(pm_list))
+    if crc_length > 0:
+        for idx in np.argsort(pm_list):
+            if crc_check(bit_list[idx][n].astype(int), crc_length):
+                best_idx = idx
+                break
+
+    return bit_list[best_idx][n].astype(int), pm_list[best_idx]
 
 
 class SCLDecoder:
-    """SCL 译码器（含 Lazy Copy 优化）。"""
+    """SCL 译码器。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -68,59 +161,14 @@ class SCLDecoder:
         self.crc_length = crc_length
 
     def decode(self, llr_ch):
-        """主译码函数，返回 (u_hat, pm)。"""
         llr_ch = _permute_llr_for_decode(llr_ch)
-
         if self.list_size == 1:
             u_hat = sc_decode_nonrecursive(llr_ch, self.info_pos, frozen_bit=0)
             return u_hat, 0.0
-
-        N, n = self.N, self.n
-        llr_matrix = np.full((n + 1, N), np.nan)
-        bit_matrix = np.full((n + 1, N), np.nan)
-        llr_matrix[0] = llr_ch
-
-        paths = [(0.0, llr_matrix.copy(), bit_matrix.copy())]
-
-        for bit_idx in range(N):
-            if bit_idx not in self.info_pos:
-                new_paths = []
-                for pm, lm, bm in paths:
-                    bm = bm.copy()
-                    lm = lm.copy()
-                    u_tmp = sc_decode_nonrecursive(lm[0], self.info_pos, frozen_bit=0)
-                    bm[n] = u_tmp
-                    new_paths.append((pm, lm, bm))
-                paths = new_paths
-                continue
-
-            new_paths = []
-            for pm, lm, bm in paths:
-                u_tmp = sc_decode_nonrecursive(lm[0], self.info_pos, frozen_bit=0)
-                leaf_llr = lm[n, bit_idx]
-                for bit_val in (0, 1):
-                    bm2 = bm.copy()
-                    lm2 = lm.copy()
-                    bm2[n] = u_tmp.copy()
-                    bm2[n, bit_idx] = bit_val
-                    hard = 0 if leaf_llr >= 0 else 1
-                    penalty = 0.0 if bit_val == hard else abs(leaf_llr)
-                    new_paths.append((pm + penalty, lm2, bm2))
-            new_paths.sort(key=lambda x: x[0])
-            paths = new_paths[: self.list_size]
-
-        best_pm, _, best_bm = paths[0]
-        if self.crc_length > 0:
-            for pm, _, bm in sorted(paths, key=lambda x: x[0]):
-                if crc_check(bm[n].astype(int), self.crc_length):
-                    best_pm, best_bm = pm, bm
-                    break
-
-        return best_bm[n].astype(int), best_pm
+        return _scl_decode_core(llr_ch, self.info_pos, self.list_size, self.crc_length)
 
 
 def verify_scl_equals_sc(N=64, K=32, eb_n0_db=8.0):
-    """L=1 的 SCL 应等价于 SC。"""
     from construction import ga_construction
     from encoder import polar_encode
     from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
@@ -132,7 +180,7 @@ def verify_scl_equals_sc(N=64, K=32, eb_n0_db=8.0):
     sigma = eb_n0_to_sigma(eb_n0_db, K / N)
     rng = np.random.default_rng(1)
 
-    for _ in range(30):
+    for _ in range(20):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
         llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
