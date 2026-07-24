@@ -60,34 +60,36 @@ def load_results_csv(filepath):
     return results
 
 
-def compute_bpsk_capacity(eb_n0_db_list, rate):
+def compute_bpsk_capacity(eb_n0_db_list, rate, num_samples=200000, seed=0):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-  C = 1 - E_y[log2(1 + exp(-2*s*y))], s = SNR = 2R * 10^{Eb/N0/10}
+    使用蒙特卡洛估计互信息 I(X;Y)。
     """
+    rng = np.random.default_rng(seed)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        sigma = 1.0 / np.sqrt(2.0 * rate * (10.0 ** (eb_n0_db / 10.0)))
+        x = rng.integers(0, 2, num_samples) * 2 - 1
+        y = x + rng.normal(0.0, sigma, num_samples)
+        llr = 2.0 * y / (sigma ** 2)
+        p0 = 1.0 / (1.0 + np.exp(-llr))
+        p0 = np.clip(p0, 1e-15, 1.0 - 1e-15)
+        h = -(p0 * np.log2(p0) + (1.0 - p0) * np.log2(1.0 - p0))
+        capacities.append(float(1.0 - np.mean(h)))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=200):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        return float(eb_grid[idx])
-
-    x0, x1 = eb_grid[idx - 1], eb_grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
+    idx = np.searchsorted(caps, rate)
+    if idx == 0:
+        return float(eb_grid[0])
+    if idx >= len(eb_grid):
+        return float(eb_grid[-1])
+    x0, x1 = eb_grid[idx - 1], eb_grid[idx]
+    c0, c1 = caps[idx - 1], caps[idx]
     if c1 != c0:
         frac = (rate - c0) / (c1 - c0)
         return float(x0 + frac * (x1 - x0))

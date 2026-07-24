@@ -59,5 +59,6 @@ if __name__ == "__main__":
     x = polar_encode(u)
     print("u =", u)
     print("x =", x)
-    assert np.array_equal(x, [0, 0, 1, 1]), f"编码器错误: {x}"
+    assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
+    assert np.array_equal(polar_encode(np.array([0, 0, 1, 1])), [0, 0, 1, 1])
     print("Encoder test passed.")
