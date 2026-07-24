@@ -117,6 +117,11 @@ if __name__ == "__main__":
     all_results[f"CA-SCL (L={CA_SCL_LIST_SIZE}, CRC={CRC_LENGTH})"] = results_cascl
     save_results_csv(results_cascl, f"results/exp2_cascl_L{CA_SCL_LIST_SIZE}_N{N}_R0.5.csv")
 
+    # 规格要求的汇总文件（取 L=4 SCL 结果）
+    if 4 in L_LIST:
+        import shutil
+        shutil.copy(f"results/exp2_scl_L4_N{N}_R0.5.csv", f"results/exp2_scl_N{N}_R0.5.csv")
+
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(
         all_results,
