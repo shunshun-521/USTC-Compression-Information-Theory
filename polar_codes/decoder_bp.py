@@ -42,6 +42,7 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
+            # L 消息：从右向左（参考 Van den Brink 式 (3)）
             for stage in range(n):
                 block = 2 ** stage
                 stride = 2 * block
@@ -49,15 +50,16 @@ class BPDecoder:
                     for offset in range(block):
                         i = start + offset
                         L[i, stage] = _bp_f(
-                            R[i, stage + 1] + L[i + block, stage + 1],
                             L[i, stage + 1],
+                            L[i + block, stage + 1] + R[i + block, stage],
                             alpha,
                         )
                         L[i + block, stage] = (
-                            _bp_f(R[i, stage + 1], L[i, stage + 1], alpha)
+                            _bp_f(R[i, stage], L[i, stage + 1], alpha)
                             + L[i + block, stage + 1]
                         )
 
+            # R 消息：从左向右
             for stage in range(n - 1, -1, -1):
                 block = 2 ** stage
                 stride = 2 * block
@@ -65,12 +67,12 @@ class BPDecoder:
                     for offset in range(block):
                         i = start + offset
                         R[i, stage + 1] = _bp_f(
-                            R[i + block, stage] + L[i + block, stage + 1],
                             R[i, stage],
+                            L[i + block, stage + 1] + R[i + block, stage],
                             alpha,
                         )
                         R[i + block, stage + 1] = (
-                            _bp_f(R[i, stage], L[i + block, stage + 1], alpha)
+                            _bp_f(R[i, stage], L[i, stage + 1], alpha)
                             + R[i + block, stage]
                         )
 
