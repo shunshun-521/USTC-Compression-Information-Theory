@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 import matplotlib.pyplot as plt
 
 from construction import ga_construction
@@ -52,13 +51,13 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity_per_snr(snr_linear):
-    """BPSK 信道容量（bits/channel use）对给定线性 SNR"""
-
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-y ** 2 / 2.0)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+    """BPSK 信道容量（bits/channel use）对给定线性 SNR (E_s/N_0)"""
+    y = np.linspace(0, 10, 4000)
+    dy = y[1] - y[0]
+    pdf = np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
+    t = np.clip(-2.0 * snr_linear * y ** 2, -700, 0)
+    integrand = np.log2(1.0 + np.exp(t))
+    return 1.0 - 2.0 * np.sum(integrand * pdf) * dy
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
