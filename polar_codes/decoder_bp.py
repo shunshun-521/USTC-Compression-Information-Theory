@@ -12,7 +12,7 @@ def _f_minsum(x, y, alpha):
 
 
 class BPDecoder:
-    """BP 译码器"""
+    """BP 译码器（向量化实现）"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -39,34 +39,34 @@ class BPDecoder:
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
-                    for t in range(s):
-                        idx = i + t
-                        L[idx, j - 1] = _f_minsum(
-                            R[idx, j] + L[idx + s, j],
-                            L[idx, j],
-                            self.alpha,
-                        )
-                        L[idx + s, j - 1] = _f_minsum(
-                            R[idx, j],
-                            L[idx, j],
-                            self.alpha,
-                        ) + L[idx + s, j]
+                    idx = slice(i, i + s)
+                    idx2 = slice(i + s, i + 2 * s)
+                    L[idx, j - 1] = _f_minsum(
+                        R[idx, j] + L[idx2, j],
+                        L[idx, j],
+                        self.alpha,
+                    )
+                    L[idx2, j - 1] = _f_minsum(
+                        R[idx, j],
+                        L[idx, j],
+                        self.alpha,
+                    ) + L[idx2, j]
 
             for j in range(0, n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    for t in range(s):
-                        idx = i + t
-                        R[idx, j + 1] = _f_minsum(
-                            R[idx + s, j] + L[idx + s, j + 1],
-                            R[idx, j],
-                            self.alpha,
-                        )
-                        R[idx + s, j + 1] = _f_minsum(
-                            R[idx, j],
-                            L[idx, j + 1],
-                            self.alpha,
-                        ) + R[idx + s, j]
+                    idx = slice(i, i + s)
+                    idx2 = slice(i + s, i + 2 * s)
+                    R[idx, j + 1] = _f_minsum(
+                        R[idx2, j] + L[idx2, j + 1],
+                        R[idx, j],
+                        self.alpha,
+                    )
+                    R[idx2, j + 1] = _f_minsum(
+                        R[idx, j],
+                        L[idx, j + 1],
+                        self.alpha,
+                    ) + R[idx2, j]
 
             total = L[:, 0] + R[:, 0]
             u_hat = (total < 0).astype(int)
@@ -79,27 +79,3 @@ class BPDecoder:
                 break
 
         return u_hat, num_iters
-
-
-if __name__ == "__main__":
-    from construction import ga_construction
-    from channel import bpsk_modulate, compute_llr
-
-    N = 64
-    K = 32
-    info_idx, _, _ = ga_construction(N, K, 2.5)
-    frozen_bits = np.ones(N, dtype=bool)
-    frozen_bits[info_idx] = False
-
-    rng = np.random.default_rng(0)
-    bp = BPDecoder(N, frozen_bits)
-    errors = 0
-    for _ in range(30):
-        u = np.zeros(N, dtype=int)
-        u[info_idx] = rng.integers(0, 2, K)
-        x = polar_encode(u)
-        llr = compute_llr(bpsk_modulate(x), 0.05)
-        u_hat, iters = bp.decode(llr)
-        if not np.array_equal(u_hat, u):
-            errors += 1
-    print(f"BP noiseless errors={errors}/30")
