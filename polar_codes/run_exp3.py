@@ -57,7 +57,8 @@ def main():
     MAX_ITER = 50
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
-    MAX_FRAMES_BP = 20000
+    MAX_FRAMES_BP = 5000
+    MIN_ERRORS_BP = 30
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     for N in N_LIST:
@@ -117,7 +118,7 @@ def main():
             bp_d,
             "bp",
             MAX_FRAMES_BP,
-            MIN_ERRORS,
+            MIN_ERRORS_BP,
             info_indices=info_idx,
         )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
