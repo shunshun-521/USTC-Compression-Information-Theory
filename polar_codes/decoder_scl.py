@@ -4,7 +4,7 @@
 """
 import numpy as np
 
-from decoder_sc import _active_bit_level, _active_llr_level, _bit_reversed, _update_bits, _update_llrs
+from decoder_sc import f_operation, g_operation, sc_decode_recursive
 
 
 CRC8_POLY = 0x07
@@ -39,70 +39,93 @@ def crc_check(bits, crc_length=8):
     return _crc_remainder(bits, poly, crc_length) == 0
 
 
-class _Path:
-    __slots__ = ("pm", "L", "B")
+def _g_vec(L1, L2, decision):
+    """g 运算，decision = (pm, bit_list)。"""
+    bits = decision[1]
+    return [L2[i] + (1 - 2 * bits[i]) * L1[i] for i in range(len(L2))]
 
-    def __init__(self, llr_ch, n, N):
-        self.pm = 0.0
-        self.L = np.zeros((N, n + 1))
-        self.B = np.zeros((N, n + 1), dtype=np.int8)
-        self.L[:, 0] = llr_ch
 
-    def copy(self):
-        p = _Path.__new__(_Path)
-        p.pm = self.pm
-        p.L = self.L.copy()
-        p.B = self.B.copy()
-        return p
+def _xor_paths(u1, u2, u1_list, u2_list):
+    res = [(u1[1][i] + u2[1][i]) % 2 for i in range(len(u1[1]))]
+    res.extend(u2[1])
+    return (u1[0] + u2[0], res, u1_list + u2_list)
 
 
 class SCLDecoder:
-    """SCL 译码器（迭代 + lazy copy）。"""
+    """SCL 译码器（HETSN 递归列表译码）。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
-        self.n = int(np.log2(N))
-        self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
+        self.n = int(np.log2(N)) + 1
+        self.frozen_set = set(np.where(np.asarray(frozen_bits, dtype=bool))[0])
         self.list_size = list_size
         self.crc_length = crc_length
-        self.info_indices = np.where(~self.frozen_bits)[0]
-        self._decode_order = [_bit_reversed(i, self.n) for i in range(N)]
+        self.info_indices = np.where(~np.asarray(frozen_bits, dtype=bool))[0]
+
+    def _decode(self, y, depth, node):
+        if depth == self.n - 1:
+            decisions = []
+            decoded_lists = []
+            if node in self.frozen_set:
+                pm = 0.0 if y[0] >= 0 else abs(y[0])
+                decisions.append((pm, [0]))
+                decoded_lists.append([0])
+            else:
+                if y[0] < 0:
+                    decisions.append((0.0, [1]))
+                    decoded_lists.append([1])
+                    decisions.append((abs(y[0]), [0]))
+                    decoded_lists.append([0])
+                else:
+                    decisions.append((0.0, [0]))
+                    decoded_lists.append([0])
+                    decisions.append((abs(y[0]), [1]))
+                    decoded_lists.append([1])
+            return decisions, decoded_lists
+
+        half = len(y) // 2
+        l1, l2 = y[:half], y[half:]
+        left_llr = f_operation(np.array(l1), np.array(l2)).tolist()
+        l_dec, l_bits = self._decode(left_llr, depth + 1, 2 * node)
+
+        selection = []
+        for i, ld in enumerate(l_dec):
+            right_llr = _g_vec(l1, l2, ld)
+            r_dec, r_bits = self._decode(right_llr, depth + 1, 2 * node + 1)
+            for j, rd in enumerate(r_dec):
+                selection.append(_xor_paths(ld, rd, l_bits[i], r_bits[j]))
+
+        selection.sort(key=lambda x: x[0])
+        selection = selection[: self.list_size]
+        return [(s[0], s[1]) for s in selection], [s[2] for s in selection]
 
     def decode(self, llr_ch):
-        llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        paths = [_Path(llr_ch, self.n, self.N)]
+        if self.list_size == 1:
+            frozen_bits = np.zeros(self.N, dtype=bool)
+            frozen_bits[list(self.frozen_set)] = True
+            u_hat = sc_decode_recursive(llr_ch, frozen_bits)
+            return u_hat, 0.0
 
-        for l in self._decode_order:
-            candidates = []
-            for path in paths:
-                _update_llrs(path.L, path.B, l, self.n, self.N)
-                llr_val = path.L[l, self.n]
+        decisions, decoded_lists = self._decode(llr_ch.tolist(), 0, 0)
+        if not decoded_lists:
+            return np.zeros(self.N, dtype=int), 0.0
 
-                if self.frozen_bits[l]:
-                    new_path = path.copy()
-                    hard = 0 if llr_val >= 0 else 1
-                    new_path.pm += 0.0 if hard == 0 else abs(llr_val)
-                    new_path.B[l, self.n] = 0
-                    _update_bits(new_path.B, l, self.n, self.N)
-                    candidates.append(new_path)
-                else:
-                    for bit in (0, 1):
-                        new_path = path.copy()
-                        hard = 0 if llr_val >= 0 else 1
-                        new_path.pm += 0.0 if bit == hard else abs(llr_val)
-                        new_path.B[l, self.n] = bit
-                        _update_bits(new_path.B, l, self.n, self.N)
-                        candidates.append(new_path)
-
-            candidates.sort(key=lambda p: p.pm)
-            paths = candidates[: self.list_size]
-
-        u_hat = paths[0].B[:, self.n].astype(int)
-
+        best_idx = 0
         if self.crc_length > 0:
-            valid = [p for p in paths if crc_check(p.B[:, self.n][self.info_indices], self.crc_length)]
-            best = min(valid, key=lambda p: p.pm) if valid else min(paths, key=lambda p: p.pm)
+            valid = [
+                i for i, bits in enumerate(decoded_lists)
+                if len(bits) >= len(self.info_indices)
+                and crc_check(np.array(bits)[: len(self.info_indices)], self.crc_length)
+            ]
+            if valid:
+                best_idx = min(valid, key=lambda i: decisions[i][0])
+            else:
+                best_idx = int(np.argmin([d[0] for d in decisions]))
         else:
-            best = min(paths, key=lambda p: p.pm)
+            best_idx = int(np.argmin([d[0] for d in decisions]))
 
-        return best.B[:, self.n].astype(int), best.pm
+        bits = decoded_lists[best_idx]
+        u_hat = np.zeros(self.N, dtype=int)
+        n_copy = min(len(bits), self.N)
+        u_hat[:n_copy] = bits[:n_copy]
+        return u_hat, decisions[best_idx][0]
