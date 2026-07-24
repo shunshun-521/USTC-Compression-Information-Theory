@@ -30,6 +30,7 @@ class BPDecoder:
         n = self.n
         N = self.N
 
+        # L[i,j]: left message at node (i, stage j); R[i,j]: right message
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
         L[:, n] = llr_ch
@@ -40,17 +41,19 @@ class BPDecoder:
         br = bit_reversal_permutation(N)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
+            # Right to left: update L for stages n-1 .. 0
+            for j in range(n - 1, -1, -1):
+                s = 2 ** j
                 for block in range(0, N, 2 * s):
                     for i in range(block, block + s):
-                        L[i, j - 1] = self._f(
+                        L[i, j] = self._f(
                             R[i, j] + L[i + s, j + 1], L[i, j + 1]
                         )
-                        L[i + s, j - 1] = self._f(
+                        L[i + s, j] = self._f(
                             R[i, j], L[i, j + 1]
                         ) + L[i + s, j + 1]
 
+            # Left to right: update R for stages 0 .. n-1
             for j in range(0, n):
                 s = 2 ** j
                 for block in range(0, N, 2 * s):
