@@ -96,6 +96,6 @@ def run_simulation(
                    f"| AvgTime={avg_time * 1000:.2f}ms")
             if avg_iters is not None:
                 msg += f" | AvgIter={avg_iters:.1f}"
-            print(msg)
+            print(msg, flush=True)
 
     return results
