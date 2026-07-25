@@ -133,13 +133,12 @@ class SCLDecoder:
             else:
                 crc_valid.append((path.pm, u_hat))
 
-        if self.crc_length > 0:
-            passed = [item for item in crc_valid if crc_check(
-                item[1][self.info_indices], self.crc_length
-            )]
-            if passed:
-                _, best = min(passed, key=lambda x: x[0])
-                return best, min(passed, key=lambda x: x[0])[0]
+        if crc_valid:
+            best_pm, best = min(crc_valid, key=lambda x: x[0])
+        else:
+            best_pm, best = min(
+                ((path.pm, path.B[:, n].astype(int)) for path in paths),
+                key=lambda x: x[0],
+            )
 
-        best_pm, best = min(crc_valid, key=lambda x: x[0])
         return best, best_pm
