@@ -3,7 +3,7 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import _LLR_UNSET, _compute_llr
+from decoder_sc import _LLR_UNSET, _compute_llr, sc_decode
 
 
 CRC8_POLY = [1, 0, 0, 0, 0, 0, 1, 1, 1]  # x^8 + x^2 + x + 1
@@ -83,18 +83,16 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        if self.list_size == 1 and self.crc_length == 0:
+            u_hat = sc_decode(llr_ch, self.frozen_bits)
+            return u_hat, 0.0
+
         paths = [_PathState(self.n, self.N, llr_ch)]
 
         for phi in range(self.N):
-            for path in paths:
-                path.llrs[: self.n, :] = _LLR_UNSET
-                path.llrs[self.n, :] = llr_ch
-                path.bits[:] = -1
-                if phi > 0:
-                    path.bits[0, :phi] = path.u_hat[:phi]
-
             candidates = []
             for path in paths:
+                path.llrs[0, phi] = _LLR_UNSET
                 llr_phi = _compute_llr(0, phi, path.llrs, path.bits, self.n)
 
                 if self.frozen_bits[phi]:
