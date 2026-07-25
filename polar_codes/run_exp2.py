@@ -21,24 +21,24 @@ from utils import find_capacity_limit, plot_bler_curves, save_results_csv
 
 def run_unit_tests():
     print("运行单元测试...")
-  u = np.array([1, 0, 1, 1])
-  x = polar_encode(u)
-  assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
-  N, K = 64, 32
-  info_idx, _, _ = ga_construction(N, K, 2.5)
-  frozen_bits = np.ones(N, dtype=int)
-  frozen_bits[info_idx] = 0
-  sigma = eb_n0_to_sigma(10.0, K / N)
-  rng = np.random.default_rng(0)
-  for _ in range(50):
-    payload = rng.integers(0, 2, size=K)
-    u_full = np.zeros(N, dtype=int)
-    u_full[info_idx] = payload
-    x = polar_encode(u_full)
-    y = awgn_channel(bpsk_modulate(x), sigma, rng)
-    llr = compute_llr(y, sigma)
-    assert np.array_equal(sc_decode(llr, frozen_bits)[info_idx], payload)
-  print("单元测试通过。")
+    u = np.array([1, 0, 1, 1])
+    x = polar_encode(u)
+    assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    sigma = eb_n0_to_sigma(10.0, K / N)
+    rng = np.random.default_rng(0)
+    for _ in range(50):
+        payload = rng.integers(0, 2, size=K)
+        u_full = np.zeros(N, dtype=int)
+        u_full[info_idx] = payload
+        x = polar_encode(u_full)
+        y = awgn_channel(bpsk_modulate(x), sigma, rng)
+        llr = compute_llr(y, sigma)
+        assert np.array_equal(sc_decode(llr, frozen_bits)[info_idx], payload)
+    print("单元测试通过。")
 
 
 def main():
