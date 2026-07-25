@@ -19,12 +19,18 @@ _CRC16_POLY = 0x8005
 
 
 def _crc_remainder(bits, poly, crc_length):
+    """MSB-first CRC 余数（poly 为去掉最高位的生成多项式，如 CRC-8: 0x07）"""
+    poly_full = poly | (1 << crc_length)
+    mask = (1 << crc_length) - 1
     reg = 0
     for bit in bits:
-        reg = (reg << 1) | int(bit)
-        if reg & (1 << crc_length):
-            reg ^= poly
-    return reg & ((1 << crc_length) - 1)
+        reg ^= int(bit) << (crc_length - 1)
+        for _ in range(8):
+            if reg & (1 << crc_length):
+                reg = ((reg << 1) ^ poly_full) & mask
+            else:
+                reg = (reg << 1) & mask
+    return reg
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -37,7 +43,8 @@ def crc_encode(info_bits, crc_length=8):
     else:
         raise ValueError("crc_length must be 8 or 16")
 
-    remainder = _crc_remainder(info_bits, poly, crc_length)
+    padded = np.concatenate([info_bits, np.zeros(crc_length, dtype=int)])
+    remainder = _crc_remainder(padded, poly, crc_length)
     crc_bits = np.array(
         [(remainder >> (crc_length - 1 - i)) & 1 for i in range(crc_length)],
         dtype=int,
