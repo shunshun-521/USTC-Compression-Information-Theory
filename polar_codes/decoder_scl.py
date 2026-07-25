@@ -6,7 +6,7 @@ import importlib.util
 import math
 import os
 import numpy as np
-from decoder_sc import _permute_llr_for_decode, _frozen_to_info_pos, sc_decode_nonrecursive
+from decoder_sc import _permute_llr_for_decode, _frozen_to_info_pos, _sc_decode_layered, sc_decode_nonrecursive
 
 _REF_FUNCTION_PATH = os.path.join(os.path.dirname(__file__), '_ref_function.py')
 _spec = importlib.util.spec_from_file_location('polar_ref_function', _REF_FUNCTION_PATH)
@@ -161,10 +161,10 @@ class SCLDecoder:
         self.crc_length = crc_length
 
     def decode(self, llr_ch):
-        llr_ch = _permute_llr_for_decode(llr_ch)
         if self.list_size == 1:
-            u_hat = sc_decode_nonrecursive(llr_ch, self.info_pos, frozen_bit=0)
+            u_hat = _sc_decode_layered(llr_ch, self.frozen_bits)
             return u_hat, 0.0
+        llr_ch = _permute_llr_for_decode(llr_ch)
         return _scl_decode_core(llr_ch, self.info_pos, self.list_size, self.crc_length)
 
 
