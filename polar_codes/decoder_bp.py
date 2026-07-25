@@ -8,15 +8,8 @@ import numpy as np
 from encoder import build_generator_matrix, polar_encode
 
 
-def _f_min_sum(a, b, alpha):
-    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
-
-
 class BPDecoder:
-    """
-    BP 译码器。
-    在 u 节点与信道观测之间基于生成矩阵 G 的因子图进行 min-sum 消息传递。
-    """
+    """BP 译码器（基于生成矩阵因子图的 min-sum BP）。"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -26,75 +19,91 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.large = 1e6
+
         G = build_generator_matrix(N)
-        self.edges = []
-        for j in range(N):
-            for i in np.where(G[:, j])[0]:
-                self.edges.append((int(i), j))
+        i_idx, j_idx = np.where(G)
+        self.edge_i = i_idx.astype(np.int32)
+        self.edge_j = j_idx.astype(np.int32)
+        self.num_edges = len(self.edge_i)
+
         self.cn_edges = [[] for _ in range(N)]
         self.vn_edges = [[] for _ in range(N)]
-        for eidx, (i, j) in enumerate(self.edges):
+        for eidx in range(self.num_edges):
+            i = int(self.edge_i[eidx])
+            j = int(self.edge_j[eidx])
             self.cn_edges[j].append(eidx)
             self.vn_edges[i].append(eidx)
 
+        self._frozen_prior = np.zeros(N, dtype=np.float64)
+        for i in range(N):
+            if i in self.frozen_set:
+                self._frozen_prior[i] = self.large
+
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        N = self.N
-
-        vn_to_cn = np.zeros(len(self.edges), dtype=np.float64)
-        cn_to_vn = np.zeros(len(self.edges), dtype=np.float64)
+        vn_to_cn = np.zeros(self.num_edges, dtype=np.float64)
+        cn_to_vn = np.zeros(self.num_edges, dtype=np.float64)
+        vn_total = np.zeros(self.N, dtype=np.float64)
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            vn_prior = np.zeros(N, dtype=np.float64)
-            for i in range(N):
-                if i in self.frozen_set:
-                    vn_prior[i] = self.large
-                else:
-                    vn_prior[i] = 0.0
+            np.add.at(vn_total, self.edge_i, cn_to_vn)
+            for eidx in range(self.num_edges):
+                i = int(self.edge_i[eidx])
+                vn_to_cn[eidx] = self._frozen_prior[i] + vn_total[i] - cn_to_vn[eidx]
 
-            for eidx, (i, _) in enumerate(self.edges):
-                total = vn_prior[i]
-                for oe in self.vn_edges[i]:
-                    if oe != eidx:
-                        total += cn_to_vn[oe]
-                vn_to_cn[eidx] = total
-
-            for j in range(N):
+            for j in range(self.N):
                 edge_ids = self.cn_edges[j]
-                if not edge_ids:
+                ne = len(edge_ids)
+                if ne == 0:
                     continue
-                msgs = np.array([vn_to_cn[e] for e in edge_ids], dtype=np.float64)
-                all_msgs = np.concatenate(([llr_ch[j]], msgs))
+                ch = llr_ch[j]
+                ch_sign = 1.0 if ch >= 0 else -1.0
+                ch_abs = abs(ch)
+                prod_sign = ch_sign
+                min_abs = ch_abs
+                for eidx in edge_ids:
+                    m = vn_to_cn[eidx]
+                    s = 1.0 if m >= 0 else -1.0
+                    prod_sign *= s
+                    a = abs(m)
+                    if a < min_abs:
+                        min_abs = a
                 for k, eidx in enumerate(edge_ids):
-                    others = np.delete(all_msgs, k + 1)
-                    prod_sign = np.prod(np.sign(others + (others == 0)))
-                    min_abs = np.min(np.abs(others))
-                    cn_to_vn[eidx] = self.alpha * prod_sign * min_abs
+                    m = vn_to_cn[eidx]
+                    s = 1.0 if m >= 0 else -1.0
+                    a = abs(m)
+                    out_sign = prod_sign / s
+                    if a > min_abs:
+                        out_abs = min_abs
+                    elif ne == 1:
+                        out_abs = ch_abs
+                    else:
+                        out_abs = ch_abs
+                        for e2 in edge_ids:
+                            if e2 == eidx:
+                                continue
+                            a2 = abs(vn_to_cn[e2])
+                            if a2 < out_abs:
+                                out_abs = a2
+                    cn_to_vn[eidx] = self.alpha * out_sign * out_abs
 
-            u_hat = np.zeros(N, dtype=int)
-            for i in range(N):
-                total = 0.0 if i not in self.frozen_set else self.large
-                for eidx in self.vn_edges[i]:
-                    total += cn_to_vn[eidx]
-                u_hat[i] = 0 if total >= 0 else 1
-            for idx in self.frozen_set:
-                u_hat[idx] = 0
-
+            vn_total.fill(0.0)
+            u_hat = self._hard_decision(cn_to_vn)
             if self._early_stop(u_hat, llr_ch):
                 num_iters = it
                 break
 
-        u_hat = np.zeros(N, dtype=int)
-        for i in range(N):
-            total = 0.0 if i not in self.frozen_set else self.large
-            for eidx in self.vn_edges[i]:
-                total += cn_to_vn[eidx]
-            u_hat[i] = 0 if total >= 0 else 1
+        u_hat = self._hard_decision(cn_to_vn)
+        return u_hat, num_iters
+
+    def _hard_decision(self, cn_to_vn):
+        total = self._frozen_prior.copy()
+        np.add.at(total, self.edge_i, cn_to_vn)
+        u_hat = (total < 0).astype(int)
         for idx in self.frozen_set:
             u_hat[idx] = 0
-
-        return u_hat, num_iters
+        return u_hat
 
     def _early_stop(self, u_hat, llr_ch):
         x_hat = polar_encode(u_hat)
