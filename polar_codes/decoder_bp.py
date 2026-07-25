@@ -45,31 +45,31 @@ class BPDecoder:
         for iteration in range(self.max_iter):
             num_iters = iteration + 1
 
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
+            for l in range(n - 1, -1, -1):
+                s = 2 ** l
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx_i = i + k
                         idx_is = i + k + s
-                        L[idx_i, j - 1] = _minsum_f(
-                            R[idx_i, j] + L[idx_is, j + 1], L[idx_i, j + 1], alpha
+                        L[idx_i, l] = _minsum_f(
+                            R[idx_i, l + 1] + L[idx_is, l + 1], L[idx_i, l + 1], alpha
                         )
-                        L[idx_is, j - 1] = (
-                            _minsum_f(R[idx_i, j], L[idx_i, j + 1], alpha)
-                            + L[idx_is, j + 1]
+                        L[idx_is, l] = (
+                            _minsum_f(R[idx_i, l + 1], L[idx_i, l + 1], alpha)
+                            + L[idx_is, l + 1]
                         )
 
-            for j in range(0, n):
-                s = 2 ** j
+            for l in range(0, n):
+                s = 2 ** l
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx_i = i + k
                         idx_is = i + k + s
-                        R[idx_i, j + 1] = _minsum_f(
-                            R[idx_is, j] + L[idx_is, j + 1], R[idx_i, j], alpha
+                        R[idx_i, l + 1] = _minsum_f(
+                            R[idx_is, l] + L[idx_is, l + 1], R[idx_i, l], alpha
                         )
-                        R[idx_is, j + 1] = (
-                            _minsum_f(R[idx_i, j], L[idx_i, j + 1], alpha) + R[idx_is, j]
+                        R[idx_is, l + 1] = (
+                            _minsum_f(R[idx_i, l], L[idx_i, l + 1], alpha) + R[idx_is, l]
                         )
 
             total_llr = L[:, 0] + R[:, 0]
