@@ -52,12 +52,20 @@ def active_bit_level(i, n):
     return min(count, n)
 
 
+def _logdomain_sum(x, y):
+    """对数域加法。"""
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（精确 box-plus，向量化）。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
 
 
 def g_operation(La, Lb, u_hat):
