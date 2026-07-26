@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate
 
+from construction import ga_construction
+
 
 def save_results_csv(results, filepath):
     """将仿真结果保存为 CSV 文件。"""
