@@ -20,7 +20,7 @@ from channel import bpsk_modulate
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from encoder import polar_encode
-from run_exp1 import run_unit_tests
+from tests import run_unit_tests
 from simulation import run_simulation
 from utils import save_results_csv, plot_bler_curves, find_capacity_limit
 
