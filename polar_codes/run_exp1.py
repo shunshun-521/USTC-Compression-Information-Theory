@@ -18,18 +18,29 @@ os.makedirs('results', exist_ok=True)
 
 run_all_tests()
 
-N_LIST = [256, 512, 1024]
+N_LIST = [int(x) for x in os.environ.get('POLAR_N_LIST', '256,512,1024').split(',')]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_FRAMES = int(os.environ.get('POLAR_MAX_FRAMES', 100000))
 MIN_ERRORS = int(os.environ.get('POLAR_MIN_ERRORS', 100))
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(
+    float(os.environ.get('POLAR_EB_START', '0.0')),
+    float(os.environ.get('POLAR_EB_END', '5.5')),
+    float(os.environ.get('POLAR_EB_STEP', '0.25')),
+)
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, 'results/frozen_sets.txt')
 
 all_results = {}
 
 for N in N_LIST:
+    csv_path = f'results/exp1_sc_N{N}_R0.5.csv'
+    if os.environ.get('POLAR_SKIP_EXISTING') == '1' and os.path.exists(csv_path):
+        from utils import load_results_csv
+        label = f'SC, N={N}, K={N // 2}'
+        all_results[label] = load_results_csv(csv_path)
+        print(f"跳过已有结果: {csv_path}")
+        continue
     K = N // 2
     print(f"\n{'=' * 60}")
     print(f"SC 仿真: N={N}, K={K}, R={RATE}")
@@ -59,6 +70,13 @@ for N in N_LIST:
 
 shannon_db = find_capacity_limit(RATE)
 print(f"\nBPSK 信道容量限（R={RATE}）: Eb/N0 = {shannon_db:.3f} dB")
+
+for N in [256, 512, 1024]:
+    csv_path = f'results/exp1_sc_N{N}_R0.5.csv'
+    label = f'SC, N={N}, K={N // 2}'
+    if label not in all_results and os.path.exists(csv_path):
+        from utils import load_results_csv
+        all_results[label] = load_results_csv(csv_path)
 
 plot_bler_curves(
     all_results,
