@@ -47,22 +47,18 @@ class BPDecoder:
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = _bp_f(
-                        R[i, j] + L[i + s, j + 1], L[i, j + 1], self.alpha
-                    )
-                    L[i + s, j - 1] = _bp_f(
-                        R[i, j], L[i, j + 1], self.alpha
-                    ) + L[i + s, j + 1]
+                    Lj1 = L[i, j]
+                    Lj1p = L[i + s, j]
+                    L[i, j - 1] = _bp_f(R[i, j] + Lj1p, Lj1, self.alpha)
+                    L[i + s, j - 1] = _bp_f(R[i, j], Lj1, self.alpha) + Lj1p
 
             for j in range(0, n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    R[i, j + 1] = _bp_f(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j], self.alpha
-                    )
-                    R[i + s, j + 1] = _bp_f(
-                        R[i, j], L[i, j + 1], self.alpha
-                    ) + R[i + s, j]
+                    Rj = R[i, j]
+                    Lj1 = L[i, j + 1]
+                    R[i, j + 1] = _bp_f(R[i + s, j] + L[i + s, j + 1], Rj, self.alpha)
+                    R[i + s, j + 1] = _bp_f(Rj, Lj1, self.alpha) + R[i + s, j]
 
             for i in range(N):
                 total = L[i, 0] + R[i, 0]
