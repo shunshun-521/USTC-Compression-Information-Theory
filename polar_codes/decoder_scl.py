@@ -54,7 +54,7 @@ class _SCLPath:
 
     def __init__(self, N, n, llr_ch):
         self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
-        self.B = np.full((N, n + 1), np.nan)
+        self.B = np.zeros((N, n + 1), dtype=np.int8)
         self.L[:, 0] = llr_ch
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=int)

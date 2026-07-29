@@ -48,13 +48,15 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity_single(snr_linear):
-    """单点 BPSK 容量（bits/channel use）"""
+    """单点 BPSK 容量（bits/channel use），snr_linear = 2*R*Eb/N0"""
 
     def integrand(y):
-        return np.log2(1 + np.exp(-2 * snr_linear * y)) * np.exp(-y ** 2 / 2)
+        x = -snr_linear * (y ** 2)
+        log_term = np.logaddexp(0.0, x) / np.log(2.0)
+        return log_term * np.exp(-(y ** 2) / 2.0)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2 * np.pi)
+    val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
+    val /= np.sqrt(2.0 * np.pi)
     return 1.0 - val
 
 
@@ -68,16 +70,16 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=200):
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=500):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     lo, hi = eb_n0_range
-    caps = compute_bpsk_capacity(np.linspace(lo, hi, num_points), rate)
     eb_vals = np.linspace(lo, hi, num_points)
+    caps = compute_bpsk_capacity(eb_vals, rate)
     for i in range(len(caps) - 1):
-        if caps[i] <= rate <= caps[i + 1]:
+        if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
             t = (rate - caps[i]) / (caps[i + 1] - caps[i] + 1e-15)
-            return eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i])
-    return eb_vals[np.argmin(np.abs(caps - rate))]
+            return float(eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i]))
+    return float(eb_vals[np.argmin(np.abs(caps - rate))])
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,

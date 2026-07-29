@@ -126,7 +126,7 @@ def sc_decode_recursive(llr_ch, frozen_bits):
     n = int(math.log2(N))
 
     L = np.full((N, n + 1), np.nan, dtype=np.float64)
-    B = np.full((N, n + 1), np.nan)
+    B = np.zeros((N, n + 1), dtype=np.int8)
     L[:, 0] = llr_ch
     u_hat = np.zeros(N, dtype=int)
 
@@ -156,7 +156,7 @@ def sc_decode(llr_ch, frozen_bits):
     n = int(math.log2(N))
 
     L = np.full((N, n + 1), np.nan, dtype=np.float64)
-    B = np.full((N, n + 1), np.nan)
+    B = np.zeros((N, n + 1), dtype=np.int8)
     L[:, 0] = llr_ch
 
     u_hat = np.zeros(N, dtype=int)
