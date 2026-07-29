@@ -52,14 +52,21 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_capacity_per_snr(snr_linear):
-    """BPSK 信道容量（bits/channel use），snr_linear = 2R * Eb/N0."""
+def _bpsk_capacity_per_eb_n0_db(eb_n0_db, rate):
+    """BPSK 信道容量（bits/channel use）。"""
+    eb_lin = 10.0 ** (eb_n0_db / 10.0)
+    gamma = eb_lin
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-0.5 * y ** 2)
+        x = -2.0 * gamma * y * y
+        if x > -50:
+            log_term = np.log2(1.0 + np.exp(x))
+        else:
+            log_term = x / np.log(2.0)
+        return log_term * np.exp(-0.5 * y * y) / np.sqrt(2.0 * np.pi)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+    val, _ = integrate.quad(integrand, -15.0, 15.0, limit=200)
+    return 1.0 - val
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -67,11 +74,7 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     计算 BPSK 离散输入信道容量（bits/channel use）。
     """
     eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=np.float64)
-    capacities = []
-    for eb in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb / 10.0))
-        capacities.append(_bpsk_capacity_per_snr(snr))
-    return np.asarray(capacities)
+    return np.array([_bpsk_capacity_per_eb_n0_db(eb, rate) for eb in eb_n0_db_list])
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
