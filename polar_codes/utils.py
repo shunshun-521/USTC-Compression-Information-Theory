@@ -59,7 +59,7 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
         integrand = pdf * np.log2(1.0 + np.exp(-2.0 * snr * y_grid))
-        cap = np.trapz(integrand, y_grid)
+        cap = np.trapezoid(integrand, y_grid)
         capacities.append(1.0 - cap)
     return np.array(capacities)
 
