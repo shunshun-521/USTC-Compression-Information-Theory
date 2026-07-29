@@ -1,6 +1,6 @@
 """
 极化码编码器
-编码：x = u * F^{\otimes n}，利用蝶形结构实现 O(N log N) 复杂度
+编码 x = u * B_N * F^{\\otimes n}，利用蝶形结构实现 O(N log N) 复杂度
 """
 import numpy as np
 
@@ -17,7 +17,7 @@ def bit_reversal_permutation(N):
 def polar_encode(u):
     """
     极化码编码（蝶形结构，O(N log N)）。
-    编码完成后对码字做比特倒序置换，等价于 x = u * B_N * F^{\otimes n}。
+    编码完成后对码字做比特倒序置换，等价于 x = u * B_N * F^{\\otimes n}。
 
     参数：
         u: 长度为 N 的源序列（信息位 + 冻结位）

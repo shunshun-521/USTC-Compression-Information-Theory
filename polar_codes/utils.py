@@ -55,7 +55,14 @@ def _bpsk_capacity_per_snr(snr_linear):
     """BPSK 信道容量（bits/channel use）"""
 
     def integrand(y):
-        return np.log2(1 + np.exp(-2 * snr_linear * y)) * np.exp(-y ** 2 / 2)
+        val = -2 * snr_linear * y
+        if val > 700:
+            log_term = 0.0
+        elif val < -700:
+            log_term = -val * np.log(2)
+        else:
+            log_term = np.log2(1 + np.exp(val))
+        return log_term * np.exp(-y ** 2 / 2)
 
     val, _ = integrate.quad(integrand, -np.inf, np.inf)
     val /= np.sqrt(2 * np.pi)
