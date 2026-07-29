@@ -43,30 +43,30 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                sp = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                sp = 1 << j
                 for block in range(0, N, 2 * sp):
                     for i in range(block, block + sp):
-                        L_msg[i, j - 1] = self._f_min_sum(
-                            R_msg[i, j] + L_msg[i + sp, j + 1],
+                        L_msg[i, j] = self._f_min_sum(
+                            R_msg[i, j + 1] + L_msg[i + sp, j + 1],
                             L_msg[i, j + 1],
                         )
-                        L_msg[i + sp, j - 1] = (
-                            self._f_min_sum(R_msg[i, j], L_msg[i, j + 1])
+                        L_msg[i + sp, j] = (
+                            self._f_min_sum(R_msg[i, j + 1], L_msg[i, j + 1])
                             + L_msg[i + sp, j + 1]
                         )
 
-            for j in range(1, n + 1):
-                sp = 1 << (j - 1)
+            for j in range(0, n):
+                sp = 1 << j
                 for block in range(0, N, 2 * sp):
                     for i in range(block, block + sp):
-                        R_msg[i, j] = self._f_min_sum(
-                            R_msg[i + sp, j] + L_msg[i + sp, j + 1],
-                            R_msg[i, j - 1],
+                        R_msg[i, j + 1] = self._f_min_sum(
+                            R_msg[i + sp, j + 1] + L_msg[i + sp, j + 1],
+                            R_msg[i, j],
                         )
-                        R_msg[i + sp, j] = (
-                            self._f_min_sum(R_msg[i, j - 1], L_msg[i, j + 1])
-                            + R_msg[i + sp, j]
+                        R_msg[i + sp, j + 1] = (
+                            self._f_min_sum(R_msg[i, j], L_msg[i, j + 1])
+                            + R_msg[i + sp, j + 1]
                         )
 
             for i in range(N):
