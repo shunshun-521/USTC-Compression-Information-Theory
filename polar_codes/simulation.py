@@ -60,10 +60,17 @@ def run_simulation(
             if aux is not None and decoder_type == 'bp':
                 total_iters += aux
 
-            if not np.array_equal(u_hat[info_indices], payload):
-                num_errors += 1
+            decoded_payload = u_hat[info_indices]
+            if crc_length > 0:
+                decoded_info = decoded_payload[:K_info]
+                frame_error = not np.array_equal(decoded_info, info_bits)
+                num_bit_errors += np.sum(decoded_info != info_bits)
+            else:
+                frame_error = not np.array_equal(decoded_payload, info_bits)
+                num_bit_errors += np.sum(decoded_payload != info_bits)
 
-            num_bit_errors += np.sum(u_hat[info_indices] != payload)
+            if frame_error:
+                num_errors += 1
             num_frames += 1
 
         bler = num_errors / num_frames
