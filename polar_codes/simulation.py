@@ -57,7 +57,7 @@ def run_simulation(
             if crc_length > 0:
                 from decoder_scl import crc_encode
 
-                crc_bits = crc_encode(info_payload, crc_length)
+                crc_bits = crc_encode(info_payload, crc_length)[-crc_length:]
                 crc_pos = info_indices[k_info : k_info + crc_length]
                 u[crc_pos] = crc_bits
 
