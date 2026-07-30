@@ -61,17 +61,31 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_one_plus_exp(x):
+    """数值稳定的 log2(1 + exp(x))"""
+    x = np.asarray(x, dtype=np.float64)
+    return np.where(
+        x > 50,
+        x / np.log(2),
+        np.where(x < -50, 0.0, np.log2(1.0 + np.exp(x))),
+    )
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """计算 BPSK 离散输入信道容量（bits/channel use）"""
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        snr = (10 ** (eb_n0_db / 10.0)) * rate
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
+        def integrand(t):
+            return (
+                _log2_one_plus_exp(-2.0 * snr * t ** 2)
+                * np.exp(-snr * t ** 2)
+                / np.sqrt(np.pi)
+            )
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacities.append(1.0 - val / np.sqrt(2.0 * np.pi))
+        val, _ = integrate.quad(integrand, 0.0, 50.0, limit=200)
+        capacities.append(1.0 - val)
     return np.array(capacities)
 
 
@@ -80,14 +94,15 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     lo, hi = eb_n0_range
     grid = np.linspace(lo, hi, num_points)
     caps = compute_bpsk_capacity(grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(grid) - 1:
-        return float(grid[idx])
-    x0, x1 = grid[idx - 1], grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
-    if c1 == c0:
-        return float(grid[idx])
-    return float(x0 + (rate - c0) * (x1 - x0) / (c1 - c0))
+    diff = caps - rate
+    sign_changes = np.where(np.diff(np.sign(diff)))[0]
+    if len(sign_changes) > 0:
+        i = sign_changes[0]
+        x0, x1 = grid[i], grid[i + 1]
+        c0, c1 = caps[i], caps[i + 1]
+        return float(x0 + (rate - c0) * (x1 - x0) / (c1 - c0))
+    idx = int(np.argmin(np.abs(diff)))
+    return float(grid[idx])
 
 
 def plot_bler_curves(
