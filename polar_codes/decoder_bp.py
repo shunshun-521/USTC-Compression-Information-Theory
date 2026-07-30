@@ -47,31 +47,31 @@ class BPDecoder:
         u_hat = np.zeros(N, dtype=np.int8)
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx_u = i + k
-                        idx_v = i + k + s
-                        L[idx_u, j - 1] = _minsum_f(
-                            R[idx_u, j] + L[idx_v, j + 1], L[idx_u, j + 1], alpha
+            for layer in range(n - 1, -1, -1):
+                step = 1 << layer
+                for i in range(0, N, 2 * step):
+                    for k in range(step):
+                        u = i + k
+                        v = i + k + step
+                        L[u, layer] = _minsum_f(
+                            R[u, layer] + L[v, layer + 1], L[u, layer + 1], alpha
                         )
-                        L[idx_v, j - 1] = _minsum_f(
-                            R[idx_u, j], L[idx_u, j + 1], alpha
-                        ) + L[idx_v, j + 1]
+                        L[v, layer] = _minsum_f(
+                            R[u, layer], L[u, layer + 1], alpha
+                        ) + L[v, layer + 1]
 
-            for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx_u = i + k
-                        idx_v = i + k + s
-                        R[idx_u, j + 1] = _minsum_f(
-                            R[idx_v, j] + L[idx_v, j + 1], R[idx_u, j], alpha
+            for layer in range(n):
+                step = 1 << layer
+                for i in range(0, N, 2 * step):
+                    for k in range(step):
+                        u = i + k
+                        v = i + k + step
+                        R[u, layer + 1] = _minsum_f(
+                            R[v, layer] + L[v, layer + 1], R[u, layer], alpha
                         )
-                        R[idx_v, j + 1] = _minsum_f(
-                            R[idx_u, j], L[idx_u, j + 1], alpha
-                        ) + R[idx_v, j]
+                        R[v, layer + 1] = _minsum_f(
+                            R[u, layer], L[u, layer + 1], alpha
+                        ) + R[v, layer]
 
             for i in range(N):
                 if self.frozen_bits[i]:
@@ -82,7 +82,8 @@ class BPDecoder:
 
             x_hat = polar_encode(u_hat)
             br = bit_reversal_permutation(N)
-            hard_ch = (llr_ch[br] < 0).astype(np.int8)
+            inv_br = np.argsort(br)
+            hard_ch = (llr_ch[inv_br] < 0).astype(np.int8)
             if np.array_equal(x_hat, hard_ch):
                 num_iters = it
                 break
