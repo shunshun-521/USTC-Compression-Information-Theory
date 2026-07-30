@@ -66,6 +66,7 @@ class BPDecoder:
         self.M, self.N = self.H.shape
         self.cn_edges = [np.where(self.H[m])[0] for m in range(self.M)]
         self.vn_edges = [np.where(self.H[:, v])[0] for v in range(self.N)]
+        self._cn_deg = np.array([len(e) for e in self.cn_edges], dtype=int)
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)

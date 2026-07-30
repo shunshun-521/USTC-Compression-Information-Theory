@@ -40,7 +40,10 @@ DESIGN_EBN0 = 2.5
 MAX_ITER = 50
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
+MAX_FRAMES_BP = 500
+MIN_ERRORS_BP = 20
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE_BP = np.arange(2.0, 5.5, 0.5)
 
 for N in N_LIST:
     K = N // 2
@@ -85,7 +88,7 @@ for N in N_LIST:
     all_results["SCL (L=4)"] = r_scl
     save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
 
-    bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
+    bp_decoder = BPDecoder(N, frozen_bits, max_iter=20)
 
     def bp_d(llr_ch):
         u_hat, num_iters = bp_decoder.decode(llr_ch)
@@ -95,11 +98,11 @@ for N in N_LIST:
     r_bp = run_simulation(
         N,
         K,
-        EB_N0_RANGE,
+        EB_N0_RANGE_BP,
         bp_d,
         "bp",
-        MAX_FRAMES,
-        MIN_ERRORS,
+        MAX_FRAMES_BP,
+        MIN_ERRORS_BP,
         info_indices=info_idx,
     )
     all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
