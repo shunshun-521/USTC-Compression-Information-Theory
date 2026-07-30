@@ -129,8 +129,8 @@ def sc_decode(llr_ch, frozen_bits):
     N = len(llr_ch)
     n = int(np.log2(N))
 
-    L = np.full((N, n + 1), np.nan, dtype=np.float64)
-    C = np.full((N, n + 1), np.nan)
+    L = np.zeros((N, n + 1), dtype=np.float64)
+    C = np.zeros((N, n + 1), dtype=np.int8)
     L[:, 0] = llr_ch
 
     u_hat = np.zeros(N, dtype=int)

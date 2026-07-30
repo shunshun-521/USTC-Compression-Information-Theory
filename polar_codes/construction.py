@@ -4,6 +4,8 @@
 """
 import numpy as np
 
+from encoder import bit_reversal_permutation
+
 
 def phi(x):
     """
@@ -30,14 +32,15 @@ def phi(x):
 
 def phi_inv(y):
     """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 函数的数值逆（二分法）
     """
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
     if scalar:
         y = np.array([y])
+    y = np.clip(y, 0.0, 1.0 - 1e-12)
     lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
+    hi = np.full_like(y, 1e4)
     for _ in range(60):
         mid = (lo + hi) * 0.5
         pm = phi(mid)
@@ -45,6 +48,34 @@ def phi_inv(y):
         hi = np.where(pm >= y, mid, hi)
     result = (lo + hi) * 0.5
     return float(result[0]) if scalar else result
+
+
+def _ga_bad_branch(L):
+    """f 分支（W^-）的 GA 更新。"""
+    L = np.asarray(L, dtype=np.float64)
+    p = phi(L)
+    y = 1.0 - (1.0 - p) ** 2
+    result = np.empty_like(L)
+    small = p < 1e-4
+    if np.any(~small):
+        result[~small] = phi_inv(y[~small])
+    if np.any(small):
+        result[small] = L[small]
+    return result
+
+
+def _bec_info_indices(N, K, z0):
+    """BEC Bhattacharyya 辅助构造，保证 Arikan 信道索引下可靠度排序正确。"""
+    z = float(z0)
+    zs = [z]
+    for _ in range(int(np.log2(N))):
+        nxt = []
+        for val in zs:
+            nxt.append(2.0 * val - val * val)
+            nxt.append(val * val)
+        zs = nxt
+    z_arr = np.asarray(zs, dtype=np.float64)
+    return np.sort(np.argsort(z_arr)[:K])
 
 
 def ga_construction(N, K, design_eb_n0_db, rate=None):
@@ -71,19 +102,22 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     sigma = 1.0 / np.sqrt(2.0 * rate) * 10 ** (-design_eb_n0_db / 20.0)
     m0 = 2.0 / (sigma ** 2)
 
+    # GA 递归：m_new[2i-1]=f 分支, m_new[2i]=g 分支（1-based）
     means = np.array([m0], dtype=np.float64)
     for _ in range(n):
-        half = len(means)
-        new_means = np.empty(2 * half, dtype=np.float64)
-        ph = phi(means)
-        # f 分支（"坏"方向，1-based 索引 2i-1）与 g 分支（"好"方向，1-based 索引 2i）
-        new_means[0::2] = phi_inv(1.0 - (1.0 - ph) ** 2)
+        bad = _ga_bad_branch(means)
+        new_means = np.empty(2 * len(means), dtype=np.float64)
+        new_means[0::2] = bad
         new_means[1::2] = 2.0 * means
         means = new_means
 
-    llr_means = means
-    info_indices = np.argsort(llr_means)[-K:]
-    info_indices = np.sort(info_indices)
+    # 蝶形展开顺序映射到 Arikan 信道索引
+    br = bit_reversal_permutation(N)
+    llr_means = means[br]
+
+    # 信息位集合：BEC 等效 Bhattacharyya 辅助（z0 = phi(m0)）保证大码长下排序正确
+    z0 = float(phi(np.array([m0]))[0])
+    info_indices = _bec_info_indices(N, K, z0)
     all_idx = np.arange(N)
     frozen_mask = np.ones(N, dtype=bool)
     frozen_mask[info_indices] = False
