@@ -1,0 +1,11 @@
+/workspace/polar_codes/decoder_sc.py:49: RuntimeWarning: divide by zero encountered in log1p
+  return larger + np.log1p(-np.exp(smaller - larger))
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp3.py", line 113, in <module>
+    main()
+  File "/workspace/polar_codes/run_exp3.py", line 31, in main
+    run_unit_tests()
+  File "/workspace/polar_codes/run_exp3.py", line 25, in run_unit_tests
+    assert verify_sc_decoders(N=64, K=32, num_frames=100, eb_n0_db=10.0)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

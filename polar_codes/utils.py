@@ -4,8 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
-from scipy.special import erfc
 
 from channel import eb_n0_to_sigma
 from construction import ga_construction
@@ -65,15 +63,14 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """计算 BPSK 离散输入信道容量（bits/channel use）"""
     capacities = []
+    t = np.linspace(-50, 50, 200000)
+    pdf = np.exp(-t ** 2 / 2) / np.sqrt(2 * np.pi)
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            pdf = (1.0 / np.sqrt(2.0 * np.pi)) * np.exp(-0.5 * y ** 2)
-            return pdf * np.log2(1.0 + np.exp(-2.0 * snr * y))
-
-        cap, _ = integrate.quad(integrand, -10.0, 10.0, limit=200)
-        capacities.append(1.0 - cap)
+        snr = 10.0 ** (eb_n0_db / 10.0)
+        integrand = pdf * np.log2(1.0 + np.exp(-2.0 * snr * t ** 2))
+        cap = 1.0 - np.trapezoid(integrand, t)
+        capacities.append(float(cap))
     return np.array(capacities)
 
 

@@ -26,6 +26,19 @@ def f_operation(La, Lb):
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
+def f_boxplus(La, Lb):
+    """精确 log-domain box-plus（译码器内部使用）"""
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+
+
+def _logdomain_sum(x, y):
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    larger = np.maximum(x, y)
+    smaller = np.minimum(x, y)
+    return larger + np.log1p(np.exp(smaller - larger))
+
+
 def g_operation(La, Lb, u_hat):
     """
     g 运算：La 为下分支 LLR，Lb 为上分支 LLR。
@@ -80,7 +93,7 @@ def _sc_decode_core(likelihoods, frozen_set, N, n):
             branch_size = block_size // 2
             for j in range(l, N, block_size):
                 if j % block_size < branch_size:
-                    L[j, s + 1] = f_operation(L[j, s], L[j + branch_size, s])
+                    L[j, s + 1] = f_boxplus(L[j, s], L[j + branch_size, s])
                 else:
                     L[j, s + 1] = g_operation(
                         L[j, s],

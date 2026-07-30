@@ -8,7 +8,7 @@ import math
 from decoder_sc import (
     bit_reversed,
     bit_reversal_indices,
-    f_operation,
+    f_boxplus,
     g_operation,
     _active_llr_level,
     _active_bit_level,
@@ -91,7 +91,7 @@ class SCLDecoder:
             branch_size = block_size // 2
             for j in range(l, N, block_size):
                 if j % block_size < branch_size:
-                    L[j, s + 1] = f_operation(L[j, s], L[j + branch_size, s])
+                    L[j, s + 1] = f_boxplus(L[j, s], L[j + branch_size, s])
                 else:
                     L[j, s + 1] = g_operation(
                         L[j, s],
