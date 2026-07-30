@@ -1,0 +1,5 @@
+results/*.csv
+results/*.png
+results/*.pdf
+results/*.txt
+!results/.gitkeep
