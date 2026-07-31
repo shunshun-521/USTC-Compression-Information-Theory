@@ -61,8 +61,8 @@ os.makedirs('results', exist_ok=True)
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
+MAX_FRAMES = 20000
+MIN_ERRORS = 50
 EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 if __name__ == '__main__':
