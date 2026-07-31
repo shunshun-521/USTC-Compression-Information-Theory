@@ -11,9 +11,17 @@ def f_operation(La, Lb):
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
+def _safe_bit(b):
+    if b is None or (isinstance(b, float) and np.isnan(b)):
+        return 0
+    return int(b)
+
+
 def g_operation(La, Lb, u_hat):
     """g 运算：g(La, Lb, u_hat) = (1 - 2*u_hat) * La + Lb"""
     u_hat = np.asarray(u_hat)
+    if np.ndim(u_hat) == 0 and np.isnan(u_hat):
+        u_hat = 0
     return (1 - 2 * u_hat) * La + Lb
 
 
@@ -128,7 +136,7 @@ def _sc_decode_permuted(llr_ch, frozen_bits):
                     top_bit = B[j - branch_size, s + 1]
                     L[j, s + 1] = g_operation(top_llr, btm_llr, top_bit)
 
-        if l in frozen_set:
+        if i in frozen_set:
             B[l, n] = 0
         else:
             B[l, n] = 0 if L[l, n] >= 0 else 1
@@ -139,7 +147,9 @@ def _sc_decode_permuted(llr_ch, frozen_bits):
                 branch_size = block_size >> 1
                 for j in range(l, -1, -block_size):
                     if j % block_size >= branch_size:
-                        B[j - branch_size, s - 1] = int(B[j, s]) ^ int(B[j - branch_size, s])
+                        B[j - branch_size, s - 1] = _safe_bit(B[j, s]) ^ _safe_bit(
+                            B[j - branch_size, s]
+                        )
                         B[j, s - 1] = B[j, s]
 
     return B[:, n].astype(int)
@@ -160,6 +170,7 @@ def sc_decode_nonrecursive(llr_ch, frozen_bits):
     frozen_set = set(np.where(frozen_bits)[0])
 
     for idx, l in enumerate(decode_order):
+        i = idx  # 自然顺序比特索引
         for s in llr_layer_vec[idx]:
             block_size = 1 << (s + 1)
             branch_size = block_size >> 1
@@ -171,7 +182,7 @@ def sc_decode_nonrecursive(llr_ch, frozen_bits):
                         L[j - branch_size, s], L[j, s], B[j - branch_size, s + 1]
                     )
 
-        if l in frozen_set:
+        if i in frozen_set:
             B[l, n] = 0
         else:
             B[l, n] = 0 if L[l, n] >= 0 else 1
@@ -181,7 +192,9 @@ def sc_decode_nonrecursive(llr_ch, frozen_bits):
             branch_size = block_size >> 1
             for j in range(l, -1, -block_size):
                 if j % block_size >= branch_size:
-                    B[j - branch_size, s - 1] = int(B[j, s]) ^ int(B[j - branch_size, s])
+                    B[j - branch_size, s - 1] = _safe_bit(B[j, s]) ^ _safe_bit(
+                        B[j - branch_size, s]
+                    )
                     B[j, s - 1] = B[j, s]
 
     return B[:, n].astype(int)
@@ -204,8 +217,10 @@ def sc_decode(llr_ch, frozen_bits):
     """
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
     N = len(llr_ch)
-    llr_perm = _permute_channel_llr(llr_ch, N)
-    return sc_decode_nonrecursive(llr_perm, frozen_bits)
+    n = int(math.log2(N))
+    br = [_bit_reversed(i, n) for i in range(N)]
+    B_out = _sc_decode_permuted(llr_ch, frozen_bits)
+    return B_out[br]
 
 
 def sc_decode_recursive_wrapped(llr_ch, frozen_bits):

@@ -8,10 +8,12 @@ import math
 from decoder_sc import (
     f_operation,
     g_operation,
+    sc_decode,
     _bit_reversed,
     _active_llr_level,
     _active_bit_level,
     _permute_channel_llr,
+    _safe_bit,
 )
 
 
@@ -57,7 +59,7 @@ class _SCLPath:
     """单条 SCL 译码路径"""
 
     def __init__(self, N, n):
-        self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
+        self.L = np.zeros((N, n + 1), dtype=np.float64)
         self.B = np.full((N, n + 1), np.nan)
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=int)
@@ -99,7 +101,7 @@ class SCLDecoder:
             branch_size = block_size >> 1
             for j in range(l, -1, -block_size):
                 if j % block_size >= branch_size:
-                    path.B[j - branch_size, s - 1] = int(path.B[j, s]) ^ int(
+                    path.B[j - branch_size, s - 1] = _safe_bit(path.B[j, s]) ^ _safe_bit(
                         path.B[j - branch_size, s]
                     )
                     path.B[j, s - 1] = path.B[j, s]
@@ -114,6 +116,11 @@ class SCLDecoder:
         返回 (u_hat, pm)
         """
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+
+        if self.list_size == 1:
+            u_hat = sc_decode(llr_ch, self.frozen_bits)
+            return u_hat, 0.0
+
         llr_perm = _permute_channel_llr(llr_ch, self.N)
 
         paths = [_SCLPath(self.N, self.n)]
@@ -127,7 +134,7 @@ class SCLDecoder:
                 self._update_llrs(path, l)
                 llr_val = path.L[l, self.n]
 
-                if l in self.frozen_set:
+                if i in self.frozen_set:
                     u_dec = 0
                     new_pm = path.pm + self._path_metric_penalty(llr_val, 0)
                     candidates.append((new_pm, path, u_dec))
@@ -167,5 +174,5 @@ class SCLDecoder:
         else:
             best = min(paths, key=lambda p: p.pm)
 
-        u_natural = best.u_hat.astype(int)
+        u_natural = best.u_hat[self.decode_order].astype(int)
         return u_natural, best.pm
