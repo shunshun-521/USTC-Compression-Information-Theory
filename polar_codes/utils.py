@@ -54,17 +54,25 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - (1/pi) * int_0^inf log2(1 + exp(-SNR * t^2)) dt
+  SNR = 2 * R * Eb/N0_linear
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2 * rate * (10 ** (eb_n0_db / 10))
 
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+        def log2_1pe(x):
+            if x > 30:
+                return x / np.log(2)
+            if x < -30:
+                return 0.0
+            return np.log1p(np.exp(x)) / np.log(2)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+        def integrand(t):
+            return log2_1pe(-snr * t ** 2)
+
+        val, _ = integrate.quad(integrand, 0, 50)
+        capacities.append(1 - val / np.pi)
     return np.array(capacities)
 
 
@@ -92,7 +100,10 @@ def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
         bler = [max(r['bler'], 1e-7) for r in results]
         ax.semilogy(eb_n0, bler, 'o-', label=label, markersize=4)
 
-    if shannon_limit_db is not None:
+    if shannon_limit_db is not None and shannon_limit_db > min(
+        min(r['eb_n0_db'] for rs in results_dict.values() for r in rs) - 0.5,
+        -2,
+    ):
         ax.axvline(x=shannon_limit_db, color='gray', linestyle='--',
                    label=f'Capacity limit ({shannon_limit_db:.2f} dB)')
 

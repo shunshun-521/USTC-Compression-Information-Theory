@@ -26,9 +26,9 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 20000
-MIN_ERRORS = 50
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+MAX_FRAMES = 5000
+MIN_ERRORS = 30
+EB_N0_RANGE = np.arange(3.0, 8.5, 0.5)
 
 if __name__ == '__main__':
     run_unit_tests()
