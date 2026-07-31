@@ -53,38 +53,47 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-  C = 1 - E_y[log2(1 + exp(-2*s*y))]，s = SNR = 2R * Eb/N0
+    计算 BPSK 信道容量（bits/channel use）。
+    使用标准积分公式：C = (1/pi) * ∫_0^{pi/2} log2(1 + Es/N0 * sin^2(theta)) d(theta)
+    其中 Es/N0 = Eb/N0 * R（线性）
     """
     from scipy import integrate
 
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        eb_lin = 10 ** (eb_n0_db / 10.0)
-        snr = 2.0 * rate * eb_lin
+        es_n0 = 10 ** (eb_n0_db / 10.0) * rate
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2) / np.sqrt(2 * np.pi)
+        def integrand(theta):
+            return np.log(1.0 + es_n0 * np.sin(theta) ** 2) / np.pi
 
-        cap, _ = integrate.quad(integrand, -10, 10)
-        capacities.append(1.0 - cap)
+        cap, _ = integrate.quad(integrand, 0, np.pi / 2)
+        capacities.append(cap / np.log(2))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-5, 15), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.searchsorted(caps, rate)
-    if idx == 0:
-        return eb_grid[0]
-    if idx >= len(eb_grid):
-        return eb_grid[-1]
-    c0, c1 = caps[idx - 1], caps[idx]
-    e0, e1 = eb_grid[idx - 1], eb_grid[idx]
-    if c1 == c0:
-        return e0
-    return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
+    from scipy.optimize import brentq
+
+    def objective(eb_n0_db):
+        cap = compute_bpsk_capacity([eb_n0_db], rate)[0]
+        return cap - rate
+
+    try:
+        return brentq(objective, eb_n0_range[0], eb_n0_range[1])
+    except ValueError:
+        eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
+        caps = compute_bpsk_capacity(eb_grid, rate)
+        idx = np.searchsorted(caps, rate)
+        if idx == 0:
+            return eb_grid[0]
+        if idx >= len(eb_grid):
+            return eb_grid[-1]
+        c0, c1 = caps[idx - 1], caps[idx]
+        e0, e1 = eb_grid[idx - 1], eb_grid[idx]
+        if c1 == c0:
+            return e0
+        return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
