@@ -7,7 +7,7 @@ from encoder import bit_reversal_index, bit_reversal_permutation
 from decoder_sc import (
     _active_llr_level,
     _active_bit_level,
-    _upper_llr_minsum,
+    _upper_llr_exact,
     _lower_llr_minsum,
     _prepare_channel_llr,
     f_operation,
@@ -98,7 +98,7 @@ class SCLDecoder:
                 branch_size = block_size // 2
                 for j in range(l, N, block_size):
                     if j % block_size < branch_size:
-                        path.L[j, s + 1] = _upper_llr_minsum(
+                        path.L[j, s + 1] = _upper_llr_exact(
                             path.L[j, s], path.L[j + branch_size, s]
                         )
                     else:

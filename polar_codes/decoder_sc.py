@@ -51,6 +51,17 @@ def _active_bit_level(i, n):
     return min(count, n)
 
 
+def _logdomain_sum(x, y):
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
+def _upper_llr_exact(l1, l2):
+    """精确 box-plus（log-domain）"""
+    return _logdomain_sum(l1 + l2, 0.0) - _logdomain_sum(l1, l2)
+
+
 def _upper_llr_minsum(l1, l2):
     return float(f_operation(l1, l2))
 
@@ -141,7 +152,7 @@ def sc_decode(llr_ch, frozen_bits):
             branch_size = block_size // 2
             for j in range(l, N, block_size):
                 if j % block_size < branch_size:
-                    L[j, s + 1] = _upper_llr_minsum(L[j, s], L[j + branch_size, s])
+                    L[j, s + 1] = _upper_llr_exact(L[j, s], L[j + branch_size, s])
                 else:
                     L[j, s + 1] = _lower_llr_minsum(
                         L[j, s], L[j - branch_size, s], int(B[j - branch_size, s + 1])
