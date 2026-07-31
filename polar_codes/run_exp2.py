@@ -23,15 +23,17 @@ os.makedirs('results', exist_ok=True)
 
 run_unit_tests()
 
+_QUICK = os.environ.get('POLAR_QUICK', '0') == '1'
+
 N = 512
 RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+MAX_FRAMES = 3000 if _QUICK else 100000
+MIN_ERRORS = 30 if _QUICK else 100
+EB_N0_RANGE = np.arange(1.0, 5.5, 0.5) if _QUICK else np.arange(1.0, 5.5, 0.25)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
@@ -65,6 +67,8 @@ for L in L_LIST:
     )
     all_results[f'SCL (L={L})'] = results
     save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+    if L == 4:
+        save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 

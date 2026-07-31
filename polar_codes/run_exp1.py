@@ -21,12 +21,14 @@ os.makedirs('results', exist_ok=True)
 
 run_unit_tests()
 
-N_LIST = [256, 512, 1024]
+_QUICK = os.environ.get('POLAR_QUICK', '0') == '1'
+
+N_LIST = [256, 512] if _QUICK else [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+MAX_FRAMES = 5000 if _QUICK else 100000
+MIN_ERRORS = 30 if _QUICK else 100
+EB_N0_RANGE = np.arange(0.0, 5.5, 0.5) if _QUICK else np.arange(0.0, 5.5, 0.25)
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, 'results/frozen_sets.txt')
 
