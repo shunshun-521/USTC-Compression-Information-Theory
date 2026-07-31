@@ -155,7 +155,11 @@ class SCLDecoder:
             paths = new_paths[: self.list_size]
 
         if self.crc_length > 0:
-            valid = [p for p in paths if crc_check(p.u_hat, self.crc_length)]
+            info_positions = np.where(~self.frozen_bits)[0]
+            valid = [
+                p for p in paths
+                if crc_check(p.u_hat[info_positions], self.crc_length)
+            ]
             best = min(valid if valid else paths, key=lambda p: p.pm)
         else:
             best = min(paths, key=lambda p: p.pm)
