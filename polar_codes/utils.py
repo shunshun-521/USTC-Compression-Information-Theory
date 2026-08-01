@@ -51,17 +51,19 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = (1/pi) * integral_0^{pi/2} log2(1 + snr * sin^2(theta)) dtheta
+    其中 snr = 2 * R * 10^{Eb/N0/10}
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+        def integrand(theta):
+            s2 = np.sin(theta) ** 2
+            return np.log2(1.0 + snr * s2)
 
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf)
-        c = 1.0 - integral / np.sqrt(2.0 * np.pi)
-        capacities.append(c)
+        integral, _ = integrate.quad(integrand, 0, np.pi / 2)
+        capacities.append(integral / np.pi)
     return np.array(capacities)
 
 
