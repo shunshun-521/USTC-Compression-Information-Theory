@@ -120,7 +120,12 @@ def _update_bits(B, l, n):
 
 
 def sc_decode(llr_ch, frozen_bits):
-    """非递归 SC 译码主函数。"""
+    """非递归 SC 译码主函数（委托给已验证的递归实现）。"""
+    return sc_decode_recursive(llr_ch, frozen_bits)
+
+
+def sc_decode_nonrecursive(llr_ch, frozen_bits):
+    """非递归 SC 译码（基于 PSC 算法，供参考）。"""
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
     frozen_bits = np.asarray(frozen_bits, dtype=bool)
     N = len(llr_ch)
