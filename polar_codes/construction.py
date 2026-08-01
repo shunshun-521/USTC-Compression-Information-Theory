@@ -73,8 +73,8 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     for _ in range(n):
         m_new = np.zeros(2 * len(m), dtype=np.float64)
         phi_m = phi(m)
-        m_new[0::2] = 2.0 * m
-        m_new[1::2] = phi_inv(1.0 - (1.0 - phi_m) ** 2)
+        m_new[0::2] = phi_inv(1.0 - (1.0 - phi_m) ** 2)
+        m_new[1::2] = 2.0 * m
         m = m_new
 
     llr_means = m

@@ -2,10 +2,9 @@
 极化码 SC（串行抵消）译码器
 提供递归版本（参考实现）和非递归版本（高效实现）
 """
-import numpy as np
 import math
 
-from encoder import bit_reversal_permutation
+import numpy as np
 
 
 def f_operation(La, Lb):
@@ -51,11 +50,8 @@ def _active_bit_level(i, n):
 
 
 def _reorder_channel_llrs(llr_ch):
-    """将信道 LLR 重排为与蝶形编码因子图一致的顺序"""
-    N = len(llr_ch)
-    n = int(math.log2(N))
-    rev = bit_reversal_permutation(N)
-    return llr_ch[rev]
+    """信道 LLR 顺序与编码器因子图一致，无需额外重排"""
+    return np.asarray(llr_ch, dtype=np.float64)
 
 
 def sc_decode_recursive(llr, frozen_bits):
@@ -92,9 +88,7 @@ def precompute_sc_indices(N):
 
 
 def sc_decode(llr_ch, frozen_bits):
-    """
-    非递归 SC 译码主函数（Vangala 置换 SC 结构，min-sum 近似）。
-    """
+    """非递归 SC 译码主函数（Vangala 置换 SC 结构，min-sum 近似）"""
     llr_ch = np.asarray(llr_ch, dtype=np.float64)
     frozen_bits = np.asarray(frozen_bits, dtype=bool)
     N = len(llr_ch)

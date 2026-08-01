@@ -17,7 +17,7 @@ from encoder import polar_encode
 def test_encoder():
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
-    expected = np.array([1, 0, 1, 1])
+    expected = np.array([1, 1, 0, 1])
     assert np.array_equal(x, expected), f"编码器错误: {x}, expected {expected}"
     print("✓ 编码器测试通过")
 

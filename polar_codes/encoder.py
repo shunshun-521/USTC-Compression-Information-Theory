@@ -8,7 +8,6 @@ import numpy as np
 def bit_reversal_permutation(N):
     """返回长度 N 的比特倒序置换索引数组"""
     n = int(np.log2(N))
-    indices = np.arange(N)
     rev = np.zeros(N, dtype=int)
     for i in range(N):
         rev[i] = int(format(i, f"0{n}b")[::-1], 2)
@@ -17,54 +16,24 @@ def bit_reversal_permutation(N):
 
 def polar_encode(u):
     """
-    极化码编码（含比特倒序置换）。
+    极化码编码（蝶形结构，O(N log N)）。
 
-    参数：
-        u: 长度为 N 的源序列（信息位 + 冻结位）
-
-    返回：
-        x: 长度为 N 的码字
-
-    实现：蝶形（butterfly）递归结构
-        - 每层：相邻对 (u[i], u[i + step]) -> (u[i] XOR u[i+step], u[i+step])
-        - 共 log2(N) 层
-        - 最后做比特倒序置换（bit-reversal permutation）
+    采用与 SC 译码器匹配的因子图约定：蝶形 XOR 后直接输出码字，
+    比特倒序由译码器在译码顺序中处理。
     """
     u = np.array(u, dtype=int).copy()
     N = len(u)
-    n = int(np.log2(N))
-
-    for stage in range(n):
-        step = 1 << stage
-        for i in range(0, N, 2 * step):
-            for j in range(step):
-                u[i + j] ^= u[i + j + step]
-
-    rev = bit_reversal_permutation(N)
-    x = u[rev]
-    return x
+    n = N
+    while n > 1:
+        n_split = n // 2
+        for p in range(0, N, n):
+            for k in range(n_split):
+                u[p + k] ^= u[p + k + n_split]
+        n = n_split
+    return u
 
 
-def polar_encode_matrix(u):
-    """使用生成矩阵编码（用于验证）"""
-    N = len(u)
-    n = int(np.log2(N))
-    F = np.array([[1, 0], [1, 1]], dtype=int)
-    G = F.copy()
-    for _ in range(n - 1):
-        G = np.kron(G, F)
-    B = np.zeros((N, N), dtype=int)
-    rev = bit_reversal_permutation(N)
-    for i in range(N):
-        B[i, rev[i]] = 1
-    GN = (G @ B) % 2
-    return (u @ GN) % 2
-
-
-if __name__ == "__main__":
-    u = np.array([1, 0, 1, 1])
+def polar_encode_with_br(u):
+    """带比特倒序置换的编码（备用）"""
     x = polar_encode(u)
-    print("u =", u)
-    print("x =", x)
-    x_mat = polar_encode_matrix(u)
-    print("x (matrix) =", x_mat)
+    return x[bit_reversal_permutation(len(u))]
