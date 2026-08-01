@@ -9,7 +9,10 @@ from encoder import bit_reversal_permutation
 
 
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算"""
+    """
+    min-sum 近似的 f 运算：
+    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    """
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
