@@ -8,10 +8,16 @@ import math
 
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
-    """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    f 运算（boxplus，SC 译码标准 LLR 合并）。
+  """
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    La = np.clip(La, -30.0, 30.0)
+    Lb = np.clip(Lb, -30.0, 30.0)
+    ta = np.tanh(La / 2.0)
+    tb = np.tanh(Lb / 2.0)
+    prod = np.clip(ta * tb, -0.999999999, 0.999999999)
+    return 2.0 * np.arctanh(prod)
 
 
 def g_operation(La, Lb, u_hat):
