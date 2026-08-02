@@ -3,20 +3,14 @@
 基于因子图，使用 min-sum 近似，含早停机制
 """
 import numpy as np
+from decoder_sc import f_operation
 from encoder import polar_encode
-
-
-def _build_G(N):
-    G = np.array([[1]])
-    while G.shape[0] < N:
-        Z = np.zeros_like(G)
-        G = np.block([[G, Z], [G, G]])
-    return G.astype(int) % 2
 
 
 class BPDecoder:
     """
-    BP 译码器（基于极化码校验矩阵 H=G 的因子图）。
+    BP 译码器。
+    因子图有 n+1 列（列 0 到列 n），每列 N 个节点。
     """
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
@@ -26,11 +20,10 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self._large = 1e6
-        self.H = _build_G(N)
 
-    def _minsum(self, a, b):
-        sa, sb = np.sign(a), np.sign(b)
-        return self.alpha * sa * sb * np.minimum(np.abs(a), np.abs(b))
+    def _minsum_f(self, a, b):
+        """min-sum f 运算（带 alpha 修正）。"""
+        return self.alpha * f_operation(a, b)
 
     def decode(self, llr_ch):
         """
@@ -38,42 +31,43 @@ class BPDecoder:
         返回：(u_hat, num_iters)
         """
         N = self.N
-        H = self.H
-        M = N
-        llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        n = self.n
 
-        var_to_check = np.tile(llr_ch, (M, 1))
-        check_to_var = np.zeros((M, N))
+        L = np.zeros((N, n + 1))
+        R = np.zeros((N, n + 1))
+
+        L[:, n] = llr_ch
+        R[:, 0] = 0.0
+        R[self.frozen_bits, 0] = self._large
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
+            for j in range(n, 0, -1):
+                s = 1 << (j - 1)
+                for i in range(0, N, 2 * s):
+                    L[i, j - 1] = self._minsum_f(
+                        R[i, j] + L[i + s, j], L[i, j]
+                    )
+                    L[i + s, j - 1] = self._minsum_f(
+                        R[i, j], L[i, j]
+                    ) + L[i + s, j]
+
+            for j in range(0, n):
+                s = 1 << j
+                for i in range(0, N, 2 * s):
+                    R[i, j + 1] = self._minsum_f(
+                        R[i + s, j] + L[i + s, j + 1], R[i, j]
+                    )
+                    R[i + s, j + 1] = self._minsum_f(
+                        R[i, j], L[i, j + 1]
+                    ) + R[i + s, j]
+
             num_iters = it
 
-            for c in range(M):
-                idx = np.where(H[c])[0]
-                if len(idx) == 0:
-                    continue
-                msgs = var_to_check[c, idx] + check_to_var[c, idx]
-                for k, v in enumerate(idx):
-                    others = [msgs[j] for j in range(len(idx)) if j != k]
-                    if len(others) == 0:
-                        prod = 0.0
-                    elif len(others) == 1:
-                        prod = others[0]
-                    else:
-                        prod = self._reduce(others)
-                    check_to_var[c, v] = prod
-
-            for v in range(N):
-                checks = np.where(H[:, v])[0]
-                total = llr_ch[v] + np.sum(check_to_var[checks, v])
-                for c in checks:
-                    var_to_check[c, v] = total - check_to_var[c, v]
-
-            total_llr = llr_ch + np.sum(check_to_var, axis=0)
-            u_hat = np.where(total_llr >= 0, 0, 1).astype(int)
+            total = L[:, 0] + R[:, 0]
+            u_hat = np.where(total >= 0, 0, 1).astype(int)
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
@@ -81,10 +75,7 @@ class BPDecoder:
             if np.array_equal(x_hat, hard_ch):
                 break
 
+        total = L[:, 0] + R[:, 0]
+        u_hat = np.where(total >= 0, 0, 1).astype(int)
+        u_hat[self.frozen_bits] = 0
         return u_hat, num_iters
-
-    def _reduce(self, msgs):
-        result = msgs[0]
-        for m in msgs[1:]:
-            result = self._minsum(result, m)
-        return result
