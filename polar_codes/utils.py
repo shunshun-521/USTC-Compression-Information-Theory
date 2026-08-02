@@ -56,31 +56,36 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    使用标准 BPSK-AWGN 互信息数值积分。
     """
-    snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-    s = np.sqrt(snr)
+    gamma = 10 ** (eb_n0_db / 10.0)
 
-    def integrand(y):
-        return np.log2(1 + np.exp(-2 * s * y)) * np.exp(-y ** 2 / 2)
+    def integrand(t):
+        z = -4.0 * gamma * t * t
+        if z < -50:
+            return 0.0
+        if z > 50:
+            return t * t * np.exp(-t * t) / np.sqrt(np.pi) * z / np.log(2)
+        log_term = np.log1p(np.exp(z)) / np.log(2)
+        return np.exp(-t * t) * log_term / np.sqrt(np.pi)
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2 * np.pi)
-    return 1.0 - val
+    val, _ = integrate.quad(integrand, 0.0, 25.0, limit=200)
+    return max(0.0, 1.0 - val)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-30, 8), num_points=800):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = [compute_bpsk_capacity(eb, rate) for eb in eb_vals]
-    caps = np.array(caps)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx > 0 and idx < len(eb_vals) - 1:
-        # Linear interpolation
-        c0, c1 = caps[idx - 1], caps[idx + 1]
-        e0, e1 = eb_vals[idx - 1], eb_vals[idx + 1]
-        if c1 != c0:
-            return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
-    return eb_vals[idx]
+    caps = np.array([compute_bpsk_capacity(eb, rate) for eb in eb_vals])
+    diff = caps - rate
+    for i in range(len(diff) - 1):
+        if diff[i] >= 0 and diff[i + 1] < 0:
+            e0, e1 = eb_vals[i], eb_vals[i + 1]
+            c0, c1 = caps[i], caps[i + 1]
+            if c1 != c0:
+                return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
+    idx = np.argmin(np.abs(diff))
+    return float(eb_vals[idx])
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
