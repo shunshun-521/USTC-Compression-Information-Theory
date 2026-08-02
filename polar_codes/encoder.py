@@ -21,7 +21,7 @@ def bit_reversed(i, n):
 
 def polar_encode(u):
     """
-    极化码编码（蝶形结构，与 G_N = F^{\otimes n} 矩阵乘法等价）。
+    极化码编码（蝶形结构，与 G_N = F^{\\otimes n} 矩阵乘法等价）。
     """
     u = np.array(u, dtype=int).copy()
     N = len(u)
