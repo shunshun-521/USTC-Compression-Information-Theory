@@ -31,8 +31,9 @@ class BPDecoder:
         N = self.N
         LARGE = 1e6
 
-        L = np.zeros((N, n + 1))
-        R = np.zeros((N, n + 1))
+        # 列 0..n 为因子图节点，额外一列用于边界 j+1 访问
+        L = np.zeros((N, n + 2))
+        R = np.zeros((N, n + 2))
         L[:, n] = llr_ch
         R[:, 0] = 0.0
         R[self.frozen_idx, 0] = LARGE

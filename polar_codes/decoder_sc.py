@@ -50,6 +50,31 @@ def g_operation(La, Lb, u_hat):
     return (1 - 2 * u_hat) * La + Lb
 
 
+def precompute_sc_indices(N):
+    """
+    预计算非递归 SC 译码所需的辅助向量（参考接口）。
+    当前实现采用比特倒序 SC 算法，此函数保留供扩展使用。
+    """
+    n = int(np.log2(N))
+    lambda_offset = [2 ** i for i in range(n + 1)]
+    llr_layer_vec = []
+    bit_layer_vec = []
+    for phi in range(N):
+        llr_layers = []
+        psi = phi
+        while psi % 2 == 1:
+            llr_layers.append(int(np.log2(psi & -psi)))
+            psi >>= 1
+        llr_layer_vec.append(llr_layers)
+        bit_layers = []
+        psi = phi
+        while psi % 2 == 0 and psi > 0:
+            bit_layers.append(int(np.log2(psi & -psi)))
+            psi >>= 1
+        bit_layer_vec.append(bit_layers)
+    return lambda_offset, llr_layer_vec, bit_layer_vec
+
+
 def sc_decode_recursive(llr, frozen_bits):
     """
     递归 SC 译码（参考实现）。
