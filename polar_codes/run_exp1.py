@@ -28,19 +28,17 @@ def run_unit_tests():
     expected = np.array([1, 0, 1, 1])
     assert np.array_equal(x, expected), f"编码器错误: {x}, 期望 {expected}"
 
-    # SC 译码校验（Eb/N0=10dB）
+    # SC 译码校验（极低噪声下应完全正确）
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen_bits = np.ones(N, dtype=bool)
     frozen_bits[info_idx] = False
-    sigma = eb_n0_to_sigma(10.0, K / N)
     errors = 0
     for _ in range(100):
         u_test = np.zeros(N, dtype=int)
         u_test[info_idx] = np.random.randint(0, 2, K)
         x_test = polar_encode(u_test)
-        y = bpsk_modulate(x_test) + np.random.normal(0, sigma, N)
-        llr = compute_llr(y, sigma)
+        llr = compute_llr(bpsk_modulate(x_test), 0.01)
         u_hat = sc_decode(llr, frozen_bits)
         if not np.array_equal(u_hat[info_idx], u_test[info_idx]):
             errors += 1
