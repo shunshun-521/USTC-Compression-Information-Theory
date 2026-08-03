@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp2.py", line 29, in <module>
+    verify_scl_equals_sc()
+  File "/workspace/polar_codes/decoder_scl.py", line 164, in verify_scl_equals_sc
+    assert np.array_equal(u_sc, u_scl), "SCL(L=1) 与 SC 不等价"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: SCL(L=1) 与 SC 不等价
