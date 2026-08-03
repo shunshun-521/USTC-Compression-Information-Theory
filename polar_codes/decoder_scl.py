@@ -63,22 +63,23 @@ class PathState:
 
 
 def _decode_bit_llr(path, phi, frozen_bits, n):
-    """计算路径在位置 phi 的 LLR"""
+    """计算路径在位置 phi 的 LLR（已知前 phi 个比特）"""
     result = [0.0]
+    u_prefix = path.u_hat
 
     def decode_node(y, depth, node):
         if depth == n - 1:
             if node == phi:
                 result[0] = y[0]
             if node < phi:
-                return np.array([path.u_hat[node]], dtype=int)
+                return np.array([u_prefix[node]], dtype=int)
             return np.array([0], dtype=int)
 
         half = len(y) // 2
         ly, ry = y[:half], y[half:]
         arr1 = decode_node(f_operation(ly, ry), depth + 1, 2 * node)
-        decode_node(g_operation(ly, ry, arr1), depth + 1, 2 * node + 1)
-        return arr1
+        arr2 = decode_node(g_operation(ly, ry, arr1), depth + 1, 2 * node + 1)
+        return _xor_combine(arr1, arr2)
 
     decode_node(path.llr, 0, 0)
     return result[0]
