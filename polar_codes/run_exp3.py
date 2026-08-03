@@ -1,0 +1,159 @@
+"""
+实验三：BP 译码
+- 码长 N = 256, 512
+- 码率 R = 1/2
+- 最大迭代次数 50，min-sum 近似（alpha=0.9375），含早停
+- 与 SC、SCL（L=4）对比
+"""
+import numpy as np
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+from construction import ga_construction
+from encoder import polar_encode
+from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
+from decoder_sc import sc_decode
+from decoder_scl import SCLDecoder
+from decoder_bp import BPDecoder
+from simulation import run_simulation
+from utils import save_results_csv, plot_bler_curves, find_capacity_limit
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+def run_validation_tests():
+    """数值正确性校验"""
+    print("=" * 40)
+    print("运行单元测试...")
+    print("=" * 40)
+
+    u = np.array([1, 0, 1, 1])
+    x = polar_encode(u)
+    n = int(np.log2(len(u)))
+    F = np.array([[1, 0], [1, 1]])
+    G = F.copy()
+    for _ in range(n - 1):
+        G = np.kron(G, F)
+    B = np.zeros((len(u), len(u)), dtype=int)
+    for i in range(len(u)):
+        j = int(format(i, f'0{n}b')[::-1], 2)
+        B[i, j] = 1
+    assert np.array_equal(x, (u @ ((B @ G) % 2)) % 2), f"编码器错误: {x}"
+    print("  [PASS] 编码器校验")
+
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    rng = np.random.default_rng(0)
+    sigma = eb_n0_to_sigma(10.0, K / N)
+    errors = 0
+    for _ in range(50):
+        info_bits = rng.integers(0, 2, size=K)
+        u_sent = np.zeros(N, dtype=int)
+        u_sent[info_idx] = info_bits
+        x = polar_encode(u_sent)
+        s = bpsk_modulate(x)
+        y = awgn_channel(s, sigma, rng)
+        llr = compute_llr(y, sigma)
+        u_hat = sc_decode(llr, frozen_bits)
+        if not np.array_equal(u_hat[info_idx], info_bits):
+            errors += 1
+    assert errors == 0, f"SC 译码在 Eb/N0=10dB 下有 {errors} 个错误"
+    print("  [PASS] SC 译码无损校验")
+
+    print("所有单元测试通过!\n")
+
+
+os.makedirs('results', exist_ok=True)
+
+N_LIST = [256, 512]
+RATE = 0.5
+DESIGN_EBN0 = 2.5
+MAX_ITER = 50
+MAX_FRAMES = 100000
+MIN_ERRORS = 100
+EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+
+if __name__ == "__main__":
+    run_validation_tests()
+
+    for N in N_LIST:
+        K = N // 2
+        info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
+        frozen_bits = np.ones(N, dtype=int)
+        frozen_bits[info_idx] = 0
+
+        all_results = {}
+
+        print(f"\n{'=' * 60}")
+        print(f"SC 仿真: N={N}, K={K}")
+        print(f"{'=' * 60}")
+
+        def sc_d(llr_ch):
+            return sc_decode(llr_ch, frozen_bits), None
+
+        r_sc = run_simulation(
+            N, K, EB_N0_RANGE, sc_d, 'sc', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, frozen_bits=frozen_bits,
+        )
+        all_results['SC'] = r_sc
+        save_results_csv(r_sc, f'results/exp3_sc_N{N}_R0.5.csv')
+
+        print(f"\n{'=' * 60}")
+        print(f"SCL (L=4) 仿真: N={N}, K={K}")
+        print(f"{'=' * 60}")
+
+        def scl_d(llr_ch):
+            u, pm = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+            return u, None
+
+        r_scl = run_simulation(
+            N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, frozen_bits=frozen_bits,
+        )
+        all_results['SCL (L=4)'] = r_scl
+        save_results_csv(r_scl, f'results/exp3_scl_N{N}_R0.5.csv')
+
+        print(f"\n{'=' * 60}")
+        print(f"BP 仿真: N={N}, K={K}")
+        print(f"{'=' * 60}")
+
+        def bp_d(llr_ch):
+            bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
+            u_hat, num_iters = bp_decoder.decode(llr_ch)
+            return u_hat, num_iters
+
+        r_bp = run_simulation(
+            N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, frozen_bits=frozen_bits,
+        )
+        all_results[f'BP (max_iter={MAX_ITER})'] = r_bp
+        save_results_csv(r_bp, f'results/exp3_bp_N{N}_R0.5.csv')
+
+        shannon_db = find_capacity_limit(RATE)
+        plot_bler_curves(
+            all_results,
+            f'SC vs SCL vs BP (N={N}, R={RATE})',
+            f'results/fig3_bp_N{N}_bler.png',
+            shannon_limit_db=shannon_db,
+        )
+
+        eb_n0_vals = [r['eb_n0_db'] for r in r_bp]
+        avg_iters = [r['avg_iters'] for r in r_bp]
+
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(eb_n0_vals, avg_iters, 'o-', color='purple')
+        ax.set_xlabel('Eb/N0 (dB)')
+        ax.set_ylabel('Avg Iterations')
+        ax.set_title(f'BP Average Iterations (N={N}, max_iter={MAX_ITER})')
+        ax.grid(True, alpha=0.4)
+        plt.tight_layout()
+        plt.savefig(f'results/fig3_bp_N{N}_iters.png', dpi=150)
+        plt.savefig(f'results/fig3_bp_N{N}_iters.pdf')
+        plt.close()
+
+    print("\n实验三完成。")
