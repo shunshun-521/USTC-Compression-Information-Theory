@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -62,29 +61,27 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - E_y[log2(1 + exp(-SNR * y^2))], SNR = 2R * 10^(Eb/N0/10)
     """
+    y = np.linspace(-5.0, 5.0, 20000)
+    gauss = np.exp(-0.5 * y * y) / np.sqrt(2.0 * np.pi)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-        s = np.sqrt(snr)
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        log_term = np.logaddexp(0.0, -snr * y * y) / np.log(2.0)
+        val = np.trapezoid(log_term * gauss, y)
         capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
     idx = np.argmin(np.abs(caps - rate))
     if idx == 0 or idx == len(eb_grid) - 1:
         lo, hi = eb_n0_range
-        for _ in range(40):
+        for _ in range(50):
             mid = 0.5 * (lo + hi)
             cap = compute_bpsk_capacity([mid], rate)[0]
             if cap > rate:
