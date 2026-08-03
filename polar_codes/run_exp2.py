@@ -4,6 +4,8 @@
 import os
 import sys
 
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import matplotlib.pyplot as plt
 import numpy as np
 

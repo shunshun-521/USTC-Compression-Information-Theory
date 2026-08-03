@@ -70,7 +70,12 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * 10 ** (eb_n0_db / 10.0)
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+            val = -2.0 * snr * y
+            if val > 0:
+                log_term = np.log2(1.0 + np.exp(-val))
+            else:
+                log_term = np.log2(1.0 + np.exp(val)) - val / np.log(2)
+            return log_term * np.exp(-y ** 2 / 2.0)
 
         val, _ = integrate.quad(integrand, -np.inf, np.inf)
         val /= np.sqrt(2.0 * np.pi)
@@ -102,6 +107,8 @@ def plot_bler_curves(
     ylabel="BLER",
 ):
     """绘制 BLER-Eb/N0 曲线"""
+    import matplotlib
+    matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots(figsize=(8, 5))
