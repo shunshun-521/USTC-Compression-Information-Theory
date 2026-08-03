@@ -26,7 +26,6 @@ def run_simulation(
     rng = np.random.default_rng(seed)
     rate = K / N
     results = []
-    k_payload = K - crc_length
 
     if info_indices is None:
         info_indices = np.arange(K)
@@ -44,7 +43,7 @@ def run_simulation(
             if crc_length > 0:
                 from decoder_scl import crc_encode
 
-                payload = rng.integers(0, 2, k_payload - crc_length)
+                payload = rng.integers(0, 2, K - crc_length)
                 coded = crc_encode(payload, crc_length)
                 u[info_indices] = coded
             else:
@@ -68,13 +67,20 @@ def run_simulation(
             total_decode_time += t1 - t0
             num_frames += 1
 
-            compare_len = k_payload - crc_length if crc_length > 0 else k_payload
-            compare_idx = info_indices[:compare_len]
+            compare_len = K - crc_length if crc_length > 0 else K
+            sent_info = u[info_indices]
+            recv_info = u_hat[info_indices]
+            if crc_length > 0:
+                sent_cmp = sent_info[:compare_len]
+                recv_cmp = recv_info[:compare_len]
+            else:
+                sent_cmp = sent_info
+                recv_cmp = recv_info
 
-            frame_err = not np.array_equal(u_hat[compare_idx], u[compare_idx])
+            frame_err = not np.array_equal(recv_cmp, sent_cmp)
             if frame_err:
                 num_errors += 1
-            num_bit_errors += np.sum(u_hat[compare_idx] != u[compare_idx])
+            num_bit_errors += np.sum(recv_cmp != sent_cmp)
 
         bler = num_errors / num_frames
         ber = num_bit_errors / (num_frames * compare_len) if compare_len > 0 else 0.0
