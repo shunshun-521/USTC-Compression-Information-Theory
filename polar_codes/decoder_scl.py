@@ -4,7 +4,7 @@
 """
 import math
 import numpy as np
-from decoder_sc import f_operation, g_operation, _xor_combine, _prepare_llr
+from decoder_sc import f_operation, g_operation, _xor_combine, _prepare_llr, precompute_sc_indices
 
 
 CRC_POLYNOMIALS = {
@@ -41,28 +41,46 @@ def crc_check(bits, crc_length=8):
     return np.array_equal(bits[-crc_length:], expected[-crc_length:])
 
 
-def _compute_bit_llr(llr, n, phi, u_prefix, frozen_bits=None):
-    """计算第 phi 位的 LLR（已知前 phi 个比特）"""
+class PathState:
+    """单条路径的状态（HETSN 风格树状态）"""
+    __slots__ = ('pm', 'u_hat', 'node_values', 'llr', 'n')
+
+    def __init__(self, llr, n, N):
+        self.pm = 0.0
+        self.u_hat = np.zeros(N, dtype=int)
+        self.node_values = {}
+        self.llr = llr.copy()
+        self.n = n
+
+    def copy(self):
+        new = PathState.__new__(PathState)
+        new.pm = self.pm
+        new.u_hat = self.u_hat.copy()
+        new.node_values = dict(self.node_values)
+        new.llr = self.llr
+        new.n = self.n
+        return new
+
+
+def _decode_bit_llr(path, phi, frozen_bits, n):
+    """计算路径在位置 phi 的 LLR"""
     result = [0.0]
-    u_prefix = np.asarray(u_prefix, dtype=int)
 
     def decode_node(y, depth, node):
         if depth == n - 1:
             if node == phi:
                 result[0] = y[0]
             if node < phi:
-                return np.array([u_prefix[node]], dtype=int)
-            if frozen_bits is not None and frozen_bits[node]:
-                return np.array([0], dtype=int)
-            return np.array([1 if y[0] < 0 else 0], dtype=int)
+                return np.array([path.u_hat[node]], dtype=int)
+            return np.array([0], dtype=int)
 
         half = len(y) // 2
         ly, ry = y[:half], y[half:]
         arr1 = decode_node(f_operation(ly, ry), depth + 1, 2 * node)
-        arr2 = decode_node(g_operation(ly, ry, arr1), depth + 1, 2 * node + 1)
-        return _xor_combine(arr1, arr2)
+        decode_node(g_operation(ly, ry, arr1), depth + 1, 2 * node + 1)
+        return arr1
 
-    decode_node(llr, 0, 0)
+    decode_node(path.llr, 0, 0)
     return result[0]
 
 
@@ -84,38 +102,39 @@ class SCLDecoder:
     def decode(self, llr_ch):
         """主译码函数，返回 (u_hat, pm)"""
         llr = _prepare_llr(llr_ch, self.N)
-        active_paths = [{'pm': 0.0, 'u': np.zeros(self.N, dtype=int)}]
+        N = self.N
+        n = self.n
 
-        for phi in range(self.N):
-            new_paths = []
-            for path in active_paths:
-                llr_phi = _compute_bit_llr(
-                    llr, self.n, phi, path['u'][:phi], self.frozen_bits
-                )
+        paths = [PathState(llr, n, N)]
+
+        for phi in range(N):
+            candidates = []
+            for path in paths:
+                llr_phi = _decode_bit_llr(path, phi, self.frozen_bits, n)
 
                 if self.frozen_bits[phi]:
-                    new_u = path['u'].copy()
-                    new_u[phi] = 0
-                    new_pm = path['pm'] + self._pm_penalty(llr_phi, 0)
-                    new_paths.append({'pm': new_pm, 'u': new_u})
+                    new_path = path.copy()
+                    new_path.pm += self._pm_penalty(llr_phi, 0)
+                    new_path.u_hat[phi] = 0
+                    candidates.append(new_path)
                 else:
                     for bit in (0, 1):
-                        new_u = path['u'].copy()
-                        new_u[phi] = bit
-                        new_pm = path['pm'] + self._pm_penalty(llr_phi, bit)
-                        new_paths.append({'pm': new_pm, 'u': new_u})
+                        new_path = path.copy()
+                        new_path.pm += self._pm_penalty(llr_phi, bit)
+                        new_path.u_hat[phi] = bit
+                        candidates.append(new_path)
 
-            new_paths.sort(key=lambda p: p['pm'])
-            active_paths = new_paths[:self.list_size]
+            candidates.sort(key=lambda p: p.pm)
+            paths = candidates[:self.list_size]
 
         if self.crc_length > 0:
-            valid = [p for p in active_paths
-                     if crc_check(p['u'][self.info_indices], self.crc_length)]
-            best = min(valid if valid else active_paths, key=lambda p: p['pm'])
+            valid = [p for p in paths
+                     if crc_check(p.u_hat[self.info_indices], self.crc_length)]
+            best = min(valid if valid else paths, key=lambda p: p.pm)
         else:
-            best = min(active_paths, key=lambda p: p['pm'])
+            best = min(paths, key=lambda p: p.pm)
 
-        return best['u'], best['pm']
+        return best.u_hat, best.pm
 
 
 def verify_scl_equals_sc(N=64, K=32, seed=42):

@@ -54,32 +54,38 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - (1/ln2) ∫ ln(1 + exp(-2γx²)) exp(-x²/2) dx / √(2π)
+    其中 γ = R * Eb/N0（线性）
     """
     capacities = []
     for eb_n0_db in np.atleast_1d(eb_n0_db_list):
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        gamma = rate * (10 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+            val = -2.0 * gamma * y ** 2
+            if val > 500:
+                log_term = 0.0
+            elif val < -500:
+                log_term = val * np.log(2)
+            else:
+                log_term = np.log2(1.0 + np.exp(val))
+            return log_term * np.exp(-y ** 2 / 2.0)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -20, 20)
         val /= np.sqrt(2 * np.pi)
         capacities.append(1.0 - val)
     return np.array(capacities) if len(capacities) > 1 else capacities[0]
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=500):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i])
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
-        return eb_grid[idx]
-    return eb_grid[idx]
+    for i in range(len(eb_grid) - 1):
+        if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
+            t = (rate - caps[i]) / (caps[i + 1] - caps[i])
+            return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
+    return eb_grid[np.argmin(np.abs(caps - rate))]
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
