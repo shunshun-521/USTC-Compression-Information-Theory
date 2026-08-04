@@ -24,6 +24,8 @@ MAX_ITER = 50
 MAX_FRAMES = 10000
 MIN_ERRORS = 50
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.5)
+BP_MAX_FRAMES = 2000
+BP_MIN_ERRORS = 30
 
 if __name__ == "__main__":
     for N in N_LIST:
@@ -68,7 +70,7 @@ if __name__ == "__main__":
             return u_hat, num_iters
 
         r_bp = run_simulation(
-            N, K, EB_N0_RANGE, bp_d, "bp", MAX_FRAMES, MIN_ERRORS,
+            N, K, EB_N0_RANGE, bp_d, "bp", BP_MAX_FRAMES, BP_MIN_ERRORS,
             info_indices=info_idx, verbose=True,
         )
         all_results[f"BP (max_iter={MAX_ITER})"] = r_bp
