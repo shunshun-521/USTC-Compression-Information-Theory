@@ -1,0 +1,61 @@
+N=8, K=4: info=[3 5 6 7], frozen=[0 1 2 4]
+N=256 first 20 info_indices: [ 55  59  61  62  63  79  87  91  93  94  95 103 106 107 108 109 110 111
+ 113 114]
+All unit tests passed.
+
+============================================================
+SC 仿真: N=256, K=128, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=4.8906e-01 | Errors=50 | Frames=50 | AvgTime=2.68ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=4.8438e-01 | Errors=50 | Frames=50 | AvgTime=2.67ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.4641e-01 | Errors=50 | Frames=50 | AvgTime=2.72ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.6328e-01 | Errors=50 | Frames=50 | AvgTime=2.66ms
+  Eb/N0=2.00dB | BLER=9.6154e-01 | BER=4.0415e-01 | Errors=50 | Frames=52 | AvgTime=2.67ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=3.9328e-01 | Errors=50 | Frames=50 | AvgTime=2.68ms
+  Eb/N0=3.00dB | BLER=9.2593e-01 | BER=3.7587e-01 | Errors=50 | Frames=54 | AvgTime=2.67ms
+  Eb/N0=3.50dB | BLER=8.4746e-01 | BER=3.1329e-01 | Errors=50 | Frames=59 | AvgTime=2.71ms
+  Eb/N0=4.00dB | BLER=8.6207e-01 | BER=2.8367e-01 | Errors=50 | Frames=58 | AvgTime=2.72ms
+  Eb/N0=4.50dB | BLER=7.0423e-01 | BER=1.6087e-01 | Errors=50 | Frames=71 | AvgTime=2.69ms
+  Eb/N0=5.00dB | BLER=5.6818e-01 | BER=1.3778e-01 | Errors=50 | Frames=88 | AvgTime=2.73ms
+
+============================================================
+SC 仿真: N=512, K=256, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=4.9320e-01 | Errors=50 | Frames=50 | AvgTime=6.12ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=4.8891e-01 | Errors=50 | Frames=50 | AvgTime=6.07ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8102e-01 | Errors=50 | Frames=50 | AvgTime=6.11ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9320e-01 | Errors=50 | Frames=50 | AvgTime=6.08ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.7953e-01 | Errors=50 | Frames=50 | AvgTime=6.06ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.5328e-01 | Errors=50 | Frames=50 | AvgTime=6.10ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.4984e-01 | Errors=50 | Frames=50 | AvgTime=6.10ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.4828e-01 | Errors=50 | Frames=50 | AvgTime=6.08ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=3.9047e-01 | Errors=50 | Frames=50 | AvgTime=6.06ms
+  Eb/N0=4.50dB | BLER=8.9286e-01 | BER=3.2282e-01 | Errors=50 | Frames=56 | AvgTime=6.10ms
+  Eb/N0=5.00dB | BLER=6.1728e-01 | BER=2.0636e-01 | Errors=50 | Frames=81 | AvgTime=6.08ms
+
+============================================================
+SC 仿真: N=1024, K=512, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=4.9266e-01 | Errors=50 | Frames=50 | AvgTime=13.41ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=4.9098e-01 | Errors=50 | Frames=50 | AvgTime=13.42ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9645e-01 | Errors=50 | Frames=50 | AvgTime=13.48ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9328e-01 | Errors=50 | Frames=50 | AvgTime=14.03ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9102e-01 | Errors=50 | Frames=50 | AvgTime=13.50ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.8984e-01 | Errors=50 | Frames=50 | AvgTime=13.54ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.8355e-01 | Errors=50 | Frames=50 | AvgTime=13.54ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.7699e-01 | Errors=50 | Frames=50 | AvgTime=13.61ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.6051e-01 | Errors=50 | Frames=50 | AvgTime=13.69ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.4664e-01 | Errors=50 | Frames=50 | AvgTime=13.70ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.1695e-01 | Errors=50 | Frames=50 | AvgTime=13.60ms
+/workspace/polar_codes/utils.py:61: RuntimeWarning: overflow encountered in exp
+  return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+/workspace/polar_codes/utils.py:61: RuntimeWarning: invalid value encountered in scalar multiply
+  return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+/workspace/polar_codes/utils.py:63: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = integrate.quad(integrand, -np.inf, np.inf)
+
+BPSK 信道容量限（R=0.5）: Eb/N0 = 20.000 dB
+
+实验一完成。结果保存至 results/ 目录。
