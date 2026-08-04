@@ -48,6 +48,89 @@ def _get_up_bit(left_bit, right_bit):
     return temp.reshape(2 * length)
 
 
+def sc_decode_step(llr_matrix, bit_matrix, frozen_bits, split_pos):
+    """运行 SC 直到 split_pos 判决完成，返回矩阵与叶节点 LLR"""
+    N = bit_matrix.shape[1]
+    n = int(math.log2(N))
+    frozen_bits = np.asarray(frozen_bits, dtype=bool)
+    position = _get_resume_position(bit_matrix)
+
+    leaf_llr = 0.0
+    while np.isnan(bit_matrix[n][split_pos]):
+        span = 2 ** (position[2] - position[0])
+        up_llr = llr_matrix[position[0]][position[1]:position[1] + span]
+        half = span // 2
+        left_llr = llr_matrix[position[0] + 1][position[1]:position[1] + half]
+        left_bit = bit_matrix[position[0] + 1][position[1]:position[1] + half]
+        right_llr = llr_matrix[position[0] + 1][position[1] + half:position[1] + span]
+        right_bit = bit_matrix[position[0] + 1][position[1] + half:position[1] + span]
+        up_bit = bit_matrix[position[0]][position[1]:position[1] + span]
+
+        if _all_decided(up_bit):
+            position = _up(position)
+            continue
+        if _all_decided(right_bit):
+            bit_matrix[position[0]][position[1]:position[1] + span] = _get_up_bit(left_bit, right_bit)
+            continue
+        if _all_decided(right_llr):
+            if position[0] == position[2] - 1:
+                right_bit_pos = position[1] + 1
+                if frozen_bits[right_bit_pos]:
+                    val = 0
+                else:
+                    val = 0 if right_llr[0] >= 0 else 1
+                    if right_bit_pos == split_pos:
+                        leaf_llr = right_llr[0]
+                bit_matrix[position[0] + 1][position[1] + half:position[1] + span] = val
+            else:
+                position = _rightdown(position)
+            continue
+        if _all_decided(left_bit):
+            llr_matrix[position[0] + 1][position[1] + half:position[1] + span] = g_operation(
+                up_llr[:half], up_llr[half:], left_bit
+            )
+            continue
+        if not _all_decided(left_llr):
+            llr_matrix[position[0] + 1][position[1]:position[1] + half] = f_operation(
+                up_llr[:half], up_llr[half:]
+            )
+            continue
+        if position[0] == position[2] - 1:
+            left_bit_pos = position[1]
+            if frozen_bits[left_bit_pos]:
+                val = 0
+            else:
+                val = 0 if left_llr[0] >= 0 else 1
+                if left_bit_pos == split_pos:
+                    leaf_llr = left_llr[0]
+            bit_matrix[position[0] + 1][position[1]:position[1] + half] = val
+        else:
+            position = _leftdown(position)
+
+    return llr_matrix, bit_matrix, leaf_llr
+
+
+def _get_resume_position(bit_matrix):
+    N = bit_matrix.shape[1]
+    n = int(math.log2(N))
+    detect_array = bit_matrix[n]
+    detect = -1
+    for i in range(N):
+        if np.isnan(detect_array[i]):
+            detect = i - 1
+            break
+    if detect == -1:
+        return [0, 0, n, N]
+    if detect % 2 == 0:
+        return [n - 1, detect, n, N]
+    return [n - 1, detect - 1, n, N]
+
+
+def path_metric_update(llr_val, u_bit):
+    hard = 0 if llr_val >= 0 else 1
+    return 0.0 if u_bit == hard else abs(llr_val)
+
+
 def sc_decode_nonrecursive(llr_ch, frozen_bits):
     """非递归 SC 译码（矩阵化树遍历）"""
     y_llr = np.asarray(llr_ch, dtype=np.float64)

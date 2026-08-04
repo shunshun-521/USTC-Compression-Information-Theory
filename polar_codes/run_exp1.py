@@ -41,9 +41,9 @@ os.makedirs("results", exist_ok=True)
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 20000
-MIN_ERRORS = 50
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
+MAX_FRAMES = 5000
+MIN_ERRORS = 30
+EB_N0_RANGE = np.arange(1.0, 5.5, 1.0)
 
 run_unit_tests()
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt")

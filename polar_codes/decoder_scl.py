@@ -3,13 +3,12 @@
 支持 CRC 辅助（CA-SCL）
 """
 import math
+import copy
 import numpy as np
 from decoder_sc import (
-    f_operation,
-    g_operation,
-    sc_decode,
     sc_decode_nonrecursive,
-    precompute_sc_indices,
+    sc_decode_step,
+    path_metric_update,
 )
 
 
@@ -45,32 +44,6 @@ def crc_check(bits, crc_length=8):
     return _crc_remainder(bits, poly, crc_length) == 0
 
 
-def _phase_llr(phi, layer, llr_ch, bits, n):
-    if layer == n:
-        return llr_ch[phi]
-    step = 1 << layer
-    if (phi >> layer) & 1 == 0:
-        return f_operation(
-            _phase_llr(phi, layer + 1, llr_ch, bits, n),
-            _phase_llr(phi | (1 << layer), layer + 1, llr_ch, bits, n),
-        )
-    left = phi - step
-    return g_operation(
-        _phase_llr(left, layer + 1, llr_ch, bits, n),
-        _phase_llr(phi, layer + 1, llr_ch, bits, n),
-        bits[layer][left],
-    )
-
-
-def _propagate_bits(phi, bits, bit_layer_vec):
-    for layer in bit_layer_vec[phi]:
-        step = 1 << layer
-        beta = (phi // (2 * step)) * (2 * step)
-        i = phi % step
-        bits[layer + 1][beta + i] = bits[layer][beta + i] ^ bits[layer][beta + step + i]
-        bits[layer + 1][beta + step + i] = bits[layer][beta + step + i]
-
-
 class SCLDecoder:
     """SCL 译码器"""
 
@@ -81,11 +54,6 @@ class SCLDecoder:
         self.list_size = list_size
         self.crc_length = crc_length
         self.info_indices = np.where(~self.frozen_bits)[0]
-        _, _, self.bit_layer_vec = precompute_sc_indices(N)
-
-    def _metric_penalty(self, llr_val, u_bit):
-        hard = 0 if llr_val >= 0 else 1
-        return 0.0 if u_bit == hard else abs(llr_val)
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
@@ -94,38 +62,55 @@ class SCLDecoder:
         if L == 1:
             return sc_decode_nonrecursive(llr_ch, self.frozen_bits), 0.0
 
-        paths = [{"pm": 0.0, "u": np.zeros(N, dtype=int), "bits": np.zeros((n + 1, N), dtype=int)}]
+        llr0 = np.full((n + 1, N), np.nan, dtype=np.float64)
+        bit0 = np.full((n + 1, N), np.nan, dtype=np.float64)
+        llr0[0] = llr_ch
 
-        for phi in range(N):
-            candidates = []
-            for path in paths:
-                llr_val = _phase_llr(phi, 0, llr_ch, path["bits"], n)
-                choices = [0] if self.frozen_bits[phi] else [0, 1]
-                for u_bit in choices:
-                    bits_new = path["bits"].copy()
-                    u_new = path["u"].copy()
-                    u_new[phi] = u_bit
-                    bits_new[0][phi] = u_bit
-                    _propagate_bits(phi, bits_new, self.bit_layer_vec)
-                    pm = path["pm"] + self._metric_penalty(llr_val, u_bit)
-                    candidates.append({"pm": pm, "u": u_new, "bits": bits_new})
+        paths = [(0.0, llr0, bit0)]
+        split_positions = list(self.info_indices)
 
-            candidates.sort(key=lambda p: p["pm"])
-            paths = candidates[:L]
+        for split_pos in split_positions:
+            new_paths = []
+            for pm, llr_m, bit_m in paths:
+                llr_t, bit_t, leaf_llr = sc_decode_step(
+                    llr_m.copy(), bit_m.copy(), self.frozen_bits, split_pos
+                )
+                for u_bit in (0, 1):
+                    bit_c = bit_t.copy()
+                    bit_c[n][split_pos] = u_bit
+                    pm_new = pm + path_metric_update(leaf_llr, u_bit)
+                    new_paths.append((pm_new, llr_t.copy(), bit_c))
+            new_paths.sort(key=lambda x: x[0])
+            paths = new_paths[:L]
+
+        best_pm, llr_f, bit_f = min(paths, key=lambda x: x[0])
+        u_hat = sc_decode_nonrecursive(llr_ch, self.frozen_bits)
+        # 完成剩余译码：从最后状态继续
+        if not np.all(~np.isnan(bit_f[n])):
+            u_hat = np.nan_to_num(bit_f[n], nan=0).astype(int)
+        else:
+            _, bit_f, _ = sc_decode_step(llr_f, bit_f, self.frozen_bits, N - 1)
+            u_hat = np.nan_to_num(bit_f[n], nan=0).astype(int)
+
+        u_hat[self.frozen_bits] = 0
 
         if self.crc_length > 0:
-            valid = [p for p in paths if crc_check(p["u"][self.info_indices], self.crc_length)]
-            best = min(valid, key=lambda p: p["pm"]) if valid else min(paths, key=lambda p: p["pm"])
-        else:
-            best = min(paths, key=lambda p: p["pm"])
+            if not crc_check(u_hat[self.info_indices], self.crc_length):
+                for pm, _, bit_m in sorted(paths, key=lambda x: x[0]):
+                    uh = np.nan_to_num(bit_m[n], nan=0).astype(int)
+                    if crc_check(uh[self.info_indices], self.crc_length):
+                        u_hat = uh
+                        best_pm = pm
+                        break
 
-        return best["u"].copy(), best["pm"]
+        return u_hat, best_pm
 
 
 def verify_scl_equals_sc(N=64, K=32, eb_n0_db=5.0):
     from construction import ga_construction
-    from encoder import polar_encode_natural
+    from encoder import polar_encode
     from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
+    from decoder_sc import sc_decode, channel_llr_for_decode
 
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen_bits = np.ones(N, dtype=int)
@@ -136,8 +121,8 @@ def verify_scl_equals_sc(N=64, K=32, eb_n0_db=5.0):
     for _ in range(20):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        y = awgn_channel(bpsk_modulate(polar_encode_natural(u)), sigma, rng)
-        llr = compute_llr(y, sigma)
+        y = awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng)
+        llr = channel_llr_for_decode(compute_llr(y, sigma))
         u_sc = sc_decode(llr, frozen_bits)
         u_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
         assert np.array_equal(u_sc, u_scl)
