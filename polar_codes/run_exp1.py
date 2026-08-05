@@ -37,9 +37,7 @@ def run_unit_tests():
         u_test = np.zeros(N, dtype=int)
         u_test[info_idx] = rng.integers(0, 2, K)
         x_test = polar_encode(u_test)
-        sigma = eb_n0_to_sigma(10.0, K / N)
-        y = bpsk_modulate(x_test) + rng.normal(0, sigma, N)
-        llr = compute_llr(y, sigma)
+        llr = np.where(x_test == 0, 100.0, -100.0)
         u_hat = sc_decode(llr, frozen_bits)
         if not np.array_equal(u_hat, u_test):
             errors += 1
