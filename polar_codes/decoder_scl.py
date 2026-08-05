@@ -5,8 +5,10 @@
 import copy
 import math
 import numpy as np
-from decoder_sc import sc_decode, f_operation, g_operation, _all_computed
-from decoder_sc import _leftdown, _rightdown, _up, _get_up_bit
+from decoder_sc import (
+    sc_decode, f_operation, g_operation, _all_computed,
+    _leftdown, _rightdown, _up, _get_up_bit,
+)
 
 
 _CRC8_POLY = 0x07
@@ -45,21 +47,37 @@ def crc_check(bits, crc_length=8):
     return np.array_equal(bits, crc_encode(bits[:-crc_length], crc_length))
 
 
-def _pm_update(pm, llr, bit):
-    expected = 0 if llr >= 0 else 1
-    if bit != expected:
-        pm += abs(llr)
+def _pm_update(pm, llr_array, bit_array):
+    for llr, bit in zip(llr_array, bit_array):
+        expected = 0 if llr >= 0 else 1
+        if bit != expected:
+            pm += abs(llr)
     return pm
+
+
+def _get_up_loc(bit_matrix):
+    N = bit_matrix.shape[1]
+    n = int(math.log2(N))
+    detect = -1
+    for i in range(N):
+        if bit_matrix[n][i] not in (0, 1):
+            detect = i - 1
+            break
+    if detect == -1:
+        return [0, 0]
+    if detect % 2 == 0:
+        return [n - 1, detect]
+    return [n - 1, detect - 1]
 
 
 def _sc_step_to_bit(llr_matrix, bit_matrix, frozen_bits, target_bit):
     """运行 SC 直到 bit_matrix[n][target_bit] 被判决。"""
     N = bit_matrix.shape[1]
     n = int(math.log2(N))
-    frozen_val = 0
-    position = [0, 0, n, N]
+    loc = _get_up_loc(bit_matrix)
+    position = [loc[0], loc[1], n, N]
 
-    while not (bit_matrix[n][target_bit] == 0 or bit_matrix[n][target_bit] == 1):
+    while bit_matrix[n][target_bit] not in (0, 1):
         layer, col, max_layer, _ = position
         span = 2 ** (max_layer - layer)
         up_llr = llr_matrix[layer][col:col + span]
@@ -80,7 +98,7 @@ def _sc_step_to_bit(llr_matrix, bit_matrix, frozen_bits, target_bit):
                     if layer == max_layer - 1:
                         right_pos = col + 1
                         if frozen_bits[right_pos]:
-                            val = frozen_val
+                            val = 0
                         else:
                             val = 0 if right_llr[0] > 0 else 1
                         bit_matrix[layer + 1][col + half] = val
@@ -98,18 +116,18 @@ def _sc_step_to_bit(llr_matrix, bit_matrix, frozen_bits, target_bit):
                             if layer == max_layer - 1:
                                 left_pos = col
                                 if frozen_bits[left_pos]:
-                                    val = frozen_val
+                                    val = 0
                                 else:
                                     val = 0 if left_llr[0] >= 0 else 1
                                 bit_matrix[layer + 1][col] = val
                             else:
                                 position = _leftdown(position)
 
-    return llr_matrix, bit_matrix, llr_matrix[n][target_bit]
+    return llr_matrix, bit_matrix
 
 
 class SCLDecoder:
-    """SCL 译码器。"""
+    """SCL 译码器（在信息位处路径分裂）。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -119,62 +137,79 @@ class SCLDecoder:
         self.crc_length = crc_length
         self.info_indices = np.where(~self.frozen_bits)[0]
 
+    def _init_matrices(self, llr_ch):
+        llr_m = np.full((self.n + 1, self.N), np.nan)
+        bit_m = np.full((self.n + 1, self.N), np.nan)
+        llr_m[0] = llr_ch
+        return llr_m, bit_m
+
     def decode(self, llr_ch):
         if self.list_size == 1 and self.crc_length == 0:
-            u_hat = sc_decode(llr_ch, self.frozen_bits)
-            return u_hat, 0.0
+            return sc_decode(llr_ch, self.frozen_bits), 0.0
 
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         N, n = self.N, self.n
+        split_positions = list(self.info_indices)
 
-        def new_path():
-            llr_m = np.full((n + 1, N), np.nan)
-            bit_m = np.full((n + 1, N), np.nan)
-            llr_m[0] = llr_ch
-            return {"llr": llr_m, "bit": bit_m, "pm": 0.0}
+        llr_list = [self._init_matrices(llr_ch)[0]]
+        bit_list = [self._init_matrices(llr_ch)[1]]
+        pm_list = [0.0]
+        split_loc = 0
+        prev_pos = -1
 
-        paths = [new_path()]
+        while split_loc < len(split_positions):
+            target = split_positions[split_loc]
+            l_now = len(pm_list)
+            for i in range(l_now):
+                llr_m, bit_m = llr_list[i], bit_list[i]
+                pm = pm_list[i]
+                llr_m, bit_m = _sc_step_to_bit(llr_m, bit_m, self.frozen_bits, target)
+                llr_list[i], bit_list[i] = llr_m, bit_m
 
-        for phi in range(N):
-            new_paths = []
-            for path in paths:
-                llr_m = copy.deepcopy(path["llr"])
-                bit_m = copy.deepcopy(path["bit"])
-                llr_m, bit_m, llr_phi = _sc_step_to_bit(
-                    llr_m, bit_m, self.frozen_bits, phi
-                )
-                decided = int(bit_m[n][phi])
-
-                if self.frozen_bits[phi]:
-                    path["llr"] = llr_m
-                    path["bit"] = bit_m
-                    path["pm"] = _pm_update(path["pm"], llr_phi, 0)
-                    path["bit"][n][phi] = 0
-                    new_paths.append(path)
+                if self.frozen_bits[target]:
+                    pm_list[i] = _pm_update(
+                        pm,
+                        llr_m[n, prev_pos + 1:target + 1],
+                        bit_m[n, prev_pos + 1:target + 1],
+                    )
                 else:
-                    for bit in (decided, 1 - decided):
-                        p = {
-                            "llr": copy.deepcopy(llr_m),
-                            "bit": copy.deepcopy(bit_m),
-                            "pm": _pm_update(path["pm"], llr_phi, bit),
-                        }
-                        p["bit"][n][phi] = bit
-                        new_paths.append(p)
+                    llr_seg = llr_m[n, prev_pos + 1:target + 1]
+                    bit_seg = bit_m[n, prev_pos + 1:target + 1]
+                    pm_list[i] = _pm_update(pm, llr_seg, bit_seg)
+                    llr_list.append(llr_m.copy())
+                    bit_wrong = bit_m.copy()
+                    bit_wrong[n, target] = 1 - int(bit_m[n, target])
+                    bit_list.append(bit_wrong)
+                    wrong_seg = bit_wrong[n, prev_pos + 1:target + 1]
+                    pm_list.append(_pm_update(pm, llr_seg, wrong_seg))
 
-            new_paths.sort(key=lambda p: p["pm"])
-            paths = new_paths[: self.list_size]
+            if len(pm_list) > self.list_size:
+                keep = np.argsort(pm_list)[:self.list_size]
+                pm_list = [pm_list[i] for i in keep]
+                llr_list = [llr_list[i] for i in keep]
+                bit_list = [bit_list[i] for i in keep]
+
+            prev_pos = target
+            split_loc += 1
+
+        # 完成剩余比特
+        if prev_pos < N - 1:
+            for i in range(len(pm_list)):
+                llr_list[i], bit_list[i] = _sc_step_to_bit(
+                    llr_list[i], bit_list[i], self.frozen_bits, N - 1
+                )
 
         if self.crc_length > 0:
-            crc_ok = []
-            for p in paths:
-                info_bits = p["bit"][n][self.info_indices].astype(int)
-                if crc_check(info_bits, self.crc_length):
-                    crc_ok.append(p)
-            if crc_ok:
-                paths = crc_ok
+            order = np.argsort(pm_list)
+            for idx in order:
+                u_cand = bit_list[idx][n].astype(int)
+                if crc_check(u_cand[self.info_indices], self.crc_length):
+                    return u_cand, pm_list[idx]
+            best = order[0]
+            return bit_list[best][n].astype(int), pm_list[best]
 
-        best = min(paths, key=lambda p: p["pm"])
-        return best["bit"][n].astype(int), best["pm"]
+        best = int(np.argmin(pm_list))
+        return bit_list[best][n].astype(int), pm_list[best]
 
 
 if __name__ == "__main__":
