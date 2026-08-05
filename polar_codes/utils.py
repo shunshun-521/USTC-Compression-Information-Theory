@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 
 def save_results_csv(results, filepath):
@@ -59,19 +58,13 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + e^{-2*s*y})]
+    计算 BPSK-AWGN 连续输入信道容量上界（bits/channel use）。
+    C = log2(1 + SNR)，SNR = 2R * 10^{Eb/N0/10}
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * 10.0 ** (eb_n0_db / 10.0)
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        cap, _ = integrate.quad(integrand, -np.inf, np.inf)
-        cap /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - cap)
+        capacities.append(np.log2(1.0 + snr))
     return np.array(capacities)
 
 
