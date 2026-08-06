@@ -52,21 +52,23 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+  使用蒙特卡洛估计互信息。
     """
+    rng = np.random.default_rng(0)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        es_n0 = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        sigma_n = 1.0 / np.sqrt(es_n0)
+        num = 200000
+        x = rng.choice([-1.0, 1.0], size=num)
+        y = x + rng.normal(0.0, sigma_n, size=num)
+        llr = 2.0 * y / (sigma_n ** 2)
+        mi = 1.0 - np.mean(np.logaddexp(0.0, -np.abs(llr)) / np.log(2))
+        capacities.append(mi)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-10, 20), num_points=200):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
