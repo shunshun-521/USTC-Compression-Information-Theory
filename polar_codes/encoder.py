@@ -18,7 +18,7 @@ def bit_reversal_permutation(N):
 def polar_encode(u):
     """
     极化码编码（含比特倒序置换）。
-    等价于 x = u * B_N * F^{\otimes n}（模 2）。
+    等价于 x = u * B_N * F^{\\otimes n}（模 2）。
     """
     u = np.asarray(u, dtype=int).copy()
     N = len(u)
