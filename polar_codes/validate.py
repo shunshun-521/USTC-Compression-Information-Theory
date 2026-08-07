@@ -47,3 +47,7 @@ def run_unit_tests():
     print("[PASS] SCL L=1 等价于 SC")
 
     print("所有单元测试通过！")
+
+
+if __name__ == "__main__":
+    run_unit_tests()
