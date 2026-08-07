@@ -54,7 +54,7 @@ CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(1.0, 12.5, 0.5)
 
 if __name__ == '__main__':
     run_unit_tests()
@@ -89,6 +89,8 @@ if __name__ == '__main__':
         )
         all_results[f'SCL (L={L})'] = results
         save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+        if L == 8:
+            save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
