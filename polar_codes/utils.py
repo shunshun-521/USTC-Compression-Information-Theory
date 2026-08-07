@@ -4,6 +4,7 @@ import os
 
 import numpy as np
 from scipy import integrate
+from scipy.special import erfc
 import matplotlib.pyplot as plt
 
 from construction import ga_construction
@@ -63,17 +64,17 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - (1/ln2) ∫_0^∞ exp(-t) erfc(sqrt(t * Es/N0)) dt
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10))
+        es_n0 = rate * (10 ** (eb_n0_db / 10))
 
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+        def integrand(t):
+            return np.exp(-t) * erfc(np.sqrt(t * es_n0))
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+        val, _ = integrate.quad(integrand, 0, np.inf)
+        capacities.append(1 - val / np.log(2))
     return np.array(capacities)
 
 
