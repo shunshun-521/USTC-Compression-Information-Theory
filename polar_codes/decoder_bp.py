@@ -38,21 +38,21 @@ class BPDecoder:
         num_iters = self.max_iter
 
         for it in range(self.max_iter):
-            # 从右到左更新 L
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            # 从右到左更新 L（列 n-1 到列 0）
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        L[idx, j - 1] = self._f_minsum(
+                        L[idx, j] = self._f_minsum(
                             R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_minsum(
+                        L[idx + s, j] = self._f_minsum(
                             R[idx, j], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
-            # 从左到右更新 R
-            for j in range(1, n + 1):
+            # 从左到右更新 R（列 1 到列 n-1）
+            for j in range(1, n):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     for k in range(s):
