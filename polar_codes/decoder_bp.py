@@ -105,15 +105,16 @@ class BPDecoder:
                 l_out = np.concatenate([l1_out, l2_out])[ind_inv]
                 msg_l[ind_it][ind_s] = l_out
 
-            # 早停检查
-            total = msg_l[ind_it][0]
-            u_hat = np.zeros(self.N, dtype=np.int8)
-            u_hat[self.info_idx] = (total[self.info_idx] < 0).astype(np.int8)
-            x_hat = polar_encode(u_hat)
-            hard_ch = (llr_nat < 0).astype(np.int8)
-            if np.array_equal(x_hat, hard_ch):
-                num_iter = ind_it + 1
-                break
+            # 早停检查（每 5 次迭代检查一次以降低开销）
+            if (ind_it + 1) % 5 == 0 or ind_it == self.max_iter - 1:
+                total = msg_l[ind_it][0]
+                u_hat = np.zeros(self.N, dtype=np.int8)
+                u_hat[self.info_idx] = (total[self.info_idx] < 0).astype(np.int8)
+                x_hat = polar_encode(u_hat)
+                hard_ch = (llr_nat < 0).astype(np.int8)
+                if np.array_equal(x_hat, hard_ch):
+                    num_iter = ind_it + 1
+                    break
 
         total = msg_l[num_iter - 1][0]
         u_hat = np.zeros(self.N, dtype=np.int8)
