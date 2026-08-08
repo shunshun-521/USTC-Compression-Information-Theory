@@ -61,31 +61,45 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    Es/N0 = R * Eb/N0（线性）
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-(y ** 2) / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        es_n0 = rate * (10.0 ** (eb_n0_db / 10.0))
+        capacities.append(_capacity_from_es_n0(es_n0))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 8), num_points=500):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
+    for i in range(1, len(caps)):
+        if (caps[i - 1] - rate) * (caps[i] - rate) <= 0:
+            e0, e1 = eb_grid[i - 1], eb_grid[i]
+            c0, c1 = caps[i - 1], caps[i]
+            if c1 != c0:
+                return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
     idx = np.argmin(np.abs(caps - rate))
-    if idx > 0 and idx < len(eb_grid) - 1:
-        c0, c1 = caps[idx - 1], caps[idx + 1]
-        e0, e1 = eb_grid[idx - 1], eb_grid[idx + 1]
-        if c0 != c1:
-            return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
     return float(eb_grid[idx])
+
+
+def _capacity_from_es_n0(es_n0):
+    """由 Es/N0 计算 BPSK 信道容量"""
+    def log2_1_plus_exp(x):
+        x = np.asarray(x, dtype=np.float64)
+        out = np.empty_like(x)
+        pos = x >= 0
+        out[pos] = x[pos] / np.log(2) + np.log2(1.0 + np.exp(-x[pos]))
+        out[~pos] = np.log2(1.0 + np.exp(x[~pos]))
+        return out
+
+    def integrand(y):
+        return log2_1_plus_exp(-2.0 * es_n0 * np.abs(y)) * np.exp(-(y ** 2) / 2.0)
+
+    val, _ = integrate.quad(integrand, -50.0, 50.0, limit=200)
+    val /= np.sqrt(2.0 * np.pi)
+    return max(0.0, min(1.0, 1.0 - val))
 
 
 def plot_bler_curves(
