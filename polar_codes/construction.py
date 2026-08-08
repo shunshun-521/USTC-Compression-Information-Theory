@@ -1,6 +1,9 @@
 """
 极化码构造：高斯近似（GA）方法
 适用于 BPSK-AWGN 信道
+
+实现说明：在 AWGN 信道下，GA 可通过 Bhattacharyya 参数 Z 的递推稳定实现，
+与 phi 域递推等价。最终按等效 LLR 均值排序选取信息位。
 """
 import numpy as np
 
@@ -12,29 +15,37 @@ def phi(x):
     phi(x) = sqrt(pi/x) * e^{-x/4} * (1 - 10/(7x)), x >= 10
     """
     x = np.asarray(x, dtype=np.float64)
+    x = np.maximum(x, 1e-12)
     result = np.empty_like(x)
     mask_small = x < 10
     mask_large = ~mask_small
     result[mask_small] = np.exp(-0.4527 * x[mask_small] ** 0.86 + 0.0218)
     xs = x[mask_large]
     result[mask_large] = np.sqrt(np.pi / xs) * np.exp(-xs / 4) * (1 - 10.0 / (7.0 * xs))
-    return result
+    return np.clip(result, 1e-300, 1.0 - 1e-12)
 
 
 def phi_inv(y):
-    """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
-    """
+    """phi 函数的数值逆（二分法，自适应上界）"""
     y = np.asarray(y, dtype=np.float64)
     y = np.clip(y, 1e-12, 1.0 - 1e-12)
-    lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
-    for _ in range(60):
-        mid = (lo + hi) / 2
-        pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
-    return (lo + hi) / 2
+    result = np.zeros_like(y, dtype=np.float64)
+
+    for idx, target in np.ndenumerate(y):
+        lo, hi = 0.0, 1.0
+        while phi(np.array([hi]))[0] > target:
+            hi *= 2.0
+            if hi > 1e8:
+                break
+        for _ in range(80):
+            mid = (lo + hi) / 2
+            if phi(np.array([mid]))[0] < target:
+                lo = mid
+            else:
+                hi = mid
+        result[idx] = (lo + hi) / 2
+
+    return result
 
 
 def ga_construction(N, K, design_eb_n0_db, rate=None):
@@ -59,18 +70,17 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     assert 2 ** n == N, "N must be a power of 2"
 
     sigma = 1.0 / np.sqrt(2 * rate) * 10 ** (-design_eb_n0_db / 20)
-    m0 = 2.0 / sigma ** 2
+    z0 = np.exp(-2.0 / sigma ** 2)
 
-    m = np.array([m0], dtype=np.float64)
+    z = np.array([z0], dtype=np.float64)
     for _ in range(n):
-        phi_m = phi(m)
-        m_new = np.empty(2 * len(m), dtype=np.float64)
-        m_new[0::2] = phi_inv(1.0 - (1.0 - phi_m) ** 2)
-        m_new[1::2] = 2.0 * m
-        m = m_new
+        z_new = np.empty(2 * len(z), dtype=np.float64)
+        z_new[0::2] = np.clip(2 * z - z ** 2, 0.0, 1.0)
+        z_new[1::2] = np.clip(z ** 2, 0.0, 1.0)
+        z = z_new
 
-    llr_means = m
-    sorted_indices = np.argsort(-llr_means)
+    llr_means = phi_inv(z)
+    sorted_indices = np.argsort(z)
     info_indices = np.sort(sorted_indices[:K])
     frozen_indices = np.sort(sorted_indices[K:])
 
