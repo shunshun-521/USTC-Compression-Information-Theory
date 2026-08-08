@@ -27,7 +27,7 @@ class BPDecoder:
         self.R = np.zeros((N, self.n + 1), dtype=np.float64)
 
     def _update_L(self):
-        for j in range(self.n, 0, -1):
+        for j in range(self.n - 1, 0, -1):
             s = 1 << (j - 1)
             for i in range(0, self.N, 2 * s):
                 for k in range(s):
