@@ -53,9 +53,8 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    使用对称 BPSK（±1）在噪声方差 sigma^2 = 1/(2*snr) 下的互信息。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
@@ -63,14 +62,26 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         sigma = 1.0 / np.sqrt(snr)
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / (2.0 * sigma ** 2))
+            p_y = 0.5 * np.exp(-(y - 1.0) ** 2 / (2.0 * sigma ** 2))
+            p_y += 0.5 * np.exp(-(y + 1.0) ** 2 / (2.0 * sigma ** 2))
+            llr = 2.0 * y / (sigma ** 2)
+            x = -np.abs(llr)
+            if x > 20:
+                log_term = x / np.log(2.0)
+            elif x < -20:
+                log_term = 0.0
+            else:
+                log_term = np.log2(1.0 + np.exp(x))
+            return log_term * p_y
 
-        integral, _ = integrate.quad(
-            integrand, -np.inf, np.inf,
-            limit=200,
-        )
-        c = 1.0 - integral / (np.sqrt(2.0 * np.pi) * sigma)
-        capacities.append(c)
+        norm = integrate.quad(
+            lambda y: 0.5 * np.exp(-(y - 1.0) ** 2 / (2.0 * sigma ** 2))
+            + 0.5 * np.exp(-(y + 1.0) ** 2 / (2.0 * sigma ** 2)),
+            -20.0 * sigma, 20.0 * sigma, limit=200,
+        )[0]
+        integral, _ = integrate.quad(integrand, -20.0 * sigma, 20.0 * sigma, limit=200)
+        c = 1.0 - integral / norm
+        capacities.append(max(0.0, min(1.0, c)))
     return np.array(capacities)
 
 
