@@ -63,7 +63,7 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * 10 ** (eb_n0_db / 10.0)
         y_samples = np.linspace(-10, 10, 2000)
         py = np.exp(-0.5 * y_samples ** 2) / np.sqrt(2 * np.pi)
-        integrand = np.log2(1.0 + np.exp(-2.0 * snr * y_samples))
+        integrand = np.logaddexp(0, -2.0 * snr * y_samples) / np.log(2)
         c = 1.0 - np.sum(py * integrand) * (20.0 / len(y_samples))
         capacities.append(c)
     return np.array(capacities)
