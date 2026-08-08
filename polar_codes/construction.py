@@ -15,7 +15,6 @@ def phi(x):
     result = np.empty_like(x)
     small = x < 10
     large = ~small
-  # 避免 x=0
     xs = np.maximum(x[small], 1e-12)
     result[small] = np.exp(-0.4527 * xs ** 0.86 + 0.0218)
     xl = x[large]
