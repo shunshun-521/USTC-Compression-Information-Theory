@@ -3,16 +3,7 @@
 基于极化码校验矩阵 Tanner 图，min-sum 近似，含早停机制
 """
 import numpy as np
-from encoder import polar_encode, build_generator_matrix, gf2_inverse
-
-
-def _ms_g(a, b, alpha):
-    """min-sum 近似。"""
-    sa = np.sign(a)
-    sb = np.sign(b)
-    sa = sa if sa != 0 else 1.0
-    sb = sb if sb != 0 else 1.0
-    return alpha * sa * sb * min(abs(a), abs(b))
+from encoder import build_generator_matrix, gf2_inverse
 
 
 class BPDecoder:
@@ -34,36 +25,23 @@ class BPDecoder:
         for m in range(self.H.shape[0]):
             self._chk_edges.append(np.where(self.H[m])[0])
 
-    def _min_sum_bp(self, llr_ch):
-        """在码字空间执行 min-sum BP。"""
-        M, N = self.H.shape
-        R = np.zeros((M, N), dtype=np.float64)
-        Lq = llr_ch.copy()
-        alpha = self.alpha
-
-        for _ in range(self.max_iter):
-            for m, idx in enumerate(self._chk_edges):
-                if len(idx) == 0:
-                    continue
-                qvals = {n: Lq[n] - R[m, n] for n in idx}
-                for n in idx:
-                    others = [j for j in idx if j != n]
-                    if not others:
-                        R[m, n] = 0.0
-                        continue
-                    sign = 1.0
-                    min_abs = np.inf
-                    for j in others:
-                        v = qvals[j]
-                        if v < 0:
-                            sign *= -1.0
-                        min_abs = min(min_abs, abs(v))
-                    R[m, n] = alpha * sign * min_abs
-
-            for n in range(N):
-                Lq[n] = llr_ch[n] + np.sum(R[:, n])
-
-        return (Lq < 0).astype(int)
+    def _check_update(self, Lq, R, m, idx, alpha):
+        qvals = Lq[idx] - R[m, idx]
+        d = len(idx)
+        if d == 1:
+            R[m, idx[0]] = 0.0
+            return
+        abs_q = np.abs(qvals)
+        signs = np.sign(qvals)
+        signs[signs == 0] = 1.0
+        prod_sign = np.prod(signs)
+        for k in range(d):
+            sign_excl = prod_sign * signs[k]
+            if d == 2:
+                min_excl = abs_q[1 - k]
+            else:
+                min_excl = np.min(abs_q[np.arange(d) != k])
+            R[m, idx[k]] = alpha * sign_excl * min_excl
 
     def decode(self, llr_ch):
         """
@@ -71,45 +49,32 @@ class BPDecoder:
         返回：(u_hat, num_iters)
         """
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        num_iters = 0
-        u_hat = np.zeros(self.N, dtype=int)
-
         M, N = self.H.shape
         R = np.zeros((M, N), dtype=np.float64)
         Lq = llr_ch.copy()
         alpha = self.alpha
+        num_iters = 0
+        u_hat = np.zeros(N, dtype=int)
 
         for it in range(self.max_iter):
             num_iters = it + 1
 
             for m, idx in enumerate(self._chk_edges):
-                if len(idx) == 0:
-                    continue
-                qvals = {n: Lq[n] - R[m, n] for n in idx}
-                for n in idx:
-                    others = [j for j in idx if j != n]
-                    if not others:
-                        R[m, n] = 0.0
-                        continue
-                    sign = 1.0
-                    min_abs = np.inf
-                    for j in others:
-                        v = qvals[j]
-                        if v < 0:
-                            sign *= -1.0
-                        min_abs = min(min_abs, abs(v))
-                    R[m, n] = alpha * sign * min_abs
+                if len(idx) >= 2:
+                    self._check_update(Lq, R, m, idx, alpha)
 
-            for n in range(N):
-                Lq[n] = llr_ch[n] + np.sum(R[:, n])
+            Lq = llr_ch + np.sum(R, axis=0)
 
-            x_hat = (Lq < 0).astype(int)
-            u_hat = (x_hat @ self.Ginv) % 2
+            if it % 2 == 1 or it == self.max_iter - 1:
+                x_hat_bits = (Lq < 0).astype(int)
+                if np.all((self.H @ x_hat_bits) % 2 == 0):
+                    u_hat = (x_hat_bits @ self.Ginv) % 2
+                    u_hat[self.frozen_bits] = 0
+                    break
+
+        if num_iters == self.max_iter or not np.any(u_hat):
+            x_hat_bits = (Lq < 0).astype(int)
+            u_hat = (x_hat_bits @ self.Ginv) % 2
             u_hat[self.frozen_bits] = 0
-
-            x_enc = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_enc, hard_ch):
-                break
 
         return u_hat.astype(int), num_iters

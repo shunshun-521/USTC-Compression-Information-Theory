@@ -11,10 +11,15 @@ from encoder import bit_reversal_permutation
 
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（box-plus，对数域精确实现）。
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    La = np.clip(La, -20.0, 20.0)
+    Lb = np.clip(Lb, -20.0, 20.0)
+    prod = np.tanh(La / 2.0) * np.tanh(Lb / 2.0)
+    prod = np.clip(prod, -0.999999, 0.999999)
+    return 2.0 * np.arctanh(prod)
 
 
 def g_operation(La, Lb, u_hat):

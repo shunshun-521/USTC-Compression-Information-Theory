@@ -4,9 +4,9 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
-from construction import ga_construction
+from construction import ga_construction, phi
+from channel import eb_n0_to_sigma
 
 
 def save_results_csv(results, filepath):
@@ -61,23 +61,16 @@ def load_results_csv(filepath):
     return results
 
 
-def _bpsk_capacity(snr_linear):
-    """BPSK 信道容量（bits/channel use）。"""
-
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-y ** 2 / 2.0)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+def _bpsk_capacity_from_eb(eb_n0_db, rate):
+    """BPSK-AWGN 对称信道容量（利用 GA phi 函数）。"""
+    sigma = eb_n0_to_sigma(eb_n0_db, rate)
+    m0 = 2.0 / sigma ** 2
+    return 1.0 - phi(m0)
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """计算各 Eb/N0 下的 BPSK 容量。"""
-    caps = []
-    for eb in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb / 10.0))
-        caps.append(_bpsk_capacity(snr))
-    return np.array(caps)
+    return np.array([_bpsk_capacity_from_eb(eb, rate) for eb in eb_n0_db_list])
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
