@@ -24,7 +24,7 @@ MAX_ITER = 50
 MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 BP_MAX_FRAMES = 50000
-SC_MAX_FRAMES = 100000
+SC_MAX_FRAMES = 50000
 
 os.makedirs("results", exist_ok=True)
 
