@@ -3,10 +3,9 @@
 基于因子图，使用 min-sum 近似，含早停机制
 """
 import numpy as np
-import math
 
 from decoder_sc import f_operation, _permute_channel_llr
-from encoder import polar_encode, bit_reversal_permutation
+from encoder import polar_encode
 
 
 class BPDecoder:
@@ -14,12 +13,11 @@ class BPDecoder:
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
-        self.n = int(math.log2(N))
+        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=int)
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits == 1)[0]
-        self.br = bit_reversal_permutation(N)
         self.LARGE = 1e6
 
     def _f_minsum(self, a, b):
@@ -32,6 +30,7 @@ class BPDecoder:
 
         llr_nat = _permute_channel_llr(llr_ch, N)
 
+        # 列 0：信源端；列 n：信道端
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
 
@@ -45,28 +44,30 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            # 从右到左更新 L（列 n-1 到 0）
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        L[idx, j - 1] = self._f_minsum(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_minsum(
+                            R[idx, j + 1] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_minsum(
-                            R[idx, j], L[idx, j + 1]
+                        L[idx + s, j] = self._f_minsum(
+                            R[idx, j + 1], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
+            # 从左到右更新 R（列 1 到 n）
             for j in range(1, n + 1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
                         R[idx, j] = self._f_minsum(
-                            R[idx + s, j] + L[idx + s, j + 1], R[idx, j - 1]
+                            R[idx + s, j] + L[idx + s, j], R[idx, j - 1]
                         )
                         R[idx + s, j] = self._f_minsum(
-                            R[idx, j - 1], L[idx, j + 1]
+                            R[idx, j - 1], L[idx, j]
                         ) + R[idx + s, j]
 
             for i in range(N):
