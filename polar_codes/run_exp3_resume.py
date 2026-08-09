@@ -11,7 +11,7 @@ from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from decoder_bp import BPDecoder
 from simulation import run_simulation
-from utils import save_results_csv, plot_bler_curves, find_capacity_limit
+from utils import save_results_csv, plot_bler_curves, find_capacity_limit, load_results_csv
 
 try:
     import matplotlib.pyplot as plt
@@ -47,8 +47,8 @@ r_bp = run_simulation(
 save_results_csv(r_bp, f"results/exp3_bp_N{N}_R0.5.csv")
 
 all_results = {
-    "SC": __import__("utils").load_results_csv("results/exp3_sc_N256_R0.5.csv"),
-    "SCL (L=4)": __import__("utils").load_results_csv("results/exp3_scl_N256_R0.5.csv"),
+    "SC": load_results_csv("results/exp3_sc_N256_R0.5.csv"),
+    "SCL (L=4)": load_results_csv("results/exp3_scl_N256_R0.5.csv"),
     f"BP (max_iter={MAX_ITER})": r_bp,
 }
 shannon_db = find_capacity_limit(RATE)
