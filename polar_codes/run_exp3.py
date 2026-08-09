@@ -15,7 +15,7 @@ from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from simulation import run_simulation
 from tests_unit import run_unit_tests
-from utils import find_capacity_limit, plot_bler_curves, save_results_csv
+from utils import find_capacity_limit, load_results_csv, plot_bler_curves, save_results_csv
 
 os.makedirs('results', exist_ok=True)
 
@@ -37,39 +37,54 @@ for N in N_LIST:
 
     all_results = {}
 
-    def sc_d(llr_ch):
-        return sc_decode(llr_ch, frozen_bits), None
+    sc_file = f'results/exp3_sc_N{N}_R0.5.csv'
+    if os.path.exists(sc_file) and os.path.getsize(sc_file) > 100:
+        print(f"跳过 SC（已有 {sc_file}）")
+        r_sc = load_results_csv(sc_file)
+    else:
+        def sc_d(llr_ch):
+            return sc_decode(llr_ch, frozen_bits), None
 
-    r_sc = run_simulation(
-        N, K, EB_N0_RANGE, sc_d, 'sc', MAX_FRAMES, MIN_ERRORS,
-        info_indices=info_idx, verbose=True,
-    )
+        r_sc = run_simulation(
+            N, K, EB_N0_RANGE, sc_d, 'sc', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(r_sc, sc_file)
     all_results['SC'] = r_sc
-    save_results_csv(r_sc, f'results/exp3_sc_N{N}_R0.5.csv')
 
-    def scl_d(llr_ch):
-        u, pm = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
-        return u, None
+    scl_file = f'results/exp3_scl_N{N}_R0.5.csv'
+    if os.path.exists(scl_file) and os.path.getsize(scl_file) > 100:
+        print(f"跳过 SCL（已有 {scl_file}）")
+        r_scl = load_results_csv(scl_file)
+    else:
+        def scl_d(llr_ch):
+            u, pm = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+            return u, None
 
-    r_scl = run_simulation(
-        N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
-        info_indices=info_idx, verbose=True,
-    )
+        r_scl = run_simulation(
+            N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(r_scl, scl_file)
     all_results['SCL (L=4)'] = r_scl
-    save_results_csv(r_scl, f'results/exp3_scl_N{N}_R0.5.csv')
 
-    bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
+    bp_file = f'results/exp3_bp_N{N}_R0.5.csv'
+    if os.path.exists(bp_file) and os.path.getsize(bp_file) > 100:
+        print(f"跳过 BP（已有 {bp_file}）")
+        r_bp = load_results_csv(bp_file)
+    else:
+        bp_decoder = BPDecoder(N, frozen_bits, max_iter=MAX_ITER)
 
-    def bp_d(llr_ch):
-        u_hat, num_iters = bp_decoder.decode(llr_ch)
-        return u_hat, num_iters
+        def bp_d(llr_ch):
+            u_hat, num_iters = bp_decoder.decode(llr_ch)
+            return u_hat, num_iters
 
-    r_bp = run_simulation(
-        N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
-        info_indices=info_idx, verbose=True,
-    )
+        r_bp = run_simulation(
+            N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
+            info_indices=info_idx, verbose=True,
+        )
+        save_results_csv(r_bp, bp_file)
     all_results[f'BP (max_iter={MAX_ITER})'] = r_bp
-    save_results_csv(r_bp, f'results/exp3_bp_N{N}_R0.5.csv')
 
     shannon_db = find_capacity_limit(RATE)
     plot_bler_curves(

@@ -36,6 +36,7 @@ def run_unit_tests():
 
     rng = np.random.default_rng(456)
     scl = SCLDecoder(N, frozen_bits, list_size=1)
+    scl4 = SCLDecoder(N, frozen_bits, list_size=4)
     for _ in range(20):
         u_sent = np.zeros(N, dtype=int)
         u_sent[info_idx] = rng.integers(0, 2, K)
@@ -44,6 +45,8 @@ def run_unit_tests():
         u_sc = sc_decode(llr, frozen_bits)
         u_scl, _ = scl.decode(llr)
         assert np.array_equal(u_sc, u_scl), "单路径 SCL 与 SC 不等价"
+        u_scl4, _ = scl4.decode(llr)
+        assert np.array_equal(u_sc, u_scl4), "SCL L=4 与 SC 不等价（无噪）"
 
     print("所有单元测试通过。")
 

@@ -14,6 +14,7 @@ from simulation import run_simulation
 from tests_unit import run_unit_tests
 from utils import (
     find_capacity_limit,
+    load_results_csv,
     plot_bler_curves,
     save_frozen_set_info,
     save_results_csv,
@@ -36,6 +37,13 @@ all_results = {}
 
 for N in N_LIST:
     K = N // 2
+    outfile = f'results/exp1_sc_N{N}_R0.5.csv'
+    label = f'SC, N={N}, K={K}'
+    if os.path.exists(outfile) and os.path.getsize(outfile) > 100:
+        print(f"跳过 N={N}（已有 {outfile}）")
+        all_results[label] = load_results_csv(outfile)
+        continue
+
     print(f"\n{'=' * 60}")
     print(f"SC 仿真: N={N}, K={K}, R={RATE}")
     print(f"{'=' * 60}")
@@ -59,9 +67,8 @@ for N in N_LIST:
         verbose=True,
     )
 
-    label = f'SC, N={N}, K={K}'
     all_results[label] = results
-    save_results_csv(results, f'results/exp1_sc_N{N}_R0.5.csv')
+    save_results_csv(results, outfile)
 
 shannon_db = find_capacity_limit(RATE)
 print(f"\nBPSK 信道容量限（R={RATE}）: Eb/N0 = {shannon_db:.3f} dB")

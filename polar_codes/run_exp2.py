@@ -14,7 +14,7 @@ from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from simulation import run_simulation
 from tests_unit import run_unit_tests
-from utils import find_capacity_limit, plot_bler_curves, save_results_csv
+from utils import find_capacity_limit, load_results_csv, plot_bler_curves, save_results_csv
 
 os.makedirs('results', exist_ok=True)
 
@@ -41,14 +41,26 @@ def sc_decoder(llr_ch):
     return sc_decode(llr_ch, frozen_bits), None
 
 
-results_sc = run_simulation(
-    N, K, EB_N0_RANGE, sc_decoder, 'sc',
-    MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
-)
+sc_file = f'results/exp2_sc_N{N}_R0.5.csv'
+if os.path.exists(sc_file) and os.path.getsize(sc_file) > 100:
+    print(f"跳过 SC 基线（已有 {sc_file}）")
+    results_sc = load_results_csv(sc_file)
+else:
+    results_sc = run_simulation(
+        N, K, EB_N0_RANGE, sc_decoder, 'sc',
+        MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
+    )
+    save_results_csv(results_sc, sc_file)
 all_results['SC (L=1)'] = results_sc
-save_results_csv(results_sc, f'results/exp2_sc_N{N}_R0.5.csv')
 
 for L in L_LIST:
+    scl_file = f'results/exp2_scl_L{L}_N{N}_R0.5.csv'
+    label = f'SCL (L={L})'
+    if os.path.exists(scl_file) and os.path.getsize(scl_file) > 100:
+        print(f"跳过 SCL L={L}（已有 {scl_file}）")
+        all_results[label] = load_results_csv(scl_file)
+        continue
+
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
 
     def scl_decoder(llr_ch, _L=L):
@@ -59,9 +71,10 @@ for L in L_LIST:
         N, K, EB_N0_RANGE, scl_decoder, 'scl',
         MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True,
     )
-    label = f'SCL (L={L})'
     all_results[label] = results
-    save_results_csv(results, f'results/exp2_scl_L{L}_N{N}_R0.5.csv')
+    save_results_csv(results, scl_file)
+    if L == 4:
+        save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
 print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
@@ -71,13 +84,19 @@ def cascl_decoder(llr_ch):
     return u_hat, None
 
 
-results_cascl = run_simulation(
-    N, K, EB_N0_RANGE, cascl_decoder, 'scl',
-    MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
-    info_indices=info_idx, verbose=True,
-)
-all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
-save_results_csv(results_cascl, f'results/exp2_cascl_L8_N{N}_R0.5.csv')
+cascl_file = f'results/exp2_cascl_L8_N{N}_R0.5.csv'
+cascl_label = f'CA-SCL (L=8, CRC={CRC_LENGTH})'
+if os.path.exists(cascl_file) and os.path.getsize(cascl_file) > 100:
+    print(f"跳过 CA-SCL（已有 {cascl_file}）")
+    results_cascl = load_results_csv(cascl_file)
+else:
+    results_cascl = run_simulation(
+        N, K, EB_N0_RANGE, cascl_decoder, 'scl',
+        MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
+        info_indices=info_idx, verbose=True,
+    )
+    save_results_csv(results_cascl, cascl_file)
+all_results[cascl_label] = results_cascl
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(
