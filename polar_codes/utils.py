@@ -51,18 +51,23 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    使用 BI-AWGN 对称积分（半无限区间加倍）。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * 10 ** (eb_n0_db / 10.0)
-        s = snr
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-y ** 2 / 2.0)
+            val = np.clip(-snr * y, -500.0, 500.0)
+            if val > 0:
+                log_term = val / np.log(2) + np.log1p(np.exp(-val)) / np.log(2)
+            else:
+                log_term = np.log1p(np.exp(val)) / np.log(2)
+            return log_term * np.exp(-y ** 2 / 2.0)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, 0.0, 10.0, limit=200)
         val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        capacities.append(1.0 - 2.0 * val)
     return capacities
 
 
