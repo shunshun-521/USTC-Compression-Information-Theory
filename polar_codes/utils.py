@@ -48,43 +48,43 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-  """
-  计算 BPSK 离散输入 AWGN 信道容量（bits/channel use）。
+    """
+    计算 BPSK 离散输入 AWGN 信道容量（bits/channel use）。
 
-  C = 1 - (2/sqrt(pi)) * integral_0^inf exp(-x^2) log2(1 + exp(-SNR*x^2)) dx
-  其中 SNR = Es/N0 = 2*R*10^(Eb/N0/10)。
-  """
-  capacities = []
-  for eb_n0_db in eb_n0_db_list:
-    snr_linear = 2 * rate * (10 ** (eb_n0_db / 10.0))
+    C = 1 - (2/sqrt(pi)) * integral_0^inf exp(-x^2) log2(1 + exp(-SNR*x^2)) dx
+    其中 SNR = Es/N0 = 2*R*10^(Eb/N0/10)。
+    """
+    capacities = []
+    for eb_n0_db in eb_n0_db_list:
+        snr_linear = 2 * rate * (10 ** (eb_n0_db / 10.0))
 
-    def integrand(x):
-      val = -snr_linear * x * x
-      if val < -700:
-        inner = 0.0
-      elif val > 700:
-        inner = val / np.log(2)
-      else:
-        inner = np.log2(1 + np.exp(val))
-      return inner * np.exp(-x * x)
+        def integrand(x):
+            val = -snr_linear * x * x
+            if val < -700:
+                inner = 0.0
+            elif val > 700:
+                inner = val / np.log(2)
+            else:
+                inner = np.log2(1 + np.exp(val))
+            return inner * np.exp(-x * x)
 
-    integral, _ = integrate.quad(integrand, 0, 50)
-    c = 1 - 2 * integral / np.sqrt(np.pi)
-    capacities.append(c)
-  return np.array(capacities)
+        integral, _ = integrate.quad(integrand, 0, 50)
+        c = 1 - 2 * integral / np.sqrt(np.pi)
+        capacities.append(c)
+    return np.array(capacities)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-2, 15), num_points=200):
-  """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
-  lo, hi = eb_n0_range
-  for _ in range(60):
-    mid = (lo + hi) / 2
-    cap = compute_bpsk_capacity([mid], rate)[0]
-    if cap >= rate:
-      hi = mid
-    else:
-      lo = mid
-  return (lo + hi) / 2
+    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
+    lo, hi = eb_n0_range
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        cap = compute_bpsk_capacity([mid], rate)[0]
+        if cap >= rate:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
