@@ -4,7 +4,11 @@
 """
 import numpy as np
 from encoder import polar_encode
-from decoder_sc import f_operation
+
+
+def _f_min_sum(a, b, alpha=0.9375):
+    """向量化 min-sum f 运算"""
+    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
 
 class BPDecoder:
@@ -17,9 +21,32 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.LARGE = 1e6
+        self._layer_indices = self._precompute_layer_indices()
 
-    def _f_min_sum(self, a, b):
-        return self.alpha * f_operation(a, b)
+    def _precompute_layer_indices(self):
+        """预计算各层蝶形索引，避免译码时重复构造"""
+        n, N = self.n, self.N
+        layers = []
+        for j in range(n, 0, -1):
+            step = 1 << (j - 1)
+            left = []
+            right = []
+            for block in range(0, N, 2 * step):
+                for i in range(step):
+                    left.append(block + i)
+                    right.append(block + step + i)
+            layers.append((j, np.array(left, dtype=np.intp), np.array(right, dtype=np.intp)))
+        r_layers = []
+        for j in range(0, n):
+            step = 1 << j
+            left = []
+            right = []
+            for block in range(0, N, 2 * step):
+                for i in range(step):
+                    left.append(block + i)
+                    right.append(block + step + i)
+            r_layers.append((j, np.array(left, dtype=np.intp), np.array(right, dtype=np.intp)))
+        return layers, r_layers
 
     def decode(self, llr_ch):
         """主译码函数，返回 (u_hat, num_iters)"""
@@ -28,65 +55,35 @@ class BPDecoder:
         L = np.zeros((n + 1, N), dtype=np.float64)
         R = np.zeros((n + 1, N), dtype=np.float64)
         L[n, :] = llr_ch
+        R[0, self.frozen_bits] = self.LARGE
 
-        for i in range(N):
-            if self.frozen_bits[i]:
-                R[0, i] = self.LARGE
-            else:
-                R[0, i] = 0.0
+        l_layers, r_layers = self._layer_indices
+        alpha = self.alpha
+        frozen = self.frozen_bits
+        hard_ch = (llr_ch < 0).astype(int)
 
         num_iters = 0
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
-                for block in range(0, N, 2 * step):
-                    for i in range(step):
-                        idx_l = block + i
-                        idx_r = block + step + i
-                        L[j - 1, idx_l] = self._f_min_sum(
-                            R[j, idx_l] + L[j, idx_r],
-                            L[j, idx_l],
-                        )
-                        L[j - 1, idx_r] = self._f_min_sum(
-                            R[j, idx_l],
-                            L[j, idx_l],
-                        ) + L[j, idx_r]
+            for j, idx_l, idx_r in l_layers:
+                La = R[j, idx_l] + L[j, idx_r]
+                Lb = L[j, idx_l]
+                L[j - 1, idx_l] = _f_min_sum(La, Lb, alpha)
+                L[j - 1, idx_r] = _f_min_sum(R[j, idx_l], L[j, idx_l], alpha) + L[j, idx_r]
 
-            for j in range(0, n):
-                step = 1 << j
-                for block in range(0, N, 2 * step):
-                    for i in range(step):
-                        idx_l = block + i
-                        idx_r = block + step + i
-                        R[j + 1, idx_l] = self._f_min_sum(
-                            R[j + 1, idx_r] + L[j + 1, idx_r],
-                            R[j, idx_l],
-                        )
-                        R[j + 1, idx_r] = self._f_min_sum(
-                            R[j, idx_l],
-                            L[j + 1, idx_l],
-                        ) + R[j + 1, idx_r]
+            for j, idx_l, idx_r in r_layers:
+                Ra = R[j + 1, idx_r] + L[j + 1, idx_r]
+                Rb = R[j, idx_l]
+                R[j + 1, idx_l] = _f_min_sum(Ra, Rb, alpha)
+                R[j + 1, idx_r] = _f_min_sum(R[j, idx_l], L[j + 1, idx_l], alpha) + R[j + 1, idx_r]
 
-            u_hat = np.zeros(N, dtype=int)
-            for i in range(N):
-                total = L[0, i] + R[0, i]
-                if self.frozen_bits[i]:
-                    u_hat[i] = 0
-                else:
-                    u_hat[i] = 0 if total >= 0 else 1
+            total = L[0, :] + R[0, :]
+            u_hat = np.where(frozen, 0, (total < 0).astype(int))
 
-            x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
-            if np.array_equal(x_hat, hard_ch):
+            if np.array_equal(polar_encode(u_hat), hard_ch):
                 return u_hat, num_iters
 
-        u_hat = np.zeros(N, dtype=int)
-        for i in range(N):
-            total = L[0, i] + R[0, i]
-            if self.frozen_bits[i]:
-                u_hat[i] = 0
-            else:
-                u_hat[i] = 0 if total >= 0 else 1
+        total = L[0, :] + R[0, :]
+        u_hat = np.where(frozen, 0, (total < 0).astype(int))
         return u_hat, num_iters
