@@ -87,6 +87,12 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
 
     info_indices = np.argsort(llr_means)[-K:]
     info_indices = np.sort(info_indices)
+
+    # 编码器含比特倒序置换，信息位索引需同步映射
+    n_bits = int(np.log2(N))
+    rev = np.array([int(format(i, f"0{n_bits}b")[::-1], 2) for i in range(N)])
+    info_indices = np.sort(rev[info_indices])
+
     frozen_mask = np.ones(N, dtype=bool)
     frozen_mask[info_indices] = False
     frozen_indices = np.where(frozen_mask)[0]
