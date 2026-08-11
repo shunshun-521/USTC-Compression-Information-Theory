@@ -55,20 +55,29 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+
+    C = 1 - E_{y~N(0,1)}[log2(1 + exp(-2*s*y^2))], s = 2R * 10^{Eb/N0/10}
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2 * rate * (10 ** (eb_n0_db / 10))
 
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
+        def log2_one_plus_exp(x):
+            if x > 50:
+                return x / np.log(2)
+            if x < -50:
+                return 0.0
+            return np.log2(1 + np.exp(x))
 
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
+        def integrand(y):
+            return log2_one_plus_exp(-2 * snr * y ** 2) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
+
+        integral, _ = integrate.quad(integrand, -20, 20, limit=200)
         capacities.append(1 - integral)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 15), num_points=1000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
