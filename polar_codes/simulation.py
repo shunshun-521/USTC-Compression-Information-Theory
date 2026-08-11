@@ -100,6 +100,6 @@ def run_simulation(
             )
             if avg_iters is not None:
                 msg += f" | AvgIter={avg_iters:.1f}"
-            print(msg)
+            print(msg, flush=True)
 
     return results
