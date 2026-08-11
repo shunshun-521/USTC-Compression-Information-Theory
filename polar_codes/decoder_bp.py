@@ -39,20 +39,20 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 2 ** j
                 for i in range(0, N, 2 * s):
                     for beta in range(s):
                         idx = i + beta
-                        L[idx, j - 1] = self._f_min_sum(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1]
+                        L[idx, j] = self._f_min_sum(
+                            R[idx, j + 1] + L[idx + s, j + 1], L[idx, j + 1]
                         )
-                        L[idx + s, j - 1] = self._f_min_sum(
-                            R[idx, j], L[idx, j + 1]
+                        L[idx + s, j] = self._f_min_sum(
+                            R[idx, j + 1], L[idx, j + 1]
                         ) + L[idx + s, j + 1]
 
             for j in range(0, n):
-                s = 2 ** (j)
+                s = 2 ** j
                 for i in range(0, N, 2 * s):
                     for beta in range(s):
                         idx = i + beta
