@@ -1,0 +1,8 @@
+编码器校验通过
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp1.py", line 55, in <module>
+    run_unit_tests()
+  File "/workspace/polar_codes/run_exp1.py", line 51, in run_unit_tests
+    assert errors == 0, f"SC 译码高信噪比校验失败: {errors}/100"
+           ^^^^^^^^^^^
+AssertionError: SC 译码高信噪比校验失败: 5/100

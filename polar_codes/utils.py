@@ -64,10 +64,14 @@ def compute_bpsk_capacity(eb_n0_db, rate):
     """
     snr = 2 * rate * (10 ** (eb_n0_db / 10.0))
 
-    def integrand(y):
-        return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+    def log2_one_plus_exp(x):
+        x = np.asarray(x, dtype=np.float64)
+        return np.where(x > 30, x / np.log(2), np.log2(1 + np.exp(np.clip(x, -50, 30))))
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
+    def integrand(y):
+        return log2_one_plus_exp(-2 * snr * y) * np.exp(-(y ** 2) / 2)
+
+    val, _ = integrate.quad(integrand, -10, 10, limit=200)
     val /= np.sqrt(2 * np.pi)
     return 1.0 - val
 
