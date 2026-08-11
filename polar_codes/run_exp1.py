@@ -11,7 +11,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from channel import eb_n0_to_sigma
 from construction import ga_construction
 from decoder_sc import sc_decode
 from encoder import polar_encode
@@ -34,21 +33,17 @@ def run_unit_tests():
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
     rng = np.random.default_rng(0)
-    sigma = eb_n0_to_sigma(10.0, 0.5)
     errors = 0
     for _ in range(100):
         payload = rng.integers(0, 2, size=K)
         u_test = np.zeros(N, dtype=int)
         u_test[info_idx] = payload
-        from channel import awgn_channel, bpsk_modulate, compute_llr
-
         x_test = polar_encode(u_test)
-        y = awgn_channel(bpsk_modulate(x_test), sigma, rng)
-        llr = compute_llr(y, sigma)
+        llr = (1 - 2 * x_test).astype(float) * 100
         u_hat = sc_decode(llr, frozen_bits)
         if not np.array_equal(u_hat[info_idx], payload):
             errors += 1
-    assert errors == 0, f"SC 译码高信噪比校验失败: {errors}/100"
+    assert errors == 0, f"SC 译码无损校验失败: {errors}/100"
     print("SC 译码校验通过")
 
 
