@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 import matplotlib.pyplot as plt
 
 from construction import ga_construction
@@ -51,34 +50,36 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - E_y[log2(1 + exp(-2*s*y^2))], y ~ N(0,1), s = 2R*10^{Eb/N0/10}
     """
+    y = np.linspace(0, 10, 10001)
+    gauss = np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi)
+    dy = y[1] - y[0]
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        z = -2.0 * snr * y ** 2
+        log_term = np.where(
+            z > 0,
+            z / np.log(2) + np.log1p(np.exp(-np.clip(z, None, 700))) / np.log(2),
+            np.log1p(np.exp(np.clip(z, -700, None))) / np.log(2),
+        )
+        val = 2.0 * np.sum(log_term * gauss) * dy
         capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i] + 1e-15)
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
-        return eb_grid[idx]
-    return eb_grid[idx]
+    for i in range(len(eb_grid) - 1):
+        if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
+            t = (rate - caps[i]) / (caps[i + 1] - caps[i] + 1e-15)
+            return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
+    return eb_grid[np.argmin(np.abs(caps - rate))]
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
