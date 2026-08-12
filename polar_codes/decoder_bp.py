@@ -49,16 +49,16 @@ class BPDecoder:
         for it in range(self.max_iter):
             num_iters = it + 1
 
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
                     for k in range(s):
                         idx = i + k
-                        L[idx, j - 1] = ms_f(
-                            R[idx, j] + L[idx + s, j + 1], L[idx, j + 1], self.alpha
+                        L[idx, j] = ms_f(
+                            R[idx, j + 1] + L[idx + s, j + 1], L[idx, j + 1], self.alpha
                         )
-                        L[idx + s, j - 1] = ms_f(
-                            R[idx, j], L[idx, j + 1], self.alpha
+                        L[idx + s, j] = ms_f(
+                            R[idx, j + 1], L[idx, j + 1], self.alpha
                         ) + L[idx + s, j + 1]
 
             for j in range(1, n + 1):
@@ -67,10 +67,10 @@ class BPDecoder:
                     for k in range(s):
                         idx = i + k
                         R[idx, j] = ms_f(
-                            R[idx + s, j] + L[idx + s, j + 1], R[idx, j - 1], self.alpha
+                            R[idx + s, j] + L[idx + s, j], R[idx, j - 1], self.alpha
                         )
                         R[idx + s, j] = ms_f(
-                            R[idx, j - 1], L[idx, j + 1], self.alpha
+                            R[idx, j - 1], L[idx, j], self.alpha
                         ) + R[idx + s, j]
 
             u_hat = self._hard_decision(L, R)
