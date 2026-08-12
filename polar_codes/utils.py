@@ -49,27 +49,30 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，s = SNR = 2R * 10^{Eb/N0/10}
-    """
-    capacities = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-        sigma = 1.0 / np.sqrt(snr)
+  """
+  计算 BPSK 离散输入信道容量（bits/channel use）。
+  C = 1 - E_{y}[log2(1 + e^{-|LLR|})]
+  """
+  capacities = []
+  for eb_n0_db in eb_n0_db_list:
+    snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+    sigma = 1.0 / np.sqrt(snr)
 
-        def integrand(y):
-            llr = 2.0 * y / (sigma ** 2)
-            return np.log2(1.0 + np.exp(-llr)) * np.exp(-y ** 2 / (2 * sigma ** 2)) / (
-                np.sqrt(2 * np.pi) * sigma
-            )
+    def integrand(y):
+      llr = 2.0 * y / (sigma ** 2)
+      abs_llr = np.abs(llr)
+      if abs_llr > 80:
+        log_term = 0.0
+      else:
+        log_term = np.log2(1.0 + np.exp(-abs_llr))
+      return log_term * np.exp(-y ** 2 / (2 * sigma ** 2)) / (np.sqrt(2 * np.pi) * sigma)
 
-        entropy, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
-        capacities.append(1.0 - entropy)
-    return np.array(capacities)
+    entropy, _ = integrate.quad(integrand, -10 * sigma, 10 * sigma, limit=200)
+    capacities.append(max(0.0, 1.0 - entropy))
+  return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-5, 10), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)

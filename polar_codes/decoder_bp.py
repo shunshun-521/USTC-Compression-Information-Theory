@@ -52,10 +52,10 @@ class BPDecoder:
             li = i + k
             li_s = i + k + s
             L[li, j - 1] = _minsum_f(
-              R[li, j] + L[li_s, j + 1], L[li, j + 1], self.alpha,
+              R[li, j] + L[li_s, j], L[li, j], self.alpha,
             )
             L[li_s, j - 1] = (
-              _minsum_f(R[li, j], L[li, j + 1], self.alpha) + L[li_s, j + 1]
+              _minsum_f(R[li, j], L[li, j], self.alpha) + L[li_s, j]
             )
 
       for j in range(0, n):
