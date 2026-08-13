@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -49,12 +48,25 @@ def load_results_csv(filepath):
 
 
 def _bpsk_capacity(snr_linear):
-    """BPSK 离散输入信道容量（bits/channel use）"""
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr_linear * y)) * np.exp(-y ** 2 / 2.0)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    return 1.0 - val / np.sqrt(2.0 * np.pi)
+    """
+    BPSK 离散输入信道容量（bits/channel use），蒙特卡洛估计。
+    snr_linear = Es/N0 = 1/sigma^2
+    """
+    sigma = 1.0 / np.sqrt(snr_linear)
+    rng = np.random.default_rng(0)
+    mi = 0.0
+    n_samples = 5000
+    for _ in range(n_samples):
+        x = 1.0 if rng.random() < 0.5 else -1.0
+        y = x + rng.normal(0.0, sigma)
+        llr = 2.0 * y * snr_linear
+        llr = np.clip(llr, -50.0, 50.0)
+        p0 = 1.0 / (1.0 + np.exp(-llr))
+        if x > 0:
+            mi += np.log2(max(2.0 * p0, 1e-300))
+        else:
+            mi += np.log2(max(2.0 * (1.0 - p0), 1e-300))
+    return mi / n_samples
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
@@ -66,20 +78,24 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_low, eb_high = eb_n0_range
     eb_vals = np.linspace(eb_low, eb_high, num_points)
     caps = compute_bpsk_capacity(eb_vals, rate)
 
     for i in range(len(eb_vals) - 1):
-        if caps[i] >= rate >= caps[i + 1] or caps[i] <= rate <= caps[i + 1]:
-            t = (rate - caps[i]) / (caps[i + 1] - caps[i])
+        c0, c1 = caps[i], caps[i + 1]
+        if np.isnan(c0) or np.isnan(c1):
+            continue
+        if c0 >= rate >= c1 or c0 <= rate <= c1:
+            t = (rate - c0) / (c1 - c0)
             return eb_vals[i] + t * (eb_vals[i + 1] - eb_vals[i])
 
     for eb in np.linspace(eb_low, eb_high, 5000):
         snr = 2.0 * rate * (10 ** (eb / 10.0))
-        if _bpsk_capacity(snr) >= rate:
+        cap = _bpsk_capacity(snr)
+        if not np.isnan(cap) and cap >= rate:
             return eb
     return eb_high
 
