@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 import matplotlib
 
 matplotlib.use('Agg')
@@ -54,14 +53,14 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    C = 1 - E_y[log2(1 + exp(-SNR * y^2))], SNR = 2R * 10^{Eb/N0/10}
     """
     snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
-
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2.0 * np.pi)
+    y = np.linspace(-10.0, 10.0, 20000)
+    z = -snr * y ** 2
+    log_term = np.log1p(np.exp(np.clip(z, -50, 0))) / np.log(2)
+    integrand = log_term * np.exp(-0.5 * y ** 2)
+    val = np.trapezoid(integrand, y) / np.sqrt(2.0 * np.pi)
     return 1.0 - val
 
 
