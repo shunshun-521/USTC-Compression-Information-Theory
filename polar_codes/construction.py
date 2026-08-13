@@ -64,7 +64,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     if 2 ** n != N:
         raise ValueError("N must be a power of 2")
 
-  # sigma = 1 / sqrt(2*R) * 10^{-Eb/N0/20}
+    # sigma = 1 / sqrt(2*R) * 10^{-Eb/N0/20}
     sigma = 1.0 / np.sqrt(2 * rate) * (10 ** (-design_eb_n0_db / 20.0))
     m0 = 2.0 / sigma ** 2
 

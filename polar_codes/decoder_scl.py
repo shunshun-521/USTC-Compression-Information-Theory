@@ -7,14 +7,15 @@ from decoder_sc import _Li, _f_node_minsum
 
 
 def _crc_remainder(bits, poly):
-    """计算 CRC 余数（不含信息位后的校验位）"""
-    bits = np.asarray(bits, dtype=int).copy()
-    n = len(bits)
+    """计算 CRC 余数（标准多项式长除法，内部自动补零）"""
+    bits = np.asarray(bits, dtype=int)
     m = len(poly)
+    data = np.concatenate([bits, np.zeros(m - 1, dtype=int)])
+    n = len(bits)
     for i in range(n):
-        if bits[i]:
-            bits[i:i + m] ^= poly
-    return bits[-(m - 1):]
+        if data[i]:
+            data[i:i + m] ^= poly
+    return data[-(m - 1):]
 
 
 def crc_encode(info_bits, crc_length=8):
