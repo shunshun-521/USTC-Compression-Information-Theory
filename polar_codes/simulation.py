@@ -76,6 +76,9 @@ def run_simulation(
                 num_errors += 1
             num_bit_errors += bit_errors
 
+            if num_frames >= 1000 and num_errors == 0:
+                break
+
         bler = num_errors / num_frames if num_frames > 0 else 0.0
         ber = num_bit_errors / (num_frames * K_info) if num_frames > 0 else 0.0
         avg_time = total_decode_time / num_frames if num_frames > 0 else 0.0
