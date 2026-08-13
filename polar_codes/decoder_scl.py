@@ -132,7 +132,6 @@ class SCLDecoder:
 
         if self.crc_length > 0:
             info_positions = np.where(~self.frozen_bits)[0]
-            info_bits = best['u_hat'][info_positions]
             valid = [p for p in paths if crc_check(
                 p['u_hat'][info_positions], self.crc_length
             )]
