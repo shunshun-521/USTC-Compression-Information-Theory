@@ -10,6 +10,27 @@ from encoder import polar_encode
 LARGE = 1e6
 
 
+def _build_stage_pairs(N):
+    """预计算各 stage 的 (top, bottom) 节点索引对"""
+    n = int(math.log2(N))
+    left_pairs = []
+    right_pairs = []
+    for stage in range(n):
+        stride = 1 << stage
+        block = 2 * stride
+        tops = []
+        bottoms = []
+        for base in range(0, N, block):
+            for k in range(stride):
+                tops.append(base + k)
+                bottoms.append(base + k + stride)
+        tops = np.array(tops, dtype=np.int64)
+        bottoms = np.array(bottoms, dtype=np.int64)
+        left_pairs.append((tops, bottoms))
+        right_pairs.append((tops, bottoms))
+    return left_pairs, right_pairs
+
+
 class BPDecoder:
     """BP 译码器"""
 
@@ -20,6 +41,7 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits)[0]
+        self._left_pairs, self._right_pairs = _build_stage_pairs(N)
 
     def _f_min_sum(self, x, y):
         return self.alpha * np.sign(x) * np.sign(y) * np.minimum(np.abs(x), np.abs(y))
@@ -44,39 +66,29 @@ class BPDecoder:
             num_iters = iteration + 1
 
             for stage in range(n - 1, -1, -1):
-                stride = 1 << stage
-                block = 2 * stride
-                for base in range(0, N, block):
-                    for k in range(stride):
-                        top = base + k
-                        bottom = base + k + stride
-                        L[top, stage] = self._f_min_sum(
-                            L[top, stage + 1],
-                            R[bottom, stage] + L[bottom, stage + 1],
-                        )
-                        L[bottom, stage] = (
-                            self._f_min_sum(L[top, stage + 1], R[top, stage])
-                            + L[bottom, stage + 1]
-                        )
+                tops, bottoms = self._left_pairs[stage]
+                L[tops, stage] = self._f_min_sum(
+                    L[tops, stage + 1],
+                    R[bottoms, stage] + L[bottoms, stage + 1],
+                )
+                L[bottoms, stage] = (
+                    self._f_min_sum(L[tops, stage + 1], R[tops, stage])
+                    + L[bottoms, stage + 1]
+                )
 
             for stage in range(0, n):
-                stride = 1 << stage
-                block = 2 * stride
-                for base in range(0, N, block):
-                    for k in range(stride):
-                        top = base + k
-                        bottom = base + k + stride
-                        R[top, stage + 1] = self._f_min_sum(
-                            R[top, stage],
-                            R[bottom, stage] + L[bottom, stage + 1],
-                        )
-                        R[bottom, stage + 1] = (
-                            self._f_min_sum(R[top, stage], L[top, stage + 1])
-                            + R[bottom, stage]
-                        )
+                tops, bottoms = self._right_pairs[stage]
+                R[tops, stage + 1] = self._f_min_sum(
+                    R[tops, stage],
+                    R[bottoms, stage] + L[bottoms, stage + 1],
+                )
+                R[bottoms, stage + 1] = (
+                    self._f_min_sum(R[tops, stage], L[tops, stage + 1])
+                    + R[bottoms, stage]
+                )
 
-            for i in range(N):
-                u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
+            posterior = L[:, 0] + R[:, 0]
+            u_hat = (posterior < 0).astype(int)
             u_hat[self.frozen_bits] = 0
 
             x_hat = polar_encode(u_hat)
@@ -85,8 +97,7 @@ class BPDecoder:
                 break
 
         u_hat[self.frozen_bits] = 0
-        for i in range(N):
-            if not self.frozen_bits[i]:
-                u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
+        posterior = L[:, 0] + R[:, 0]
+        u_hat[~self.frozen_bits] = (posterior[~self.frozen_bits] < 0).astype(int)
 
         return u_hat, num_iters
