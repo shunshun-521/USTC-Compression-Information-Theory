@@ -6,13 +6,18 @@ import math
 import numpy as np
 
 
+def _logdomain_sum(x, y):
+    """对数域加法。"""
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
 def f_operation(La, Lb):
-    """min-sum 近似的 f 运算。"""
-    sa = np.sign(La)
-    sb = np.sign(Lb)
-    sa = np.where(sa == 0, 1, sa)
-    sb = np.where(sb == 0, 1, sb)
-    return sa * sb * np.minimum(np.abs(La), np.abs(Lb))
+    """精确 box-plus f 运算（对数域）。"""
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
 
 
 def g_operation(La, Lb, u_hat):
@@ -93,7 +98,6 @@ def sc_decode(llr_ch, frozen_bits):
     for phi in range(N):
         if frozen_bits[phi]:
             u_hat[phi] = 0
-            llrs[0, phi] = np.inf
             bits[0, phi] = 0
         else:
             llr = _compute_llr(0, phi, llrs, bits)
