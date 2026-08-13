@@ -1,0 +1,118 @@
+/workspace/polar_codes/utils.py:66: RuntimeWarning: overflow encountered in exp
+  integrand = lambda y: np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
+/workspace/polar_codes/utils.py:66: RuntimeWarning: invalid value encountered in scalar multiply
+  integrand = lambda y: np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2) / np.sqrt(2 * np.pi)
+/workspace/polar_codes/utils.py:67: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  cap = 1.0 - integrate.quad(integrand, -np.inf, np.inf)[0]
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.7648e-01 | Errors=100 | Frames=100 | AvgTime=2.91ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8070e-01 | Errors=100 | Frames=100 | AvgTime=2.88ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.7937e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.8055e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.8297e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.7937e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.7539e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.6906e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.6961e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.7555e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.6789e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.6664e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.5133e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.5281e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.5211e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.3531e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.3344e-01 | Errors=100 | Frames=100 | AvgTime=2.88ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=3.9570e-01 | Errors=100 | Frames=100 | AvgTime=2.87ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.5609e-01 | Errors=100 | Frames=100 | AvgTime=13.23ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.3883e-01 | Errors=100 | Frames=100 | AvgTime=13.23ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.3133e-01 | Errors=100 | Frames=100 | AvgTime=13.23ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.1898e-01 | Errors=100 | Frames=100 | AvgTime=13.14ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.1359e-01 | Errors=100 | Frames=100 | AvgTime=13.13ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.2102e-01 | Errors=100 | Frames=100 | AvgTime=13.13ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.1516e-01 | Errors=100 | Frames=100 | AvgTime=13.14ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=3.9914e-01 | Errors=100 | Frames=100 | AvgTime=13.15ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=3.9602e-01 | Errors=100 | Frames=100 | AvgTime=13.13ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=3.7672e-01 | Errors=100 | Frames=100 | AvgTime=13.17ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=3.8180e-01 | Errors=100 | Frames=100 | AvgTime=13.15ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=3.6031e-01 | Errors=100 | Frames=100 | AvgTime=13.12ms
+  Eb/N0=4.00dB | BLER=9.9010e-01 | BER=3.3323e-01 | Errors=100 | Frames=101 | AvgTime=13.12ms
+  Eb/N0=4.25dB | BLER=9.9010e-01 | BER=3.2271e-01 | Errors=100 | Frames=101 | AvgTime=13.09ms
+  Eb/N0=4.50dB | BLER=9.7087e-01 | BER=2.8421e-01 | Errors=100 | Frames=103 | AvgTime=13.10ms
+  Eb/N0=4.75dB | BLER=9.9010e-01 | BER=2.9486e-01 | Errors=100 | Frames=101 | AvgTime=13.10ms
+  Eb/N0=5.00dB | BLER=9.6154e-01 | BER=2.7629e-01 | Errors=100 | Frames=104 | AvgTime=13.08ms
+  Eb/N0=5.25dB | BLER=9.5238e-01 | BER=2.4509e-01 | Errors=100 | Frames=105 | AvgTime=13.08ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9969e-01 | Errors=100 | Frames=100 | AvgTime=186.28ms | AvgIter=50.0
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9703e-01 | Errors=100 | Frames=100 | AvgTime=186.72ms | AvgIter=50.0
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=5.0680e-01 | Errors=100 | Frames=100 | AvgTime=186.57ms | AvgIter=50.0
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9648e-01 | Errors=100 | Frames=100 | AvgTime=186.55ms | AvgIter=50.0
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=5.0164e-01 | Errors=100 | Frames=100 | AvgTime=186.61ms | AvgIter=50.0
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9508e-01 | Errors=100 | Frames=100 | AvgTime=186.74ms | AvgIter=50.0
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=5.0523e-01 | Errors=100 | Frames=100 | AvgTime=186.55ms | AvgIter=50.0
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.9844e-01 | Errors=100 | Frames=100 | AvgTime=186.48ms | AvgIter=50.0
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=5.0359e-01 | Errors=100 | Frames=100 | AvgTime=186.45ms | AvgIter=50.0
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=5.0594e-01 | Errors=100 | Frames=100 | AvgTime=187.51ms | AvgIter=50.0
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.9430e-01 | Errors=100 | Frames=100 | AvgTime=186.94ms | AvgIter=50.0
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=5.0359e-01 | Errors=100 | Frames=100 | AvgTime=190.29ms | AvgIter=50.0
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8922e-01 | Errors=100 | Frames=100 | AvgTime=186.94ms | AvgIter=50.0
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=5.0250e-01 | Errors=100 | Frames=100 | AvgTime=186.85ms | AvgIter=50.0
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.9516e-01 | Errors=100 | Frames=100 | AvgTime=186.53ms | AvgIter=50.0
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=5.0195e-01 | Errors=100 | Frames=100 | AvgTime=186.95ms | AvgIter=50.0
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=5.0000e-01 | Errors=100 | Frames=100 | AvgTime=187.42ms | AvgIter=50.0
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.9703e-01 | Errors=100 | Frames=100 | AvgTime=186.79ms | AvgIter=50.0
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9820e-01 | Errors=100 | Frames=100 | AvgTime=6.50ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9562e-01 | Errors=100 | Frames=100 | AvgTime=6.50ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9715e-01 | Errors=100 | Frames=100 | AvgTime=6.53ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9824e-01 | Errors=100 | Frames=100 | AvgTime=6.52ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9176e-01 | Errors=100 | Frames=100 | AvgTime=6.52ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9176e-01 | Errors=100 | Frames=100 | AvgTime=6.51ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9285e-01 | Errors=100 | Frames=100 | AvgTime=6.51ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.8828e-01 | Errors=100 | Frames=100 | AvgTime=6.56ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.8313e-01 | Errors=100 | Frames=100 | AvgTime=6.55ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8883e-01 | Errors=100 | Frames=100 | AvgTime=6.55ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.8266e-01 | Errors=100 | Frames=100 | AvgTime=6.52ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.8668e-01 | Errors=100 | Frames=100 | AvgTime=6.48ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.7648e-01 | Errors=100 | Frames=100 | AvgTime=6.49ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.7648e-01 | Errors=100 | Frames=100 | AvgTime=6.48ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.7211e-01 | Errors=100 | Frames=100 | AvgTime=6.48ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.6527e-01 | Errors=100 | Frames=100 | AvgTime=6.48ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.6711e-01 | Errors=100 | Frames=100 | AvgTime=6.48ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.5449e-01 | Errors=100 | Frames=100 | AvgTime=6.49ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8137e-01 | Errors=100 | Frames=100 | AvgTime=29.92ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.7566e-01 | Errors=100 | Frames=100 | AvgTime=29.95ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.7273e-01 | Errors=100 | Frames=100 | AvgTime=30.38ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.6734e-01 | Errors=100 | Frames=100 | AvgTime=30.22ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.6082e-01 | Errors=100 | Frames=100 | AvgTime=30.07ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.6465e-01 | Errors=100 | Frames=100 | AvgTime=29.99ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.5105e-01 | Errors=100 | Frames=100 | AvgTime=30.12ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.6191e-01 | Errors=100 | Frames=100 | AvgTime=30.05ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.4309e-01 | Errors=100 | Frames=100 | AvgTime=29.97ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.4867e-01 | Errors=100 | Frames=100 | AvgTime=29.96ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.3898e-01 | Errors=100 | Frames=100 | AvgTime=29.97ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.2922e-01 | Errors=100 | Frames=100 | AvgTime=29.97ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.0004e-01 | Errors=100 | Frames=100 | AvgTime=29.99ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.0355e-01 | Errors=100 | Frames=100 | AvgTime=30.04ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=3.8301e-01 | Errors=100 | Frames=100 | AvgTime=30.09ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=3.8520e-01 | Errors=100 | Frames=100 | AvgTime=30.13ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=3.5984e-01 | Errors=100 | Frames=100 | AvgTime=30.31ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=3.4934e-01 | Errors=100 | Frames=100 | AvgTime=30.40ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9184e-01 | Errors=100 | Frames=100 | AvgTime=381.97ms | AvgIter=50.0
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9926e-01 | Errors=100 | Frames=100 | AvgTime=382.29ms | AvgIter=50.0
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9895e-01 | Errors=100 | Frames=100 | AvgTime=381.96ms | AvgIter=50.0
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=5.0238e-01 | Errors=100 | Frames=100 | AvgTime=382.18ms | AvgIter=50.0
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=5.0234e-01 | Errors=100 | Frames=100 | AvgTime=381.37ms | AvgIter=50.0
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=5.0016e-01 | Errors=100 | Frames=100 | AvgTime=381.31ms | AvgIter=50.0
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9668e-01 | Errors=100 | Frames=100 | AvgTime=382.60ms | AvgIter=50.0
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=5.0133e-01 | Errors=100 | Frames=100 | AvgTime=381.21ms | AvgIter=50.0
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.9883e-01 | Errors=100 | Frames=100 | AvgTime=380.87ms | AvgIter=50.0
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=5.0039e-01 | Errors=100 | Frames=100 | AvgTime=381.47ms | AvgIter=50.0
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=5.0094e-01 | Errors=100 | Frames=100 | AvgTime=381.26ms | AvgIter=50.0
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=5.0594e-01 | Errors=100 | Frames=100 | AvgTime=382.28ms | AvgIter=50.0
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.9738e-01 | Errors=100 | Frames=100 | AvgTime=380.78ms | AvgIter=50.0
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.9418e-01 | Errors=100 | Frames=100 | AvgTime=381.18ms | AvgIter=50.0
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.9801e-01 | Errors=100 | Frames=100 | AvgTime=381.47ms | AvgIter=50.0
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.9648e-01 | Errors=100 | Frames=100 | AvgTime=382.02ms | AvgIter=50.0
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=5.0227e-01 | Errors=100 | Frames=100 | AvgTime=382.81ms | AvgIter=50.0
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=5.0469e-01 | Errors=100 | Frames=100 | AvgTime=381.56ms | AvgIter=50.0
+
+实验三完成。
