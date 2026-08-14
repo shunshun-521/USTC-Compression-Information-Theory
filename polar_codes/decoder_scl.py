@@ -15,38 +15,51 @@ from decoder_sc import (
 )
 CRC8_POLY = 0x07
 CRC16_POLY = 0x8005
+CRC8_GEN = [1, 0, 0, 0, 0, 0, 1, 1, 1]  # x^8 + x^2 + x + 1
+CRC16_GEN = [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1]  # CRC-16-IBM
 
 
-def _crc_remainder(bits, poly, crc_length):
-    reg = 0
-    for bit in bits:
-        reg ^= (int(bit) << (crc_length - 1))
-        for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
-            else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
-    return reg
+def _crc_remainder_poly(bits, generator):
+    n = len(generator) - 1
+    regs = [int(b) for b in bits] + [0] * n
+    for i in range(len(bits)):
+        if regs[i]:
+            for j in range(len(generator)):
+                regs[i + j] ^= generator[j]
+    return regs[len(bits):len(bits) + n]
 
 
 def crc_encode(info_bits, crc_length=8):
     """计算 CRC 校验位并附加到信息比特后"""
     info_bits = np.asarray(info_bits, dtype=int)
-    poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    remainder = _crc_remainder(info_bits, poly, crc_length)
-    crc_bits = np.array(
-        [(remainder >> (crc_length - 1 - i)) & 1 for i in range(crc_length)],
-        dtype=int,
-    )
+    if crc_length == 8:
+        gen = CRC8_GEN
+    elif crc_length == 16:
+        gen = CRC16_GEN
+    else:
+        raise ValueError("crc_length must be 8 or 16")
+
+    crc_bits = np.array(_crc_remainder_poly(info_bits, gen), dtype=int)
     return np.concatenate([info_bits, crc_bits])
 
 
 def crc_check(bits, crc_length=8):
     """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC"""
     bits = np.asarray(bits, dtype=int)
-    poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    remainder = _crc_remainder(bits, poly, crc_length)
-    return remainder == 0
+    if crc_length == 8:
+        gen = CRC8_GEN
+    elif crc_length == 16:
+        gen = CRC16_GEN
+    else:
+        raise ValueError("crc_length must be 8 or 16")
+
+    n = crc_length
+    regs = [int(b) for b in bits]
+    for i in range(len(bits) - n):
+        if regs[i]:
+            for j in range(len(gen)):
+                regs[i + j] ^= gen[j]
+    return all(x == 0 for x in regs[-n:])
 
 
 class SCLDecoder:
