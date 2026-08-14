@@ -58,33 +58,49 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    通过输出分布微分熵数值计算。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10.0))
+        eb_lin = 10 ** (eb_n0_db / 10.0)
+        snr = 2 * rate * eb_lin
+        sigma = 1.0 / np.sqrt(snr)
+        norm = sigma * np.sqrt(2 * np.pi)
 
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
+        def p_y(y):
+            return 0.5 * (
+                np.exp(-((y - 1) ** 2) / (2 * sigma ** 2))
+                + np.exp(-((y + 1) ** 2) / (2 * sigma ** 2))
+            ) / norm
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+        def entropy_y():
+            def integrand(y):
+                py = p_y(y)
+                if py < 1e-300:
+                    return 0.0
+                return -py * np.log2(py)
+
+            val, _ = integrate.quad(integrand, -20, 20, limit=200)
+            return val
+
+        h_noise = 0.5 * np.log2(2 * np.pi * np.e * sigma ** 2)
+        capacities.append(entropy_y() - h_noise)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
 
     def cap_minus_rate(eb_n0_db):
         return compute_bpsk_capacity([eb_n0_db], rate)[0] - rate
 
-    try:
-        return brentq(cap_minus_rate, eb_n0_range[0], eb_n0_range[1])
-    except ValueError:
-        eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
+    lo, hi = eb_n0_range
+    flo, fhi = cap_minus_rate(lo), cap_minus_rate(hi)
+    if flo * fhi > 0:
+        eb_grid = np.linspace(lo, hi, num_points)
         caps = compute_bpsk_capacity(eb_grid, rate)
-        idx = np.argmin(np.abs(caps - rate))
-        return eb_grid[idx]
+        return float(eb_grid[np.argmin(np.abs(caps - rate))])
+    return float(brentq(cap_minus_rate, lo, hi))
 
 
 def plot_bler_curves(
