@@ -80,7 +80,9 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
 
         def integrand(y):
             p_y = np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi)
-            return p_y * np.log2(1.0 + np.exp(-2.0 * snr * y))
+            z = np.exp(-2.0 * snr * y)
+            z = np.clip(z, 0.0, np.finfo(float).max)
+            return p_y * np.log2(1.0 + z)
 
         cap, _ = integrate.quad(integrand, -10.0, 10.0)
         capacities.append(1.0 - cap)
