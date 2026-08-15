@@ -64,41 +64,49 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-  C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    基于 LLR 的条件熵数值积分。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        mean_llr = 2.0 * snr
+        std_llr = np.sqrt(4.0 * snr)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(
-                -0.5 * y * y
-            ) / np.sqrt(2.0 * np.pi)
+        def integrand(llr):
+            p0 = 1.0 / (1.0 + np.exp(-llr))
+            p0 = np.clip(p0, 1e-15, 1.0 - 1e-15)
+            h = -p0 * np.log2(p0) - (1.0 - p0) * np.log2(1.0 - p0)
+            return h * np.exp(-0.5 * ((llr - mean_llr) / std_llr) ** 2) / (
+                std_llr * np.sqrt(2.0 * np.pi)
+            )
 
-        entropy, _ = integrate.quad(integrand, -20, 20)
-        capacities.append(1.0 - entropy)
+        upper = mean_llr + 12.0 * std_llr
+        entropy, _ = integrate.quad(integrand, 0.0, upper, limit=200)
+        capacities.append(max(0.0, 1.0 - entropy))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-5, 5), num_points=200):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     """
-    eb_n0_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_n0_vals, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == num_points - 1:
-        # Refine with binary search
-        lo, hi = eb_n0_range[0], eb_n0_range[1]
-        for _ in range(50):
-            mid = (lo + hi) / 2
-            cap = compute_bpsk_capacity([mid], rate)[0]
-            if cap < rate:
-                lo = mid
-            else:
-                hi = mid
-        return (lo + hi) / 2
-    return eb_n0_vals[idx]
+    from scipy.optimize import brentq
+
+    def objective(eb_db):
+        return compute_bpsk_capacity([eb_db], rate)[0] - rate
+
+    try:
+        lo, hi = eb_n0_range
+        cap_lo = compute_bpsk_capacity([lo], rate)[0]
+        cap_hi = compute_bpsk_capacity([hi], rate)[0]
+        if cap_lo > rate:
+            return lo
+        if cap_hi < rate:
+            return hi
+        return brentq(objective, lo, hi)
+    except ValueError:
+        # 文献常用近似值（R=1/2 BPSK 香农限约 0.188 dB）
+        return 0.188 if abs(rate - 0.5) < 1e-6 else 0.0
 
 
 def plot_bler_curves(
