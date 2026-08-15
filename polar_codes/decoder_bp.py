@@ -106,6 +106,7 @@ class BPDecoder:
                 for m in self._vars[n]:
                     Lq[n] += Rmn[m, n]
 
+            x_hat = (Lq < 0).astype(int)
             u_tmp = np.dot(x_hat, self.Ginv) % 2
             u_tmp[self.frozen_bits == 1] = 0
             if np.array_equal(polar_encode(u_tmp), self._hard_llr(llr_ch)):
