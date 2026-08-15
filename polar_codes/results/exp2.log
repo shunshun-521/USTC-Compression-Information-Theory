@@ -1,0 +1,115 @@
+运行单元测试...
+单元测试通过。
+
+
+============================================================
+SC 基线仿真: N=512, K=256
+============================================================
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9695e-01 | Errors=100 | Frames=100 | AvgTime=6.10ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9617e-01 | Errors=100 | Frames=100 | AvgTime=6.12ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9711e-01 | Errors=100 | Frames=100 | AvgTime=6.11ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9473e-01 | Errors=100 | Frames=100 | AvgTime=6.12ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9609e-01 | Errors=100 | Frames=100 | AvgTime=6.09ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9930e-01 | Errors=100 | Frames=100 | AvgTime=6.10ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.8953e-01 | Errors=100 | Frames=100 | AvgTime=6.09ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.9422e-01 | Errors=100 | Frames=100 | AvgTime=6.07ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.9215e-01 | Errors=100 | Frames=100 | AvgTime=6.07ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8980e-01 | Errors=100 | Frames=100 | AvgTime=6.08ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.8887e-01 | Errors=100 | Frames=100 | AvgTime=6.08ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.9043e-01 | Errors=100 | Frames=100 | AvgTime=6.07ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8938e-01 | Errors=100 | Frames=100 | AvgTime=6.09ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.8637e-01 | Errors=100 | Frames=100 | AvgTime=6.13ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.7996e-01 | Errors=100 | Frames=100 | AvgTime=6.09ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.7988e-01 | Errors=100 | Frames=100 | AvgTime=6.08ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.7590e-01 | Errors=100 | Frames=100 | AvgTime=6.09ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.7090e-01 | Errors=100 | Frames=100 | AvgTime=6.06ms
+
+============================================================
+SCL 仿真: N=512, K=256, L=2
+============================================================
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9391e-01 | Errors=100 | Frames=100 | AvgTime=19.80ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8824e-01 | Errors=100 | Frames=100 | AvgTime=19.77ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9457e-01 | Errors=100 | Frames=100 | AvgTime=19.86ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9543e-01 | Errors=100 | Frames=100 | AvgTime=19.79ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9906e-01 | Errors=100 | Frames=100 | AvgTime=19.72ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9391e-01 | Errors=100 | Frames=100 | AvgTime=19.74ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9375e-01 | Errors=100 | Frames=100 | AvgTime=19.80ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.8793e-01 | Errors=100 | Frames=100 | AvgTime=19.85ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.9223e-01 | Errors=100 | Frames=100 | AvgTime=19.78ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8785e-01 | Errors=100 | Frames=100 | AvgTime=19.82ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.8758e-01 | Errors=100 | Frames=100 | AvgTime=19.74ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.8465e-01 | Errors=100 | Frames=100 | AvgTime=19.70ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8605e-01 | Errors=100 | Frames=100 | AvgTime=19.69ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.7914e-01 | Errors=100 | Frames=100 | AvgTime=19.66ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.7883e-01 | Errors=100 | Frames=100 | AvgTime=19.65ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.8621e-01 | Errors=100 | Frames=100 | AvgTime=19.79ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.7328e-01 | Errors=100 | Frames=100 | AvgTime=19.71ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.6098e-01 | Errors=100 | Frames=100 | AvgTime=19.72ms
+
+============================================================
+SCL 仿真: N=512, K=256, L=4
+============================================================
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8633e-01 | Errors=100 | Frames=100 | AvgTime=38.12ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9438e-01 | Errors=100 | Frames=100 | AvgTime=38.18ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9113e-01 | Errors=100 | Frames=100 | AvgTime=38.07ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9383e-01 | Errors=100 | Frames=100 | AvgTime=39.55ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.8887e-01 | Errors=100 | Frames=100 | AvgTime=38.07ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.8973e-01 | Errors=100 | Frames=100 | AvgTime=38.09ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.8758e-01 | Errors=100 | Frames=100 | AvgTime=38.05ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.8445e-01 | Errors=100 | Frames=100 | AvgTime=38.41ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.8492e-01 | Errors=100 | Frames=100 | AvgTime=38.50ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8633e-01 | Errors=100 | Frames=100 | AvgTime=38.50ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.7758e-01 | Errors=100 | Frames=100 | AvgTime=38.32ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.7895e-01 | Errors=100 | Frames=100 | AvgTime=38.13ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.7016e-01 | Errors=100 | Frames=100 | AvgTime=38.16ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.7602e-01 | Errors=100 | Frames=100 | AvgTime=40.54ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.6422e-01 | Errors=100 | Frames=100 | AvgTime=38.67ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.7121e-01 | Errors=100 | Frames=100 | AvgTime=38.06ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.6422e-01 | Errors=100 | Frames=100 | AvgTime=38.19ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.5797e-01 | Errors=100 | Frames=100 | AvgTime=38.10ms
+
+============================================================
+SCL 仿真: N=512, K=256, L=8
+============================================================
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9168e-01 | Errors=100 | Frames=100 | AvgTime=81.41ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8727e-01 | Errors=100 | Frames=100 | AvgTime=81.51ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.8902e-01 | Errors=100 | Frames=100 | AvgTime=80.42ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9016e-01 | Errors=100 | Frames=100 | AvgTime=81.06ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.7918e-01 | Errors=100 | Frames=100 | AvgTime=80.82ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.7820e-01 | Errors=100 | Frames=100 | AvgTime=80.29ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.7961e-01 | Errors=100 | Frames=100 | AvgTime=81.99ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.7949e-01 | Errors=100 | Frames=100 | AvgTime=80.25ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.8125e-01 | Errors=100 | Frames=100 | AvgTime=81.80ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8004e-01 | Errors=100 | Frames=100 | AvgTime=80.37ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.6797e-01 | Errors=100 | Frames=100 | AvgTime=79.98ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.6754e-01 | Errors=100 | Frames=100 | AvgTime=80.63ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.6762e-01 | Errors=100 | Frames=100 | AvgTime=81.19ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.6711e-01 | Errors=100 | Frames=100 | AvgTime=80.08ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.5109e-01 | Errors=100 | Frames=100 | AvgTime=80.08ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.6031e-01 | Errors=100 | Frames=100 | AvgTime=82.07ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.4434e-01 | Errors=100 | Frames=100 | AvgTime=80.63ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.3910e-01 | Errors=100 | Frames=100 | AvgTime=80.48ms
+
+============================================================
+CA-SCL 仿真: N=512, K=256, L=8, CRC=8
+============================================================
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8198e-01 | Errors=100 | Frames=100 | AvgTime=82.40ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8847e-01 | Errors=100 | Frames=100 | AvgTime=84.82ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.8452e-01 | Errors=100 | Frames=100 | AvgTime=83.13ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.8589e-01 | Errors=100 | Frames=100 | AvgTime=82.76ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.7690e-01 | Errors=100 | Frames=100 | AvgTime=81.75ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.8270e-01 | Errors=100 | Frames=100 | AvgTime=82.89ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.8109e-01 | Errors=100 | Frames=100 | AvgTime=82.71ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.6964e-01 | Errors=100 | Frames=100 | AvgTime=84.33ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.7738e-01 | Errors=100 | Frames=100 | AvgTime=82.31ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8181e-01 | Errors=100 | Frames=100 | AvgTime=80.88ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.6512e-01 | Errors=100 | Frames=100 | AvgTime=80.90ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.7282e-01 | Errors=100 | Frames=100 | AvgTime=80.79ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.6778e-01 | Errors=100 | Frames=100 | AvgTime=81.08ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.6339e-01 | Errors=100 | Frames=100 | AvgTime=81.73ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.6500e-01 | Errors=100 | Frames=100 | AvgTime=81.72ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.5177e-01 | Errors=100 | Frames=100 | AvgTime=81.81ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.5371e-01 | Errors=100 | Frames=100 | AvgTime=81.38ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.3427e-01 | Errors=100 | Frames=100 | AvgTime=80.91ms
+
+实验二完成。
