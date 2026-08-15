@@ -47,14 +47,33 @@ def _parity_matrix(N, frozen_bits):
     return Ginv[:, frozen_idx].T
 
 
-def _g_min_sum(a, b, alpha):
-    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
+def _extrinsic_min_sum(q, alpha):
+    """向量 q 上每个位置的 min-sum 外信息"""
+    k = len(q)
+    if k <= 1:
+        return np.zeros_like(q)
+    signs = np.sign(q)
+    signs[signs == 0] = 1.0
+    abs_q = np.abs(q)
+    min_idx = int(np.argmin(abs_q))
+    min1 = abs_q[min_idx]
+    if k > 1:
+        abs_q_tmp = abs_q.copy()
+        abs_q_tmp[min_idx] = np.inf
+        min2 = np.min(abs_q_tmp)
+    else:
+        min2 = min1
+    total_sign = np.prod(signs)
+    out = np.empty(k, dtype=np.float64)
+    for i in range(k):
+        out[i] = alpha * total_sign * signs[i] * (
+            min2 if i == min_idx else min1
+        )
+    return out
 
 
 class BPDecoder:
     """BP 译码器（min-sum，基于 H 矩阵）"""
-
-    LARGE = 1e7
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -76,7 +95,6 @@ class BPDecoder:
         M = self.H.shape[0]
 
         channel = llr_ch.copy()
-
         Lq = channel.copy()
         Rmn = np.zeros((M, N), dtype=np.float64)
 
@@ -85,26 +103,12 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             for m in range(M):
                 vars_m = self._checks[m]
-                for n in vars_m:
-                    sign_prod = 1.0
-                    min_val = np.inf
-                    for n2 in vars_m:
-                        if n2 == n:
-                            continue
-                        val = Lq[n2] - Rmn[m, n2]
-                        if val == 0:
-                            continue
-                        sign_prod *= np.sign(val)
-                        min_val = min(min_val, abs(val))
-                    if min_val == np.inf:
-                        Rmn[m, n] = 0.0
-                    else:
-                        Rmn[m, n] = self.alpha * sign_prod * min_val
+                q = Lq[vars_m] - Rmn[m, vars_m]
+                extrinsic = _extrinsic_min_sum(q, self.alpha)
+                Rmn[m, vars_m] = extrinsic
 
             for n in range(N):
-                Lq[n] = channel[n]
-                for m in self._vars[n]:
-                    Lq[n] += Rmn[m, n]
+                Lq[n] = channel[n] + np.sum(Rmn[self._vars[n], n])
 
             x_hat = (Lq < 0).astype(int)
             u_tmp = np.dot(x_hat, self.Ginv) % 2
