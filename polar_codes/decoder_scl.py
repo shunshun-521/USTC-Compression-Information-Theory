@@ -16,38 +16,36 @@ CRC16_POLY = 0x8005
 
 
 def crc_encode(info_bits, crc_length=8):
-    """计算 CRC 校验位并附加到信息比特后。"""
+    """
+    计算 CRC 校验位并附加到信息比特后。
+    使用 CRC-8 多项式 0x07（MSB 优先移位寄存器）。
+    """
     info_bits = np.asarray(info_bits, dtype=int)
     poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
+    r = crc_length
 
     reg = 0
-    for bit in info_bits:
-        reg ^= int(bit) << (crc_length - 1)
+    mask = (1 << r) - 1
+    for bit in np.concatenate([info_bits, np.zeros(r, dtype=int)]):
+        reg ^= int(bit) << (r - 1)
         for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
+            if reg & (1 << (r - 1)):
+                reg = ((reg << 1) ^ poly) & mask
             else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
+                reg = (reg << 1) & mask
 
-    crc_bits = np.array(
-        [(reg >> (crc_length - 1 - i)) & 1 for i in range(crc_length)], dtype=int
-    )
+    crc_val = reg
+    crc_bits = np.array([(crc_val >> (r - 1 - i)) & 1 for i in range(r)], dtype=int)
     return np.concatenate([info_bits, crc_bits])
 
 
 def crc_check(bits, crc_length=8):
-    """检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC。"""
+    """
+    检验 bits[-r:] 是否是 bits[:-r] 的正确 CRC。
+    """
     bits = np.asarray(bits, dtype=int)
-    poly = CRC8_POLY if crc_length == 8 else CRC16_POLY
-    reg = 0
-    for bit in bits:
-        reg ^= int(bit) << (crc_length - 1)
-        for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
-            else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
-    return reg == 0
+    expected = crc_encode(bits[:-crc_length], crc_length)
+    return np.array_equal(bits, expected)
 
 
 class Path:

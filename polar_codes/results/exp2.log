@@ -1,0 +1,8 @@
+运行单元测试...
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp2.py", line 62, in <module>
+    run_unit_tests()
+  File "/workspace/polar_codes/run_exp2.py", line 45, in run_unit_tests
+    assert crc_check(coded, 8), "CRC 校验失败"
+           ^^^^^^^^^^^^^^^^^^^
+AssertionError: CRC 校验失败
