@@ -51,8 +51,10 @@ for N in N_LIST:
     all_results['SC'] = r_sc
     save_results_csv(r_sc, f'results/exp3_sc_N{N}_R0.5.csv')
 
-    def scl_d(llr_ch):
-        u, _ = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+    scl_inst = SCLDecoder(N, frozen_bits, list_size=4)
+
+    def scl_d(llr_ch, _scl=scl_inst):
+        u, _ = _scl.decode(llr_ch)
         return u, None
 
     print(f"\n实验三 SCL: N={N}")
