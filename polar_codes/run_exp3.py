@@ -35,6 +35,8 @@ def run_unit_tests():
     assert np.array_equal(uh_sc[info_idx], u[info_idx]), "SC 零噪声测试失败"
     uh_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
     assert np.array_equal(uh_scl[info_idx], u[info_idx]), "SCL L=1 零噪声测试失败"
+    uh_bp, _ = BPDecoder(N, frozen_bits, max_iter=50).decode(llr)
+    assert np.array_equal(uh_bp[info_idx], u[info_idx]), "BP 零噪声测试失败"
     print("单元测试通过。")
 
 
