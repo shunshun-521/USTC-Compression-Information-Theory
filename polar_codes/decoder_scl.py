@@ -2,9 +2,8 @@
 极化码 SCL（串行抵消列表）译码器
 支持 CRC 辅助（CA-SCL）
 """
-import math
 import numpy as np
-from decoder_sc import f_operation, g_operation, sc_decode
+from decoder_sc import f_operation, g_operation, sc_decode, _llr_at_bit
 
 
 CRC8_POLY = 0x07
@@ -43,27 +42,13 @@ def crc_check(bits, crc_length=8):
     return remainder == received
 
 
-def _frozen_set_from_bits(frozen_bits):
-    fb = np.asarray(frozen_bits)
-    if fb.dtype != bool:
-        fb = fb.astype(bool)
-    return set(np.where(fb)[0])
-
-
-def _merge_paths(left, right):
-    merged = [(left[i] + right[i]) % 2 for i in range(len(left))]
-    merged.extend(right)
-    return merged
-
-
 class SCLDecoder:
     """SCL 译码器"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0, info_indices=None):
         self.N = N
-        self.n = int(math.log2(N)) + 1
         self.frozen_bits = np.asarray(frozen_bits)
-        self.F = _frozen_set_from_bits(frozen_bits)
+        self.F = set(np.where(self.frozen_bits.astype(bool))[0])
         self.list_size = list_size
         self.crc_length = crc_length
         self.info_indices = np.asarray(info_indices) if info_indices is not None else None
@@ -73,46 +58,6 @@ class SCLDecoder:
         if u_val != hard:
             pm += abs(llr)
         return pm
-
-    def _left_merge(self, llr, depth, node, start, end, u_known):
-        """构建左子树 merge 返回值（所有索引 < end 已知）"""
-
-        def decode(y, d, n, s):
-            if d == self.n - 1:
-                if n in self.F:
-                    return [0]
-                return [u_known[n]]
-
-            half = len(y) // 2
-            L1, L2 = y[:half], y[half:]
-            left_llr = f_operation(L1, L2)
-            arr1 = decode(left_llr, d + 1, 2 * n, s)
-            right_llr = g_operation(L1, L2, arr1)
-            arr2 = decode(right_llr, d + 1, 2 * n + 1, s + half)
-            return _merge_paths(arr1, arr2)
-
-        return decode(llr, depth, node, start)
-
-    def _llr_at_phi(self, llr, u_known, phi):
-        """计算比特 phi 处的 LLR"""
-
-        def decode(y, depth, node, start):
-            if depth == self.n - 1:
-                return y[0]
-
-            half = len(y) // 2
-            mid = start + half
-            L1, L2 = y[:half], y[half:]
-            left_llr = f_operation(L1, L2)
-
-            if phi < mid:
-                return decode(left_llr, depth + 1, 2 * node, start)
-
-            arr1 = self._left_merge(left_llr, depth + 1, 2 * node, start, mid, u_known)
-            right_llr = g_operation(L1, L2, arr1)
-            return decode(right_llr, depth + 1, 2 * node + 1, mid)
-
-        return decode(llr, 0, 0, 0)
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
@@ -127,7 +72,7 @@ class SCLDecoder:
         for phi in range(self.N):
             candidates = []
             for path in paths:
-                llr_phi = self._llr_at_phi(llr_ch, path['u'], phi)
+                llr_phi = _llr_at_bit(llr_ch, self.frozen_bits, path['u'], phi)
 
                 if phi in self.F:
                     new_u = path['u'].copy()

@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from construction import ga_construction
+from construction import ga_construction, codec_info_indices
 from encoder import polar_encode
 from channel import bpsk_modulate, compute_llr, eb_n0_to_sigma
 from decoder_sc import sc_decode
@@ -23,7 +23,7 @@ def run_unit_tests():
     assert len(x) == 4, f"编码器输出长度错误: {x}"
 
     N, K = 64, 32
-    info_idx, _, _ = ga_construction(N, K, 2.5)
+    info_idx = codec_info_indices(N, K)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
 
@@ -75,8 +75,9 @@ def main():
         print(f"{'=' * 60}")
 
         info_idx, frozen_idx, llr_means = ga_construction(N, K, DESIGN_EBN0)
+        info_codec = codec_info_indices(N, K)
         frozen_bits = np.ones(N, dtype=int)
-        frozen_bits[info_idx] = 0
+        frozen_bits[info_codec] = 0
 
         def decoder(llr_ch):
             return sc_decode(llr_ch, frozen_bits), None
@@ -88,7 +89,7 @@ def main():
             decoder_type='sc',
             max_frames=MAX_FRAMES,
             min_errors=MIN_ERRORS,
-            info_indices=info_idx,
+            info_indices=info_codec,
             verbose=True
         )
 

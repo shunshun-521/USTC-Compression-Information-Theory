@@ -14,17 +14,16 @@ def bit_reversal_permutation(N):
 
 def polar_encode(u):
     """
-    极化码编码。
-    采用 Arikan 极化变换的蝶形递归实现。
+    极化码编码：蝶形结构 + 比特倒序置换。
     """
     u = np.asarray(u, dtype=int).copy()
     N = len(u)
-    n = int(math.log2(N)) + 1
-    m = 1
-    for _ in range(n - 1):
-        for i in range(0, N, 2 * m):
-            x = u[i:i + m]
-            y = u[i + m:i + 2 * m]
-            u[i:i + 2 * m] = np.concatenate([x ^ y, y])
-        m *= 2
-    return u
+    n = int(math.log2(N))
+
+    for layer in range(n):
+        step = 1 << layer
+        for i in range(0, N, 2 * step):
+            u[i:i + step] ^= u[i + step:i + 2 * step]
+
+    brp = bit_reversal_permutation(N)
+    return u[brp]

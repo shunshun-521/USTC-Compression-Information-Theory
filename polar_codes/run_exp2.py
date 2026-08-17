@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from construction import ga_construction
+from construction import ga_construction, codec_info_indices
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from simulation import run_simulation
@@ -22,7 +22,7 @@ def run_unit_tests():
     from channel import bpsk_modulate, compute_llr
 
     N, K = 64, 32
-    info_idx, _, _ = ga_construction(N, K, 2.5)
+    info_idx = codec_info_indices(N, K)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
 
@@ -54,9 +54,10 @@ def main():
     MIN_ERRORS = 100
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
-    info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
+    info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
+    info_codec = codec_info_indices(N, K)
     frozen_bits = np.ones(N, dtype=int)
-    frozen_bits[info_idx] = 0
+    frozen_bits[info_codec] = 0
 
     all_results = {}
 
@@ -65,7 +66,7 @@ def main():
 
     results_sc = run_simulation(
         N, K, EB_N0_RANGE, sc_decoder, 'sc',
-        MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True
+        MAX_FRAMES, MIN_ERRORS, info_indices=info_codec, verbose=True
     )
     all_results['SC (L=1)'] = results_sc
     save_results_csv(results_sc, f'results/exp2_sc_N{N}_R0.5.csv')
@@ -80,7 +81,7 @@ def main():
 
         results = run_simulation(
             N, K, EB_N0_RANGE, scl_decoder, 'scl',
-            MAX_FRAMES, MIN_ERRORS, info_indices=info_idx, verbose=True
+            MAX_FRAMES, MIN_ERRORS, info_indices=info_codec, verbose=True
         )
         label = f'SCL (L={L})'
         all_results[label] = results
@@ -90,7 +91,7 @@ def main():
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
     cascl = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH,
-                       info_indices=info_idx)
+                       info_indices=info_codec)
 
     def cascl_decoder(llr_ch):
         u_hat, pm = cascl.decode(llr_ch)
@@ -99,7 +100,7 @@ def main():
     results_cascl = run_simulation(
         N, K, EB_N0_RANGE, cascl_decoder, 'scl',
         MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
-        info_indices=info_idx, verbose=True
+        info_indices=info_codec, verbose=True
     )
     all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
     save_results_csv(results_cascl, f'results/exp2_cascl_L8_N{N}_R0.5.csv')

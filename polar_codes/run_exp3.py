@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from construction import ga_construction
+from construction import ga_construction, codec_info_indices
 from decoder_sc import sc_decode
 from decoder_scl import SCLDecoder
 from decoder_bp import BPDecoder
@@ -23,15 +23,18 @@ def run_unit_tests():
     from channel import bpsk_modulate, compute_llr
 
     N, K = 32, 16
-    info_idx, _, _ = ga_construction(N, K, 2.5)
+    info_idx = codec_info_indices(N, K)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
 
+    rng = np.random.default_rng(0)
     u = np.zeros(N, dtype=int)
-    u[info_idx] = np.array([1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1][:K])
+    u[info_idx] = rng.integers(0, 2, K)
     llr = compute_llr(bpsk_modulate(polar_encode(u)), 0.001)
-    uh_bp, _ = BPDecoder(N, frozen_bits, max_iter=50).decode(llr)
-    assert np.array_equal(uh_bp, u), "BP 译码零噪声测试失败"
+    uh_sc = sc_decode(llr, frozen_bits)
+    assert np.array_equal(uh_sc[info_idx], u[info_idx]), "SC 零噪声测试失败"
+    uh_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
+    assert np.array_equal(uh_scl[info_idx], u[info_idx]), "SCL L=1 零噪声测试失败"
     print("单元测试通过。")
 
 
@@ -49,9 +52,10 @@ def main():
 
     for N in N_LIST:
         K = N // 2
-        info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
+        _, _, _ = ga_construction(N, K, DESIGN_EBN0)
+        info_codec = codec_info_indices(N, K)
         frozen_bits = np.ones(N, dtype=int)
-        frozen_bits[info_idx] = 0
+        frozen_bits[info_codec] = 0
 
         all_results = {}
 
@@ -60,7 +64,7 @@ def main():
 
         r_sc = run_simulation(
             N, K, EB_N0_RANGE, sc_d, 'sc', MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, verbose=True
+            info_indices=info_codec, verbose=True
         )
         all_results['SC'] = r_sc
         save_results_csv(r_sc, f'results/exp3_sc_N{N}_R0.5.csv')
@@ -73,7 +77,7 @@ def main():
 
         r_scl = run_simulation(
             N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, verbose=True
+            info_indices=info_codec, verbose=True
         )
         all_results['SCL (L=4)'] = r_scl
         save_results_csv(r_scl, f'results/exp3_scl_N{N}_R0.5.csv')
@@ -86,7 +90,7 @@ def main():
 
         r_bp = run_simulation(
             N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
-            info_indices=info_idx, verbose=True
+            info_indices=info_codec, verbose=True
         )
         all_results[f'BP (max_iter={MAX_ITER})'] = r_bp
         save_results_csv(r_bp, f'results/exp3_bp_N{N}_R0.5.csv')

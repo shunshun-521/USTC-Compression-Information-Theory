@@ -4,6 +4,7 @@
 """
 import math
 import numpy as np
+from encoder import bit_reversal_permutation
 
 
 def f_operation(La, Lb):
@@ -21,54 +22,75 @@ def g_operation(La, Lb, u_hat):
     return Lb + (1.0 - 2.0 * u_hat) * La
 
 
-def _frozen_set_from_bits(frozen_bits):
-    """将 frozen_bits 数组转为冻结位索引集合"""
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    if frozen_bits.dtype != bool:
-        frozen_bits = frozen_bits.astype(bool)
-    return set(np.where(frozen_bits)[0])
+def _sionna_decode_block(llr, frozen):
+    """Sionna 风格递归 SC，返回 (u_hat, u_up)"""
+    n = len(llr)
+    if n == 1:
+        u = 0 if frozen[0] or llr[0] >= 0 else 1
+        return np.array([u], dtype=int), np.array([u], dtype=int)
+
+    half = n // 2
+    l1, l2 = llr[:half], llr[half:]
+    cn = f_operation(l1, l2)
+    u1, u1_up = _sionna_decode_block(cn, frozen[:half])
+    vn = g_operation(l1, l2, u1_up)
+    u2, u2_up = _sionna_decode_block(vn, frozen[half:])
+    u = np.concatenate([u1, u2])
+    u1_up = (u1_up.astype(int) ^ u2_up.astype(int)).astype(int)
+    u_up = np.concatenate([u1_up, u2_up])
+    return u, u_up
+
+
+def _llr_at_bit(llr, frozen, u_known, phi):
+    """计算自然序比特 phi 处的 LLR"""
+    brp = bit_reversal_permutation(len(llr))
+    llr = np.asarray(llr, dtype=np.float64)[brp]
+    frozen = np.asarray(frozen).astype(bool)
+
+    def recurse(y, fb, offset, target, u_prefix):
+        m = len(y)
+        if m == 1:
+            return y[0]
+        half = m // 2
+        l1, l2 = y[:half], y[half:]
+        cn = f_operation(l1, l2)
+        if target < offset + half:
+            return recurse(cn, fb[:half], offset, target, u_prefix)
+        u_left = u_prefix[offset:offset + half]
+        u1_up = _sionna_up_only(cn, fb[:half], offset, u_left)
+        vn = g_operation(l1, l2, u1_up)
+        return recurse(vn, fb[half:], offset + half, target, u_prefix)
+
+    return recurse(llr, frozen, 0, phi, u_known)
+
+
+def _sionna_up_only(llr, frozen, offset, u_left):
+    """仅计算左子树 u_up（已知左子树源比特 u_left）"""
+    n = len(llr)
+    if n == 1:
+        return np.array([u_left[offset]], dtype=int)
+    half = n // 2
+    l1, l2 = llr[:half], llr[half:]
+    cn = f_operation(l1, l2)
+    u1_up_left = _sionna_up_only(cn, frozen[:half], offset, u_left[:half])
+    vn = g_operation(l1, l2, u1_up_left)
+    u2_up = _sionna_up_only(vn, frozen[half:], offset + half, u_left[half:])
+    u1_up = (u1_up_left.astype(int) ^ u2_up.astype(int)).astype(int)
+    return np.concatenate([u1_up, u2_up])
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """
-    递归 SC 译码（参考实现）。
-  LLR > 0 倾向比特 0，LLR < 0 倾向比特 1。
-    """
-    llr = np.asarray(llr, dtype=np.float64)
-    N = len(llr)
-    n = int(math.log2(N)) + 1
-    F = _frozen_set_from_bits(frozen_bits)
-    node_values = np.zeros(N, dtype=int)
-
-    def _merge_paths(left, right):
-        """合并子树返回值（与 Arikan SC 蝶形结构一致）"""
-        merged = [(left[i] + right[i]) % 2 for i in range(len(left))]
-        merged.extend(right)
-        return merged
-
-    def decode(y, depth, node):
-        if depth == n - 1:
-            if node in F:
-                node_values[node] = 0
-            else:
-                node_values[node] = 1 if y[0] < 0 else 0
-            return [node_values[node]]
-
-        half = len(y) // 2
-        L1, L2 = y[:half], y[half:]
-        left_llr = f_operation(L1, L2)
-        arr1 = decode(left_llr, depth + 1, 2 * node)
-        right_llr = g_operation(L1, L2, arr1)
-        arr2 = decode(right_llr, depth + 1, 2 * node + 1)
-        return _merge_paths(arr1, arr2)
-
-    decode(llr, 0, 0)
-    return node_values
+    """递归 SC 译码（参考实现）"""
+    brp = bit_reversal_permutation(len(llr))
+    llr = np.asarray(llr, dtype=np.float64)[brp]
+    frozen = np.asarray(frozen_bits).astype(bool)
+    u, _ = _sionna_decode_block(llr, frozen)
+    return u
 
 
 def precompute_sc_indices(N):
     """预计算非递归 SC 译码辅助向量"""
-    n = int(math.log2(N)) + 1
+    n = int(math.log2(N))
     lambda_offset = [0] * n
     for layer in range(n):
         lambda_offset[layer] = (1 << layer) - 1
@@ -95,7 +117,5 @@ def precompute_sc_indices(N):
 
 
 def sc_decode(llr_ch, frozen_bits):
-    """
-    非递归 SC 译码主函数（基于分层 LLR 存储）。
-    """
+    """非递归 SC 译码（调用 Sionna 风格递归实现）"""
     return sc_decode_recursive(llr_ch, frozen_bits)
