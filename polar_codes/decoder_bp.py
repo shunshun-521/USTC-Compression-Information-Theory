@@ -44,13 +44,13 @@ class BPDecoder:
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _f_min_sum(R[i, j] + L[i + s, j], L[i, j], alpha)
-                    L[i + s, j - 1] = _f_min_sum(R[i, j], L[i, j]) + L[i + s, j]
+                    L[i + s, j - 1] = _f_min_sum(R[i, j], L[i, j], alpha) + L[i + s, j]
 
             for j in range(0, n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    R[i, j + 1] = _f_min_sum(R[i + s, j] + L[i + s, j + 1], R[i, j])
-                    R[i + s, j + 1] = _f_min_sum(R[i, j], L[i, j + 1]) + R[i + s, j]
+                    R[i, j + 1] = _f_min_sum(R[i + s, j] + L[i + s, j + 1], R[i, j], alpha)
+                    R[i + s, j + 1] = _f_min_sum(R[i, j], L[i, j + 1], alpha) + R[i + s, j]
 
             num_iters = it
 
