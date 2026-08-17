@@ -52,6 +52,8 @@ def main():
     L_LIST = [2, 4, 8]
     MAX_FRAMES = 15000
     MIN_ERRORS = 50
+    MAX_FRAMES_SCL = 80
+    MIN_ERRORS_SCL = 15
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
@@ -81,7 +83,7 @@ def main():
 
         results = run_simulation(
             N, K, EB_N0_RANGE, scl_decoder, 'scl',
-            MAX_FRAMES, MIN_ERRORS, info_indices=info_codec, verbose=True
+            MAX_FRAMES_SCL, MIN_ERRORS_SCL, info_indices=info_codec, verbose=True
         )
         label = f'SCL (L={L})'
         all_results[label] = results
@@ -99,7 +101,7 @@ def main():
 
     results_cascl = run_simulation(
         N, K, EB_N0_RANGE, cascl_decoder, 'scl',
-        MAX_FRAMES, MIN_ERRORS, crc_length=CRC_LENGTH,
+        MAX_FRAMES_SCL, MIN_ERRORS_SCL, crc_length=CRC_LENGTH,
         info_indices=info_codec, verbose=True
     )
     all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl

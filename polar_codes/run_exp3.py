@@ -50,6 +50,8 @@ def main():
     MAX_ITER = 50
     MAX_FRAMES = 15000
     MIN_ERRORS = 50
+    MAX_FRAMES_SCL = 80
+    MIN_ERRORS_SCL = 15
     EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
     for N in N_LIST:
@@ -78,7 +80,7 @@ def main():
             return u, None
 
         r_scl = run_simulation(
-            N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
+            N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES_SCL, MIN_ERRORS_SCL,
             info_indices=info_codec, verbose=True
         )
         all_results['SCL (L=4)'] = r_scl
