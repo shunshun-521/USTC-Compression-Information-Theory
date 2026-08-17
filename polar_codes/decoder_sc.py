@@ -57,24 +57,25 @@ def _llr_at_bit(llr, frozen, u_known, phi):
         if target < offset + half:
             return recurse(cn, fb[:half], offset, target, u_prefix)
         u_left = u_prefix[offset:offset + half]
-        u1_up = _sionna_up_only(cn, fb[:half], offset, u_left)
+        u1_up = _sionna_up_only(cn, fb[:half], u_left)
         vn = g_operation(l1, l2, u1_up)
         return recurse(vn, fb[half:], offset + half, target, u_prefix)
 
     return recurse(llr, frozen, 0, phi, u_known)
 
 
-def _sionna_up_only(llr, frozen, offset, u_left):
-    """仅计算左子树 u_up（已知左子树源比特 u_left）"""
+def _sionna_up_only(llr, frozen, u_left):
+    """仅计算子树 u_up（u_left 为与该 llr 块等长的已知源比特）"""
     n = len(llr)
+    u_left = np.asarray(u_left, dtype=int)
     if n == 1:
-        return np.array([u_left[offset]], dtype=int)
+        return np.array([u_left[0]], dtype=int)
     half = n // 2
     l1, l2 = llr[:half], llr[half:]
     cn = f_operation(l1, l2)
-    u1_up_left = _sionna_up_only(cn, frozen[:half], offset, u_left[:half])
+    u1_up_left = _sionna_up_only(cn, frozen[:half], u_left[:half])
     vn = g_operation(l1, l2, u1_up_left)
-    u2_up = _sionna_up_only(vn, frozen[half:], offset + half, u_left[half:])
+    u2_up = _sionna_up_only(vn, frozen[half:], u_left[half:])
     u1_up = (u1_up_left.astype(int) ^ u2_up.astype(int)).astype(int)
     return np.concatenate([u1_up, u2_up])
 
