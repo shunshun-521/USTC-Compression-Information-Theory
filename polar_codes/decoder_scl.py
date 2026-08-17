@@ -145,7 +145,11 @@ class SCLDecoder:
             paths = candidates[:L]
 
         if self.crc_length > 0:
-            crc_ok = [p for p in paths if crc_check(p['u'], self.crc_length)]
+            def _crc_ok(path):
+                payload = (path['u'][self.info_indices] if self.info_indices is not None
+                           else path['u'])
+                return crc_check(payload, self.crc_length)
+            crc_ok = [p for p in paths if _crc_ok(p)]
             best = min(crc_ok if crc_ok else paths, key=lambda p: p['pm'])
         else:
             best = min(paths, key=lambda p: p['pm'])
