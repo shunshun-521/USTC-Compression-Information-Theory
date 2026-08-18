@@ -2,8 +2,11 @@
 极化码 SC（串行抵消）译码器
 提供递归版本（参考实现）和非递归版本（高效实现）
 """
-import numpy as np
 import math
+
+import numpy as np
+
+_DECODE_ORDER_CACHE = {}
 
 
 def bit_reversed(i, n):
@@ -13,6 +16,12 @@ def bit_reversed(i, n):
         if i & (1 << b):
             result |= 1 << (n - 1 - b)
     return result
+
+
+def _get_decode_order(n, N):
+    if N not in _DECODE_ORDER_CACHE:
+        _DECODE_ORDER_CACHE[N] = [bit_reversed(i, n) for i in range(N)]
+    return _DECODE_ORDER_CACHE[N]
 
 
 def f_operation(La, Lb):
@@ -26,7 +35,6 @@ def g_operation(La, Lb, u_hat):
 
 
 def _active_llr_level(i, n):
-    """二进制表示中从最高位起第一个 1 的位置（层数）"""
     mask = 1 << (n - 1)
     count = 1
     for _ in range(n):
@@ -39,7 +47,6 @@ def _active_llr_level(i, n):
 
 
 def _active_bit_level(i, n):
-    """二进制表示中从最高位起第一个 0 的位置（层数）"""
     mask = 1 << (n - 1)
     count = 1
     for _ in range(n):
@@ -86,8 +93,7 @@ def sc_decode_recursive(llr, frozen_bits):
                     B[j - branch_size, s - 1] = B[j, s] ^ B[j - branch_size, s]
                     B[j, s - 1] = B[j, s]
 
-    decode_order = [bit_reversed(i, n) for i in range(N)]
-    for l in decode_order:
+    for l in _get_decode_order(n, N):
         update_llrs(l)
         if frozen_bits[l]:
             B[l, n] = 0

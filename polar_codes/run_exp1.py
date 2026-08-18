@@ -59,12 +59,12 @@ for N in N_LIST:
         max_frames=MAX_FRAMES,
         min_errors=MIN_ERRORS,
         info_indices=info_idx,
+        save_path=f"results/exp1_sc_N{N}_R0.5.csv",
         verbose=True,
     )
 
     label = f"SC, N={N}, K={K}"
     all_results[label] = results
-    save_results_csv(results, f"results/exp1_sc_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 print(f"\nBPSK 信道容量限（R={RATE}）: Eb/N0 = {shannon_db:.3f} dB")

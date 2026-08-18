@@ -20,6 +20,7 @@ def run_simulation(
     verbose=True,
     seed=42,
     info_indices=None,
+    save_path=None,
 ):
     """
     蒙特卡洛仿真。
@@ -83,6 +84,10 @@ def run_simulation(
         }
         results.append(result)
 
+        if save_path is not None:
+            from utils import save_results_csv
+            save_results_csv(results, save_path)
+
         if verbose:
             msg = (
                 f"  Eb/N0={eb_n0_db:.2f}dB | BLER={bler:.4e} | BER={ber:.4e} "
@@ -91,6 +96,6 @@ def run_simulation(
             )
             if avg_iters is not None:
                 msg += f" | AvgIter={avg_iters:.1f}"
-            print(msg)
+            print(msg, flush=True)
 
     return results
