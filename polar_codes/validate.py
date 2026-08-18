@@ -38,3 +38,7 @@ def run_unit_tests():
     assert np.array_equal(u_sc, u_scl), "L=1 SCL 应等价于 SC"
 
     print("所有单元测试通过。")
+
+
+if __name__ == '__main__':
+    run_unit_tests()
