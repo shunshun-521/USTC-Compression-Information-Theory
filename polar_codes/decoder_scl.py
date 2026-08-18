@@ -23,13 +23,15 @@ def crc_encode(info_bits, crc_length=8):
         raise ValueError("crc_length must be 8 or 16")
 
     reg = 0
+    mask_top = 1 << (crc_length - 1)
+    mask_all = (1 << crc_length) - 1
     for bit in info_bits:
-        reg ^= (bit << (crc_length - 1))
+        reg ^= (int(bit) << (crc_length - 1))
         for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
+            if reg & mask_top:
+                reg = ((reg << 1) ^ poly) & mask_all
             else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
+                reg = (reg << 1) & mask_all
 
     crc_bits = np.array([(reg >> i) & 1 for i in range(crc_length - 1, -1, -1)], dtype=np.int8)
     return np.concatenate([info_bits, crc_bits])
@@ -43,13 +45,15 @@ def crc_check(bits, crc_length=8):
     else:
         poly = 0x8005
     reg = 0
+    mask_top = 1 << (crc_length - 1)
+    mask_all = (1 << crc_length) - 1
     for bit in bits:
-        reg ^= (bit << (crc_length - 1))
+        reg ^= (int(bit) << (crc_length - 1))
         for _ in range(8):
-            if reg & (1 << (crc_length - 1)):
-                reg = ((reg << 1) ^ poly) & ((1 << crc_length) - 1)
+            if reg & mask_top:
+                reg = ((reg << 1) ^ poly) & mask_all
             else:
-                reg = (reg << 1) & ((1 << crc_length) - 1)
+                reg = (reg << 1) & mask_all
     return reg == 0
 
 
