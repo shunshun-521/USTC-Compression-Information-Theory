@@ -46,15 +46,16 @@ class BPDecoder:
         for it in range(1, self.max_iter + 1):
             for j in range(n, 0, -1):
                 step = 1 << (j - 1)
+                right_col = j if j == n else j + 1
                 for i in range(0, N, 2 * step):
                     L[i : i + step, j - 1] = self._f_min_sum(
-                        R[i : i + step, j] + L[i + step : i + 2 * step, j],
-                        L[i : i + step, j + 1],
+                        R[i : i + step, j] + L[i + step : i + 2 * step, right_col],
+                        L[i : i + step, right_col],
                     )
                     L[i + step : i + 2 * step, j - 1] = self._f_min_sum(
                         R[i : i + step, j],
-                        L[i : i + step, j + 1],
-                    ) + L[i + step : i + 2 * step, j + 1]
+                        L[i : i + step, right_col],
+                    ) + L[i + step : i + 2 * step, right_col]
 
             for j in range(0, n):
                 step = 1 << j
