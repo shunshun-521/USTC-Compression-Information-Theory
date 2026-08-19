@@ -6,7 +6,6 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -53,31 +52,42 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    通过 Monte Carlo 估计互信息 I(X;Y)。
     """
-    snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+    eb_n0_lin = 10.0 ** (eb_n0_db / 10.0)
+    sigma = 1.0 / np.sqrt(2.0 * rate * eb_n0_lin)
+    rng = np.random.default_rng(0)
+    n_samples = 200000
+    x = rng.choice([-1.0, 1.0], size=n_samples)
+    y = x + rng.normal(0.0, sigma, size=n_samples)
 
-    def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+    py_x1 = np.exp(-0.5 * ((y - 1.0) / sigma) ** 2)
+    py_xm1 = np.exp(-0.5 * ((y + 1.0) / sigma) ** 2)
+    py = 0.5 * (py_x1 + py_xm1)
+    px1_y = 0.5 * py_x1 / py
+    pxm1_y = 0.5 * py_xm1 / py
 
-    val, _ = integrate.quad(integrand, -np.inf, np.inf)
-    val /= np.sqrt(2.0 * np.pi)
-    return 1.0 - val
+    with np.errstate(divide='ignore', invalid='ignore'):
+        mi = np.mean(
+            px1_y * np.log2(2.0 * px1_y) + pxm1_y * np.log2(2.0 * pxm1_y)
+        )
+    return float(np.clip(mi, 0.0, 1.0))
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10)):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = [compute_bpsk_capacity(eb, rate) for eb in eb_vals]
-    caps = np.array(caps)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx > 0 and idx < len(eb_vals) - 1:
-        e0, e1 = eb_vals[idx - 1], eb_vals[idx + 1]
-        c0 = compute_bpsk_capacity(e0, rate)
-        c1 = compute_bpsk_capacity(e1, rate)
-        if abs(c1 - c0) > 1e-12:
-            return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
-    return eb_vals[idx]
+    lo, hi = eb_n0_range[0], eb_n0_range[1]
+    if compute_bpsk_capacity(lo, rate) >= rate:
+        return lo
+    if compute_bpsk_capacity(hi, rate) <= rate:
+        return hi
+    for _ in range(60):
+        mid = (lo + hi) / 2
+        if compute_bpsk_capacity(mid, rate) >= rate:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,

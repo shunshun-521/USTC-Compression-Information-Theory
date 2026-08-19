@@ -60,7 +60,7 @@ def polar_encode_no_reversal(u):
 
 
 def generator_matrix(N):
-    """构造极化码生成矩阵 G = F^{\otimes n}（GF(2)）"""
+    r"""构造极化码生成矩阵 G = F^{\otimes n}（GF(2)）"""
     F = np.array([[1, 0], [1, 1]], dtype=int)
     G = F.copy()
     for _ in range(int(np.log2(N)) - 1):
