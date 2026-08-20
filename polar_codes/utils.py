@@ -49,28 +49,42 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    使用与信道模型一致的 Monte Carlo 估计。
     """
-    eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
+    eb_n0_db_list = np.asarray(eb_n0_db_list, dtype=float)
+    if eb_n0_db_list.ndim == 0:
+        eb_n0_db_list = eb_n0_db_list.reshape(1)
+
+    rng = np.random.default_rng(0)
+    n_samples = 200000
     capacities = []
 
     for eb_n0_db in eb_n0_db_list:
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        sigma = 1.0 / np.sqrt(snr)
+        z = rng.normal(0.0, sigma, n_samples)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        llr0 = 2.0 * (1.0 + z) / (sigma ** 2)
+        llr1 = 2.0 * (-1.0 + z) / (sigma ** 2)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacities.append(1.0 - val / np.sqrt(2.0 * np.pi))
+        t0 = np.log2(1.0 + np.exp(-llr0))
+        t1 = np.log2(1.0 + np.exp(llr1))
+        capacities.append(float(1.0 - 0.5 * (np.mean(t0) + np.mean(t1))))
 
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=200):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_vals = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_vals, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    return float(eb_vals[idx])
+    lo, hi = eb_n0_range
+    for _ in range(60):
+        mid = (lo + hi) / 2.0
+        cap = compute_bpsk_capacity(mid, rate)[0]
+        if cap > rate:
+            hi = mid
+        else:
+            lo = mid
+    return float(hi)
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
