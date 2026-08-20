@@ -71,8 +71,10 @@ if __name__ == "__main__":
         all_results["SC"] = r_sc
         save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
 
-        def scl_d(llr_ch):
-            u, pm = SCLDecoder(N, frozen_bits, list_size=4).decode(llr_ch)
+        scl_decoder_obj = SCLDecoder(N, frozen_bits, list_size=4)
+
+        def scl_d(llr_ch, _scl=scl_decoder_obj):
+            u, pm = _scl.decode(llr_ch)
             return u, None
 
         r_scl = run_simulation(

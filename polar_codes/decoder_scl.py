@@ -51,9 +51,9 @@ def crc_check(bits, crc_length=8):
 
 
 class Path:
-    """单条 SCL 路径。"""
+    """单条 SCL 路径（Lazy Copy：L 共享，B 按需复制）。"""
 
-    __slots__ = ("L", "B", "pm", "u_hat")
+    __slots__ = ("L", "B", "pm", "u_hat", "_owns_L")
 
     def __init__(self, N, n, llr):
         self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
@@ -61,18 +61,25 @@ class Path:
         self.L[:, 0] = llr
         self.pm = 0.0
         self.u_hat = np.zeros(N, dtype=int)
+        self._owns_L = True
 
     def fork(self):
         child = Path.__new__(Path)
-        child.L = self.L.copy()
+        child.L = self.L
         child.B = self.B.copy()
         child.pm = self.pm
         child.u_hat = self.u_hat.copy()
+        child._owns_L = False
         return child
+
+    def ensure_own_L(self):
+        if not self._owns_L:
+            self.L = self.L.copy()
+            self._owns_L = True
 
 
 class SCLDecoder:
-    """SCL 译码器（Lazy Copy：路径分裂时复制 P/C）。"""
+    """SCL 译码器。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -93,6 +100,7 @@ class SCLDecoder:
     def _update_llrs(self, paths, l):
         n = self.n
         for path in paths:
+            path.ensure_own_L()
             L, B = path.L, path.B
             for s in range(n - _active_llr_level(l, n), n):
                 block_size = 2 ** (s + 1)
@@ -181,9 +189,10 @@ if __name__ == "__main__":
     for _ in range(20):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        x = polar_encode(u)
-        sigma = eb_n0_to_sigma(8.0, K / N)
-        llr = compute_llr(awgn_channel(bpsk_modulate(x), sigma, rng), sigma)
+        llr = compute_llr(
+            awgn_channel(bpsk_modulate(polar_encode(u)), eb_n0_to_sigma(8.0, 0.5), rng),
+            eb_n0_to_sigma(8.0, 0.5),
+        )
         u_sc = sc_decode(llr, frozen_bits)
         u_scl, _ = SCLDecoder(N, frozen_bits, list_size=1).decode(llr)
         if not np.array_equal(u_sc, u_scl):

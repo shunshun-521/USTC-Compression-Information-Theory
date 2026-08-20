@@ -90,11 +90,10 @@ if __name__ == "__main__":
 
     for L in L_LIST:
         print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
+        scl = SCLDecoder(N, frozen_bits, list_size=L, crc_length=0)
 
-        def scl_decoder(llr_ch, _L=L):
-            u_hat, pm = SCLDecoder(N, frozen_bits, list_size=_L, crc_length=0).decode(
-                llr_ch
-            )
+        def scl_decoder(llr_ch, _scl=scl):
+            u_hat, pm = _scl.decode(llr_ch)
             return u_hat, None
 
         results = run_simulation(
@@ -112,11 +111,10 @@ if __name__ == "__main__":
         save_results_csv(results, f"results/exp2_scl_L{L}_N{N}_R0.5.csv")
 
     print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+    cascl = SCLDecoder(N, frozen_bits, list_size=8, crc_length=CRC_LENGTH)
 
-    def cascl_decoder(llr_ch):
-        u_hat, pm = SCLDecoder(
-            N, frozen_bits, list_size=8, crc_length=CRC_LENGTH
-        ).decode(llr_ch)
+    def cascl_decoder(llr_ch, _cascl=cascl):
+        u_hat, pm = _cascl.decode(llr_ch)
         return u_hat, None
 
     results_cascl = run_simulation(
