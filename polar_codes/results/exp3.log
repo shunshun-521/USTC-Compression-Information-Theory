@@ -1,0 +1,57 @@
+所有单元测试通过。
+
+实验三 SC: N=256
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8898e-01 | Errors=100 | Frames=100 | AvgTime=2.74ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.8547e-01 | Errors=100 | Frames=100 | AvgTime=2.74ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.8336e-01 | Errors=100 | Frames=100 | AvgTime=2.76ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.8125e-01 | Errors=100 | Frames=100 | AvgTime=2.77ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.7961e-01 | Errors=100 | Frames=100 | AvgTime=2.83ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.7703e-01 | Errors=100 | Frames=100 | AvgTime=2.84ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.6437e-01 | Errors=100 | Frames=100 | AvgTime=2.90ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.7023e-01 | Errors=100 | Frames=100 | AvgTime=2.82ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.7039e-01 | Errors=100 | Frames=100 | AvgTime=2.85ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.5922e-01 | Errors=100 | Frames=100 | AvgTime=2.89ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.6656e-01 | Errors=100 | Frames=100 | AvgTime=2.81ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.5234e-01 | Errors=100 | Frames=100 | AvgTime=2.83ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.4469e-01 | Errors=100 | Frames=100 | AvgTime=2.81ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.4742e-01 | Errors=100 | Frames=100 | AvgTime=2.78ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.1641e-01 | Errors=100 | Frames=100 | AvgTime=2.77ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.4570e-01 | Errors=100 | Frames=100 | AvgTime=2.76ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.0328e-01 | Errors=100 | Frames=100 | AvgTime=2.78ms
+  Eb/N0=5.25dB | BLER=9.9010e-01 | BER=3.8529e-01 | Errors=100 | Frames=101 | AvgTime=2.77ms
+
+实验三 SCL: N=256
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.4797e-01 | Errors=100 | Frames=100 | AvgTime=14.88ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.4805e-01 | Errors=100 | Frames=100 | AvgTime=15.04ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.4383e-01 | Errors=100 | Frames=100 | AvgTime=14.99ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.3859e-01 | Errors=100 | Frames=100 | AvgTime=14.87ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.3227e-01 | Errors=100 | Frames=100 | AvgTime=14.81ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.4070e-01 | Errors=100 | Frames=100 | AvgTime=14.81ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.1070e-01 | Errors=100 | Frames=100 | AvgTime=14.87ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=3.8859e-01 | Errors=100 | Frames=100 | AvgTime=14.79ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=3.9125e-01 | Errors=100 | Frames=100 | AvgTime=14.79ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=3.8359e-01 | Errors=100 | Frames=100 | AvgTime=14.81ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=3.9062e-01 | Errors=100 | Frames=100 | AvgTime=14.79ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=3.7305e-01 | Errors=100 | Frames=100 | AvgTime=14.75ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=3.5445e-01 | Errors=100 | Frames=100 | AvgTime=14.80ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=3.4820e-01 | Errors=100 | Frames=100 | AvgTime=14.79ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=3.0125e-01 | Errors=100 | Frames=100 | AvgTime=14.75ms
+  Eb/N0=4.75dB | BLER=9.9010e-01 | BER=3.0213e-01 | Errors=100 | Frames=101 | AvgTime=14.82ms
+  Eb/N0=5.00dB | BLER=9.8039e-01 | BER=2.5789e-01 | Errors=100 | Frames=102 | AvgTime=14.83ms
+  Eb/N0=5.25dB | BLER=9.7087e-01 | BER=2.1784e-01 | Errors=100 | Frames=103 | AvgTime=14.77ms
+
+实验三 BP: N=256
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp3.py", line 84, in <module>
+    r_bp = run_simulation(
+           ^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/simulation.py", line 62, in run_simulation
+    u_hat, aux = decoder(llr)
+                 ^^^^^^^^^^^^
+  File "/workspace/polar_codes/run_exp3.py", line 80, in bp_d
+    u_hat, num_iters = bp_decoder.decode(llr_ch)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/decoder_bp.py", line 45, in decode
+    La = R[i, j] + L[i + step, j + 1]
+                   ~^^^^^^^^^^^^^^^^^
+IndexError: index 9 is out of bounds for axis 1 with size 9
