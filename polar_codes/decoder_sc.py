@@ -8,6 +8,15 @@ import numpy as np
 from encoder import bit_reversal_permutation
 
 
+def f_min_sum(La, Lb, alpha=1.0):
+    """min-sum 近似的 f 运算（用于 BP 译码）"""
+    sa = np.sign(La)
+    sb = np.sign(Lb)
+    sa = np.where(sa == 0, 1, sa)
+    sb = np.where(sb == 0, 1, sb)
+    return alpha * sa * sb * np.minimum(np.abs(La), np.abs(Lb))
+
+
 def _logdomain_sum(x, y):
     if x > y:
         return x + np.log1p(np.exp(y - x))

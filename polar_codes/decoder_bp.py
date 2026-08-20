@@ -4,7 +4,7 @@
 """
 import numpy as np
 from encoder import polar_encode, bit_reversal_permutation
-from decoder_sc import f_operation
+from decoder_sc import f_min_sum
 
 
 class BPDecoder:
@@ -22,7 +22,7 @@ class BPDecoder:
         self.info_idx = np.where(~self.frozen_bits)[0]
 
     def _f_min_sum(self, a, b):
-        return self.alpha * f_operation(a, b)
+        return f_min_sum(a, b, self.alpha)
 
     def decode(self, llr_ch):
         """
