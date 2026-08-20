@@ -58,7 +58,9 @@ def _bpsk_capacity_per_snr(snr_linear):
     s = snr_linear
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-0.5 * y ** 2)
+        val = -2.0 * s * y
+        val = np.clip(val, -500, 500)
+        return np.log2(1.0 + np.exp(val)) * np.exp(-0.5 * y ** 2)
 
     val, _ = integrate.quad(integrand, -10.0, 10.0, limit=200)
     return 1.0 - val / np.sqrt(2.0 * np.pi)
