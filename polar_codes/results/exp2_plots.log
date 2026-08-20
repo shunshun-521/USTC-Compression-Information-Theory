@@ -1,0 +1,22 @@
+运行 CA-SCL 快速仿真...
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=3.0681e-01 | Errors=100 | Frames=100 | AvgTime=57.74ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=2.7173e-01 | Errors=100 | Frames=100 | AvgTime=57.97ms
+  Eb/N0=5.50dB | BLER=1.0000e+00 | BER=2.3871e-01 | Errors=100 | Frames=100 | AvgTime=58.24ms
+  Eb/N0=5.75dB | BLER=9.9010e-01 | BER=2.1167e-01 | Errors=100 | Frames=101 | AvgTime=58.07ms
+  Eb/N0=6.00dB | BLER=9.6154e-01 | BER=1.5830e-01 | Errors=100 | Frames=104 | AvgTime=58.21ms
+  Eb/N0=6.25dB | BLER=9.3458e-01 | BER=1.3838e-01 | Errors=100 | Frames=107 | AvgTime=58.57ms
+  Eb/N0=6.50dB | BLER=9.0909e-01 | BER=1.1129e-01 | Errors=100 | Frames=110 | AvgTime=58.73ms
+  Eb/N0=6.75dB | BLER=8.0000e-01 | BER=8.0903e-02 | Errors=100 | Frames=125 | AvgTime=58.54ms
+  Eb/N0=7.00dB | BLER=7.6336e-01 | BER=6.8918e-02 | Errors=100 | Frames=131 | AvgTime=58.28ms
+  Eb/N0=7.25dB | BLER=6.2500e-01 | BER=5.3453e-02 | Errors=100 | Frames=160 | AvgTime=57.90ms
+  Eb/N0=7.50dB | BLER=5.1813e-01 | BER=3.6186e-02 | Errors=100 | Frames=193 | AvgTime=57.98ms
+  Eb/N0=7.75dB | BLER=3.6765e-01 | BER=2.1169e-02 | Errors=100 | Frames=272 | AvgTime=58.05ms
+  Eb/N0=8.00dB | BLER=2.5773e-01 | BER=1.6036e-02 | Errors=100 | Frames=388 | AvgTime=57.85ms
+  Eb/N0=8.25dB | BLER=1.6447e-01 | BER=7.2819e-03 | Errors=100 | Frames=608 | AvgTime=57.89ms
+  Eb/N0=8.50dB | BLER=7.9936e-02 | BER=4.0709e-03 | Errors=100 | Frames=1251 | AvgTime=58.03ms
+  Eb/N0=8.75dB | BLER=3.4235e-02 | BER=1.6924e-03 | Errors=100 | Frames=2921 | AvgTime=58.01ms
+  Eb/N0=9.00dB | BLER=1.8262e-02 | BER=8.4386e-04 | Errors=100 | Frames=5476 | AvgTime=58.01ms
+  Eb/N0=9.25dB | BLER=6.7787e-03 | BER=2.9794e-04 | Errors=100 | Frames=14752 | AvgTime=58.01ms
+  Eb/N0=9.50dB | BLER=1.4000e-03 | BER=6.8548e-05 | Errors=28 | Frames=20000 | AvgTime=58.08ms
+  Eb/N0=9.75dB | BLER=7.5000e-04 | BER=2.6008e-05 | Errors=15 | Frames=20000 | AvgTime=58.05ms
+fig2 生成完成。
