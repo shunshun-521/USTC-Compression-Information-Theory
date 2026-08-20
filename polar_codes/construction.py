@@ -26,22 +26,21 @@ def phi(x):
 
 def phi_inv(y):
     """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 函数的数值逆（二分法，区间 [0, 100]）。
+    phi(x) 关于 x 单调递减。
     """
     y = np.asarray(y, dtype=np.float64)
-    if np.isscalar(y) or y.ndim == 0:
-        y = np.atleast_1d(y)
-        scalar = True
-    else:
-        scalar = False
+    scalar = np.isscalar(y)
+    y = np.atleast_1d(y)
 
     lo = np.zeros_like(y)
     hi = np.full_like(y, 100.0)
     for _ in range(60):
         mid = (lo + hi) / 2
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm < y, hi, mid)
+        # phi(mid) < y 说明 mid 偏大，应缩小上界
+        hi = np.where(pm < y, mid, hi)
+        lo = np.where(pm < y, lo, mid)
     result = (lo + hi) / 2
     return result[0] if scalar else result
 

@@ -3,7 +3,7 @@
 基于因子图，min-sum 近似，含早停机制
 """
 import numpy as np
-from encoder import polar_encode
+from encoder import polar_encode, bit_reversal_permutation
 
 
 class BPDecoder:
@@ -18,7 +18,7 @@ class BPDecoder:
         self.alpha = alpha
         self.LARGE = 1e6
 
-    def _f_minsum(self, a, b):
+    def _g_minsum(self, a, b):
         return self.alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
     def decode(self, llr_ch):
@@ -29,55 +29,47 @@ class BPDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         n = self.n
         N = self.N
+        rev = bit_reversal_permutation(N)
+        llr = llr_ch[rev].copy()
 
-        # L[i][j]: 从右到左消息，R[i][j]: 从左到右消息
-        # j = 0..n, 每列 N 个节点
-        L_msg = np.zeros((N, n + 1), dtype=np.float64)
-        R_msg = np.zeros((N, n + 1), dtype=np.float64)
-
-        L_msg[:, n] = llr_ch.copy()
-        R_msg[:, 0] = 0.0
+        L = np.zeros((n + 1, N), dtype=np.float64)
+        R = np.zeros((n + 1, N), dtype=np.float64)
+        L[n] = llr
+        R[0] = 0.0
         for idx in self.frozen_indices:
-            R_msg[idx, 0] = self.LARGE
+            R[0, idx] = self.LARGE
 
         num_iters = self.max_iter
 
         for it in range(self.max_iter):
-            # 从右到左更新 L 消息 (j = n 到 1)
-            for j in range(n, 0, -1):
-                s = 2 ** (j - 1)
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx_u = i + k
-                        idx_v = i + k + s
-                        R_u = R_msg[idx_u, j - 1]
-                        L_v = L_msg[idx_v, j]
-                        L_u = L_msg[idx_u, j]
-                        R_v = R_msg[idx_v, j - 1]
-                        L_v_next = L_msg[idx_v, j]
+            # 从右到左更新 L
+            for s in range(n - 1, -1, -1):
+                block = 2 ** s
+                for j in range(0, N, 2 * block):
+                    for k in range(block):
+                        L[s, j + k] = self._g_minsum(
+                            L[s + 1, j + k],
+                            L[s + 1, j + k + block] + R[s, j + k + block],
+                        )
+                        L[s, j + k + block] = self._g_minsum(
+                            L[s, j + k], L[s + 1, j + k]
+                        ) + L[s + 1, j + k + block]
 
-                        L_msg[idx_u, j - 1] = self._f_minsum(R_u + L_v, L_u)
-                        L_msg[idx_v, j - 1] = self._f_minsum(R_u, L_u) + L_v_next
-
-            # 从左到右更新 R 消息 (j = 0 到 n-1)
-            for j in range(0, n):
-                s = 2 ** (j + 1)
-                half = s // 2
-                for i in range(0, N, s):
-                    for k in range(half):
-                        idx_u = i + k
-                        idx_v = i + k + half
-                        R_v = R_msg[idx_v, j]
-                        L_v = L_msg[idx_v, j + 1]
-                        R_u = R_msg[idx_u, j]
-                        L_u = L_msg[idx_u, j + 1]
-                        R_v_next = R_msg[idx_v, j + 1]
-
-                        R_msg[idx_u, j + 1] = self._f_minsum(R_v + L_v, R_u)
-                        R_msg[idx_v, j + 1] = self._f_minsum(R_u, L_u) + R_v_next
+            # 从左到右更新 R
+            for s in range(0, n):
+                block = 2 ** s
+                for j in range(0, N, 2 * block):
+                    for k in range(block):
+                        R[s + 1, j + k] = self._g_minsum(
+                            R[s, j + k + block] + L[s + 1, j + k + block],
+                            R[s, j + k],
+                        )
+                        R[s + 1, j + k + block] = self._g_minsum(
+                            R[s, j + k], L[s + 1, j + k]
+                        ) + R[s, j + k + block]
 
             # 早停检查
-            total_llr = L_msg[:, 0] + R_msg[:, 0]
+            total_llr = L[0] + R[0]
             u_hat = np.zeros(N, dtype=int)
             for i in range(N):
                 if i in self.frozen_indices:
@@ -91,7 +83,7 @@ class BPDecoder:
                 num_iters = it + 1
                 break
 
-        total_llr = L_msg[:, 0] + R_msg[:, 0]
+        total_llr = L[0] + R[0]
         u_hat = np.zeros(N, dtype=int)
         for i in range(N):
             if i in self.frozen_indices:
