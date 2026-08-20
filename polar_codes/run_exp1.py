@@ -55,7 +55,7 @@ if __name__ == '__main__':
     DESIGN_EBN0 = 2.5
     MAX_FRAMES = int(os.environ.get('POLAR_MAX_FRAMES', '10000'))
     MIN_ERRORS = int(os.environ.get('POLAR_MIN_ERRORS', '50'))
-    EB_N0_RANGE = np.arange(0.0, 5.5, 0.5)
+    EB_N0_RANGE = np.arange(2.0, 8.5, 0.5)
 
     save_frozen_set_info(N_LIST, None, DESIGN_EBN0, 'results/frozen_sets.txt')
 
