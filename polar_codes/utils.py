@@ -72,10 +72,11 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y * y)
+            x = snr * (y ** 2)
+            log_term = np.logaddexp(0.0, -x) / np.log(2.0)
+            return log_term * np.exp(-0.5 * y * y) / np.sqrt(2.0 * np.pi)
 
         val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
         capacities.append(1.0 - val)
     return np.array(capacities)
 
@@ -86,18 +87,21 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     caps = compute_bpsk_capacity(eb_grid, rate)
 
     if np.all(caps < rate):
-        return eb_n0_range[1]
+        return float(eb_n0_range[1])
     if np.all(caps > rate):
-        return eb_n0_range[0]
+        return float(eb_n0_range[0])
 
-    idx = np.where(caps >= rate)[0][0]
+    idx = np.where(caps >= rate)[0]
+    if len(idx) == 0:
+        return float(eb_n0_range[1])
+    idx = idx[0]
     if idx == 0:
-        return eb_grid[0]
+        return float(eb_grid[0])
 
     def func(eb_db):
         return compute_bpsk_capacity([eb_db], rate)[0] - rate
 
-    return brentq(func, eb_grid[idx - 1], eb_grid[idx])
+    return float(brentq(func, eb_grid[idx - 1], eb_grid[idx]))
 
 
 def plot_bler_curves(
