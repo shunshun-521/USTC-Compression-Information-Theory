@@ -6,8 +6,8 @@ import math
 
 import numpy as np
 
-from decoder_sc import f_operation, _permute_channel_llrs
-from encoder import polar_encode, bit_reversal_permutation
+from decoder_sc import _permute_channel_llrs, f_operation
+from encoder import polar_encode
 
 
 class BPDecoder:
@@ -39,26 +39,31 @@ class BPDecoder:
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            for stage in range(n - 1, -1, -1):
+                step = 1 << stage
                 for i in range(0, N, 2 * step):
-                    La = R[i, j] + L[i + step, j + 1]
-                    Lb = L[i, j + 1]
-                    L[i, j] = self._f_min_sum(La, Lb)
-
-                    La2 = R[i, j]
-                    Lb2 = L[i, j + 1]
-                    L[i + step, j] = self._f_min_sum(La2, Lb2) + L[i + step, j + 1]
-
-            for j in range(1, n + 1):
-                step = 1 << (j - 1)
-                for i in range(0, N, 2 * step):
-                    R[i, j] = self._f_min_sum(
-                        R[i + step, j] + L[i + step, j + 1], R[i, j - 1]
+                    left = i
+                    right = i + step
+                    L[left, stage] = self._f_min_sum(
+                        R[left, stage] + L[right, stage + 1], L[left, stage + 1]
                     )
-                    R[i + step, j] = self._f_min_sum(
-                        R[i, j - 1], L[i, j + 1]
-                    ) + R[i + step, j]
+                    L[right, stage] = (
+                        self._f_min_sum(R[left, stage], L[left, stage + 1])
+                        + L[right, stage + 1]
+                    )
+
+            for stage in range(0, n):
+                step = 1 << stage
+                for i in range(0, N, 2 * step):
+                    left = i
+                    right = i + step
+                    R[right, stage + 1] = (
+                        self._f_min_sum(R[left, stage], L[left, stage + 1])
+                        + R[right, stage]
+                    )
+                    R[left, stage + 1] = self._f_min_sum(
+                        R[right, stage + 1] + L[right, stage + 1], R[left, stage]
+                    )
 
             u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
