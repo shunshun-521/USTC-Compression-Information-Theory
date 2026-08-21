@@ -33,8 +33,8 @@ os.makedirs('results', exist_ok=True)
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
+MAX_FRAMES = 20000
+MIN_ERRORS = 50
 EB_N0_RANGE = np.arange(4.0, 10.5, 0.5)
 
 # ========== 保存信息位/冻结位集合 ==========
