@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -77,24 +76,30 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_y[log2(1 + exp(-2*s*y))], s = SNR = 2R * 10^{Eb/N0/10}
+    计算 BPSK-AWGN 信道容量（bits/channel use），与 channel.py 的调制/噪声模型一致。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
+    y = np.linspace(-8, 8, 12000)
+    dy = y[1] - y[0]
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        sigma = 1.0 / np.sqrt(2.0 * rate * (10.0 ** (eb_n0_db / 10.0)))
+        p0 = np.exp(-0.5 * ((y - 1.0) / sigma) ** 2)
+        p1 = np.exp(-0.5 * ((y + 1.0) / sigma) ** 2)
+        py = 0.5 * (p0 + p1)
+        py /= np.trapezoid(py, y)
+        px0_y = p0 / (p0 + p1 + 1e-300)
+        px1_y = p1 / (p0 + p1 + 1e-300)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            cond_entropy = -np.trapezoid(
+                py * (px0_y * np.log2(px0_y + 1e-300) + px1_y * np.log2(px1_y + 1e-300)),
+                y,
+            )
+        capacities.append(float(1.0 - cond_entropy))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 5), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
