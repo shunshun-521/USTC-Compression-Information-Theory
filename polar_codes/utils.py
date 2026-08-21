@@ -49,18 +49,30 @@ def load_results_csv(filepath):
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
-    计算 BPSK 离散输入信道容量（bits/channel use）。
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]
+    计算 BPSK-AWGN 信道容量（bits/channel use）。
+    通过数值计算互信息 I(X;Y)，X ∈ {+1,-1}。
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        eb_lin = 10 ** (eb_n0_db / 10.0)
+        sigma = 1.0 / np.sqrt(2.0 * rate * eb_lin)
+        y_grid = np.linspace(-12.0 * (sigma + 1.0), 12.0 * (sigma + 1.0), 8000)
+        dy = y_grid[1] - y_grid[0]
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0) / np.sqrt(2.0 * np.pi)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
-        capacities.append(1.0 - val)
+        cond_entropy = 0.0
+        for x in (1.0, -1.0):
+            py = np.exp(-((y_grid - x) ** 2) / (2.0 * sigma ** 2))
+            py = py / (np.sqrt(2.0 * np.pi) * sigma * 2.0)
+            llr = 2.0 * y_grid / (sigma ** 2)
+            llr = np.clip(llr, -100.0, 100.0)
+            p0 = 1.0 / (1.0 + np.exp(-llr))
+            p1 = 1.0 - p0
+            hx = (
+                -p0 * np.log2(np.clip(p0, 1e-300, 1.0))
+                - p1 * np.log2(np.clip(p1, 1e-300, 1.0))
+            )
+            cond_entropy += np.sum(py * hx) * dy
+        capacities.append(max(0.0, 1.0 - cond_entropy))
     return np.array(capacities)
 
 
