@@ -26,6 +26,10 @@ MAX_FRAMES = 100000
 MIN_ERRORS = 100
 EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
+if os.environ.get("POLAR_QUICK_RUN"):
+    MAX_FRAMES = 3000
+    MIN_ERRORS = 20
+
 for N in N_LIST:
     K = N // 2
     info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
