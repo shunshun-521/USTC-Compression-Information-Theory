@@ -71,10 +71,16 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            z = -snr * y * y
+            log_term = np.where(
+                z > 0,
+                z / np.log(2.0) + np.log1p(np.exp(-z)) / np.log(2.0),
+                np.log1p(np.exp(z)) / np.log(2.0),
+            )
+            return log_term * np.exp(-0.5 * y ** 2)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacities[idx] = 1.0 - val / np.sqrt(2.0 * np.pi)
+        val, _ = integrate.quad(integrand, 0.0, 12.0)
+        capacities[idx] = 1.0 - 2.0 * val / np.sqrt(2.0 * np.pi)
 
     return capacities
 
@@ -86,12 +92,14 @@ def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     capacities = compute_bpsk_capacity(eb_grid, rate)
     diff = capacities - rate
-    cross_idx = np.where(np.diff(np.sign(diff)))[0]
-    if len(cross_idx) == 0:
+    sign_changes = np.where(np.diff(np.signbit(diff)))[0]
+    if len(sign_changes) == 0:
         return float(eb_grid[np.argmin(np.abs(diff))])
-    i = cross_idx[0]
+    i = sign_changes[0]
     x0, x1 = eb_grid[i], eb_grid[i + 1]
     y0, y1 = diff[i], diff[i + 1]
+    if y1 == y0:
+        return float(x0)
     return float(x0 - y0 * (x1 - x0) / (y1 - y0))
 
 
