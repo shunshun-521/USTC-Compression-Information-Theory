@@ -73,7 +73,8 @@ if __name__ == "__main__":
     labels = list(all2.keys())
     times = [np.mean([x["avg_decode_time"] for x in v]) * 1000 for v in all2.values()]
     fig, ax = plt.subplots(figsize=(8, 5))
-    ax.bar(labels, times)
+    ax.bar(range(len(labels)), times)
+    ax.set_xticks(range(len(labels)))
     ax.set_xticklabels(labels, rotation=20)
     ax.set_ylabel("Avg Decode Time (ms)")
     plt.tight_layout()
