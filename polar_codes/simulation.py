@@ -5,6 +5,7 @@ import time
 import numpy as np
 from channel import bpsk_modulate, awgn_channel, compute_llr, eb_n0_to_sigma
 from encoder import polar_encode
+from decoder_scl import crc_encode
 
 
 def run_simulation(
@@ -42,9 +43,14 @@ def run_simulation(
         total_iters = 0
 
         while num_frames < max_frames and num_errors < min_errors:
-            info_bits = rng.integers(0, 2, size=k_info, dtype=np.int8)
+            raw_info = rng.integers(0, 2, size=k_info, dtype=np.int8)
+            if crc_length > 0:
+                payload = crc_encode(raw_info, crc_length)
+            else:
+                payload = raw_info
+
             u = np.zeros(N, dtype=np.int8)
-            u[info_indices] = info_bits
+            u[info_indices] = payload
 
             x = polar_encode(u)
             y = awgn_channel(bpsk_modulate(x), sigma, rng)
@@ -58,9 +64,15 @@ def run_simulation(
             if decoder_type == "bp" and aux is not None:
                 total_iters += aux
 
-            if not np.array_equal(u_hat[info_indices], u[info_indices]):
+            payload_match = np.array_equal(u_hat[info_indices], u[info_indices])
+            if not payload_match:
                 num_errors += 1
-                num_bit_errors += np.sum(u_hat[info_indices] != u[info_indices])
+                if crc_length > 0:
+                    num_bit_errors += np.sum(
+                        u_hat[info_indices][:k_info] != u[info_indices][:k_info]
+                    )
+                else:
+                    num_bit_errors += np.sum(u_hat[info_indices] != u[info_indices])
 
             num_frames += 1
 
