@@ -1,0 +1,6 @@
+results/*.csv
+results/*.png
+results/*.pdf
+results/*.txt
+__pycache__/
+*.pyc
