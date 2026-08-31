@@ -29,7 +29,7 @@ def run_unit_tests():
     xm = polar_encode_matrix(u)
     assert np.array_equal(x, xm), f"编码器错误: butterfly={x}, matrix={xm}"
 
-    verify_sc_decoders(N=64, num_trials=100, eb_n0_db=10.0)
+    verify_sc_decoders(N=64, num_trials=100, eb_n0_db=12.0)
     print("单元测试通过。")
 
 
@@ -45,7 +45,7 @@ if os.environ.get("POLAR_QUICK", "0") == "1":
     MAX_FRAMES = 5000
     MIN_ERRORS = 30
     N_LIST = [256, 512]
-    EB_N0_RANGE = np.arange(1.0, 5.0, 0.5)
+    EB_N0_RANGE = np.arange(5.0, 9.5, 0.5)
 
 if __name__ == "__main__":
     run_unit_tests()

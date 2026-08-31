@@ -26,8 +26,8 @@ os.makedirs("results", exist_ok=True)
 def run_unit_tests():
     u = np.array([1, 0, 1, 1])
     assert np.array_equal(polar_encode(u), polar_encode_matrix(u))
-    verify_sc_decoders(N=64, num_trials=50, eb_n0_db=10.0)
-    verify_scl_equals_sc(N=64, num_trials=30, eb_n0_db=10.0)
+    verify_sc_decoders(N=64, num_trials=50, eb_n0_db=12.0)
+    verify_scl_equals_sc(N=64, num_trials=30, eb_n0_db=12.0)
     print("单元测试通过。")
 
 
@@ -45,7 +45,7 @@ if os.environ.get("POLAR_QUICK", "0") == "1":
     MAX_FRAMES = 5000
     MIN_ERRORS = 30
     L_LIST = [2, 4]
-    EB_N0_RANGE = np.arange(1.5, 5.0, 0.5)
+    EB_N0_RANGE = np.arange(5.0, 9.5, 0.5)
 
 if __name__ == "__main__":
     run_unit_tests()

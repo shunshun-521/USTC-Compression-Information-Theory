@@ -182,6 +182,6 @@ def verify_sc_decoders(N=64, num_trials=100, eb_n0_db=10.0):
         if not np.array_equal(u[info_idx], u_rec[info_idx]):
             errors += 1
 
-    if errors > num_trials * 0.05:
+    if errors > num_trials * 0.02:
         raise AssertionError(f"SC decode error rate too high: {errors}/{num_trials}")
     return True
