@@ -1,6 +1,6 @@
 """
 极化码编码器
-编码：x = u * G_N，G_N = F^{\otimes n}，利用蝶形结构实现 O(N log N) 复杂度
+    编码：x = u * G_N，G_N = F^{\\otimes n}，利用蝶形结构实现 O(N log N) 复杂度
 """
 import numpy as np
 
