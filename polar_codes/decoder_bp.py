@@ -45,7 +45,7 @@ class BPDecoder:
                     L[i, j - 1] = _f_min_sum(
                         R[i, j - 1] + L[i + s, j], L[i, j], self.alpha
                     )
-                    L[i + s, j - 1] = _f_min_sum(R[i, j - 1], L[i, j]) + L[i + s, j]
+                    L[i + s, j - 1] = _f_min_sum(R[i, j - 1], L[i, j], self.alpha) + L[i + s, j]
 
             for j in range(1, n + 1):
                 step = 1 << (j - 1)
@@ -54,7 +54,7 @@ class BPDecoder:
                     R[i, j] = _f_min_sum(
                         R[i + s, j] + L[i + s, j], R[i, j - 1], self.alpha
                     )
-                    R[i + s, j] = _f_min_sum(R[i, j - 1], L[i, j]) + R[i + s, j]
+                    R[i + s, j] = _f_min_sum(R[i, j - 1], L[i, j], self.alpha) + R[i + s, j]
 
             for i in range(N):
                 total = L[i, 0] + R[i, 0]
