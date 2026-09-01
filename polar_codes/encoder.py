@@ -47,8 +47,7 @@ def polar_encode(u):
                 u[idx] ^= u[idx + half]
         block = half
 
-    brp = bit_reversal_permutation(N)
-    return u[brp]
+    return u
 
 
 if __name__ == "__main__":

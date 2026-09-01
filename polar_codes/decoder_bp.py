@@ -3,12 +3,14 @@
 基于因子图，使用 min-sum 近似，含早停机制
 """
 import numpy as np
-from encoder import bit_reversal_permutation, polar_encode
+from encoder import polar_encode
 
 
 def _f_minsum(x, y, alpha):
     """min-sum f 运算，带修正因子 alpha。"""
-    return alpha * np.sign(x) * np.sign(y) * np.minimum(np.abs(x), np.abs(y))
+    sx = np.where(x >= 0, 1.0, -1.0)
+    sy = np.where(y >= 0, 1.0, -1.0)
+    return alpha * sx * sy * np.minimum(np.abs(x), np.abs(y))
 
 
 class BPDecoder:
@@ -22,7 +24,6 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self.inv_br = np.argsort(bit_reversal_permutation(N))
 
     def decode(self, llr_ch):
         """主译码函数。"""
@@ -30,7 +31,7 @@ class BPDecoder:
         n = self.n
         alpha = self.alpha
 
-        llr_ch = np.asarray(llr_ch, dtype=np.float64)[self.inv_br]
+        llr_ch = np.asarray(llr_ch, dtype=np.float64)
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
@@ -82,9 +83,7 @@ class BPDecoder:
 
             x_hat = polar_encode(u_hat)
             hard_ch = (llr_ch < 0).astype(int)
-            br = bit_reversal_permutation(N)
-            hard_ch_tx = hard_ch[br]
-            if np.array_equal(x_hat, hard_ch_tx):
+            if np.array_equal(x_hat, hard_ch):
                 break
 
         for i in range(N):

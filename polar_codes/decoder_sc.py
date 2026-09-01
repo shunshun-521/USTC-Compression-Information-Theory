@@ -10,7 +10,9 @@ def f_operation(La, Lb):
     min-sum 近似的 f 运算：
     f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    sa = np.where(La >= 0, 1.0, -1.0)
+    sb = np.where(Lb >= 0, 1.0, -1.0)
+    return sa * sb * np.minimum(np.abs(La), np.abs(Lb))
 
 
 def g_operation(La, Lb, u_hat):
@@ -53,7 +55,13 @@ def _active_bit_level(i, n):
     return min(count, n)
 
 
-def _upper_llr_minsum(l1, l2):
+def _logdomain_sum(x, y):
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
+def _upper_llr_exact(l1, l2):
     if np.isnan(l1) or np.isnan(l2):
         return np.nan
     if np.isinf(l1) and not np.isinf(l2):
@@ -62,10 +70,10 @@ def _upper_llr_minsum(l1, l2):
         return l1
     if np.isinf(l1) and np.isinf(l2):
         return np.inf
-    return f_operation(l1, l2)
+    return _logdomain_sum(l1 + l2, 0) - _logdomain_sum(l1, l2)
 
 
-def _lower_llr_minsum(l1, l2, b):
+def _lower_llr_exact(l1, l2, b):
     if np.isnan(l1) or np.isnan(l2):
         return np.nan
     if int(b) == 0:
@@ -73,6 +81,14 @@ def _lower_llr_minsum(l1, l2, b):
             return np.inf
         return l1 + l2
     return l1 - l2
+
+
+def _upper_llr_minsum(l1, l2):
+    return f_operation(l1, l2)
+
+
+def _lower_llr_minsum(l1, l2, b):
+    return _lower_llr_exact(l1, l2, b)
 
 
 def _sc_decode_core(llr_ch, frozen_bits):
@@ -91,7 +107,7 @@ def _sc_decode_core(llr_ch, frozen_bits):
             branch_size = block_size // 2
             for j in range(l, N, block_size):
                 if j % block_size < branch_size:
-                    L[j, s + 1] = _upper_llr_minsum(L[j, s], L[j + branch_size, s])
+                    L[j, s + 1] = _upper_llr_exact(L[j, s], L[j + branch_size, s])
                 else:
                     L[j, s + 1] = _lower_llr_minsum(
                         L[j, s], L[j - branch_size, s], B[j - branch_size, s + 1]
@@ -116,12 +132,7 @@ def _sc_decode_core(llr_ch, frozen_bits):
 
 def sc_decode_recursive(llr, frozen_bits):
     """递归 SC 译码（调用与高效实现相同的译码核心）。"""
-    from encoder import bit_reversal_permutation
-
-    br = bit_reversal_permutation(len(llr))
-    inv_br = np.argsort(br)
-    llr_internal = np.asarray(llr, dtype=np.float64)[inv_br]
-    return _sc_decode_core(llr_internal, frozen_bits)
+    return _sc_decode_core(np.asarray(llr, dtype=np.float64), frozen_bits)
 
 
 def precompute_sc_indices(N):
@@ -160,10 +171,4 @@ def sc_decode(llr_ch, frozen_bits):
     """
     非递归 SC 译码主函数。
     """
-    from encoder import bit_reversal_permutation
-
-    llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    br = bit_reversal_permutation(len(llr_ch))
-    inv_br = np.argsort(br)
-    llr_internal = llr_ch[inv_br]
-    return _sc_decode_core(llr_internal, frozen_bits)
+    return _sc_decode_core(np.asarray(llr_ch, dtype=np.float64), frozen_bits)

@@ -3,13 +3,12 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from encoder import bit_reversal_permutation
 from decoder_sc import (
     _active_bit_level,
     _active_llr_level,
     _bit_reversed,
     _lower_llr_minsum,
-    _upper_llr_minsum,
+    _upper_llr_exact,
 )
 
 CRC8_POLY = 0x07
@@ -117,9 +116,7 @@ class SCLDecoder:
         n = self.n
         L_size = self.list_size
 
-        br = bit_reversal_permutation(N)
-        inv_br = np.argsort(br)
-        llr_internal = np.asarray(llr_ch, dtype=np.float64)[inv_br]
+        llr_internal = np.asarray(llr_ch, dtype=np.float64)
 
         paths = [_Path(N, n) for _ in range(L_size)]
         paths[0].L[:, 0] = llr_internal
@@ -135,7 +132,7 @@ class SCLDecoder:
                     branch_size = block_size // 2
                     for j in range(l, N, block_size):
                         if j % block_size < branch_size:
-                            path.L[j, s + 1] = _upper_llr_minsum(
+                            path.L[j, s + 1] = _upper_llr_exact(
                                 path.L[j, s], path.L[j + branch_size, s]
                             )
                         else:

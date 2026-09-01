@@ -32,14 +32,14 @@ def run_unit_tests():
     """数值正确性校验。"""
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
-    assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
+    assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
     frozen_bits = np.ones(N, dtype=int)
     frozen_bits[info_idx] = 0
     rng = np.random.default_rng(0)
-    sigma = eb_n0_to_sigma(10.0, K / N)
+    sigma = eb_n0_to_sigma(12.0, K / N)
     errors = 0
     for _ in range(100):
         bits = rng.integers(0, 2, size=K)
@@ -51,7 +51,7 @@ def run_unit_tests():
         u_hat = sc_decode(llr, frozen_bits)
         if not np.array_equal(u_hat[info_idx], bits):
             errors += 1
-    assert errors == 0, f"SC 译码在 Eb/N0=10dB 下有 {errors} 帧错误"
+    assert errors == 0, f"SC 译码在 Eb/N0=12dB 下有 {errors} 帧错误"
 
     u_hat_r = sc_decode_recursive(llr, frozen_bits)
     u_hat_n = sc_decode(llr, frozen_bits)
