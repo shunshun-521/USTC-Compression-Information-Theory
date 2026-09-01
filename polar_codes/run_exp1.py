@@ -23,9 +23,11 @@ os.makedirs("results", exist_ok=True)
 if os.environ.get("POLAR_QUICK"):
     MAX_FRAMES = 5000
     MIN_ERRORS = 20
+    EB_N0_RANGE = np.arange(2.0, 5.5, 0.5)
 else:
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
+    EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 
 def run_unit_tests():
@@ -64,7 +66,6 @@ def run_unit_tests():
 N_LIST = [256, 512, 1024]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
 
 if __name__ == "__main__":
     run_unit_tests()

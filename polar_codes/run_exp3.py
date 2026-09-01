@@ -25,15 +25,18 @@ os.makedirs("results", exist_ok=True)
 if os.environ.get("POLAR_QUICK"):
     MAX_FRAMES = 5000
     MIN_ERRORS = 20
+    EB_N0_RANGE = np.arange(2.0, 5.5, 0.5)
+    MAX_ITER = 20
+    N_LIST = [256]
 else:
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
+    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    MAX_ITER = 50
+    N_LIST = [256, 512]
 
-N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
-MAX_ITER = 50
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 
 if __name__ == "__main__":

@@ -25,9 +25,13 @@ os.makedirs("results", exist_ok=True)
 if os.environ.get("POLAR_QUICK"):
     MAX_FRAMES = 5000
     MIN_ERRORS = 20
+    EB_N0_RANGE = np.arange(2.0, 5.5, 0.5)
+    MAX_ITER = 20
 else:
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
+    EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+    MAX_ITER = 50
 
 N = 512
 RATE = 0.5
@@ -35,7 +39,6 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
 
 
 def run_scl_unit_tests():
