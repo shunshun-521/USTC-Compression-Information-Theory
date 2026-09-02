@@ -35,17 +35,17 @@ class BPDecoder:
 
         num_iters = self.max_iter
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
+            for j in range(n - 1, -1, -1):
+                s = 1 << j
                 for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_min_sum(R[i, j] + L[i + s, j + 1], L[i, j + 1])
-                    L[i + s, j - 1] = self._f_min_sum(R[i, j], L[i, j + 1]) + L[i + s, j + 1]
+                    L[i, j] = self._f_min_sum(R[i, j + 1] + L[i + s, j + 1], L[i, j + 1])
+                    L[i + s, j] = self._f_min_sum(R[i, j + 1], L[i, j + 1]) + L[i + s, j + 1]
 
             for j in range(1, n + 1):
                 s = 1 << (j - 1)
                 for i in range(0, N, 2 * s):
-                    R[i, j] = self._f_min_sum(R[i + s, j] + L[i + s, j + 1], R[i, j - 1])
-                    R[i + s, j] = self._f_min_sum(R[i, j - 1], L[i, j + 1]) + R[i + s, j]
+                    R[i, j] = self._f_min_sum(R[i + s, j] + L[i + s, j], R[i, j - 1])
+                    R[i + s, j] = self._f_min_sum(R[i, j - 1], L[i, j]) + R[i + s, j]
 
             u_hat = np.zeros(N, dtype=int)
             total = L[:, 0] + R[:, 0]
