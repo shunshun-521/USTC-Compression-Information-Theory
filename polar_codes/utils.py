@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 
 import matplotlib
 matplotlib.use('Agg')
@@ -55,15 +54,22 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     计算 BPSK 离散输入信道容量（bits/channel use）。
     """
     capacities = []
+    y = np.linspace(-8, 8, 50000)
+    dy = y[1] - y[0]
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * 10 ** (eb_n0_db / 10)
-
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        capacities.append(1 - val)
+        gamma = 10 ** (eb_n0_db / 10)
+        snr_ch = 2 * rate * gamma
+        sigma = 1.0 / np.sqrt(snr_ch)
+        p0 = np.exp(-(y - 1) ** 2 / (2 * sigma ** 2)) / np.sqrt(2 * np.pi * sigma ** 2)
+        p1 = np.exp(-(y + 1) ** 2 / (2 * sigma ** 2)) / np.sqrt(2 * np.pi * sigma ** 2)
+        py = 0.5 * (p0 + p1)
+        h_y = -np.sum(py * np.log2(py + 1e-300)) * dy
+        h_yx = (
+            -0.5 * np.sum(p0 * np.log2(p0 + 1e-300)) * dy
+            - 0.5 * np.sum(p1 * np.log2(p1 + 1e-300)) * dy
+        )
+        capacities.append(h_y - h_yx)
     return np.array(capacities)
 
 
