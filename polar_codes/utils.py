@@ -57,10 +57,12 @@ def compute_bpsk_capacity(eb_n0_db, rate):
     snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
     def integrand(y):
-        return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
+        # BPSK 容量数值积分（y ~ N(0,1)）
+        t = np.clip(-2.0 * snr * y ** 2, -700, 700)
+        return np.log2(1.0 + np.exp(t)) * np.exp(-0.5 * y ** 2) / np.sqrt(2.0 * np.pi)
 
-    val, _ = integrate.quad(integrand, -20.0, 20.0)
-    return 1.0 - val
+    val, _ = integrate.quad(integrand, -15.0, 15.0, limit=200)
+    return max(0.0, 1.0 - val)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):

@@ -90,7 +90,31 @@ def _update_bits(B, l, n, N):
 
 def sc_decode_recursive(llr, frozen_bits):
     """递归 SC 译码（参考实现）"""
-    return sc_decode(llr, frozen_bits)
+    llr = np.asarray(llr, dtype=np.float64)
+    frozen_bits = np.asarray(frozen_bits, dtype=bool)
+    N = len(llr)
+    n = int(math.log2(N))
+    br = np.array([_bit_reversed(i, n) for i in range(N)])
+    llr = llr[br]
+    u_hat = np.zeros(N, dtype=int)
+
+    def decode_node(llr_node, bit_offset):
+        half = len(llr_node) // 2
+        if half == 0:
+            idx = bit_offset
+            if frozen_bits[idx]:
+                u_hat[idx] = 0
+            else:
+                u_hat[idx] = 0 if llr_node[0] >= 0 else 1
+            return
+        llr_left = f_operation(llr_node[:half], llr_node[half:])
+        decode_node(llr_left, bit_offset)
+        u_left = u_hat[bit_offset:bit_offset + half]
+        llr_right = g_operation(llr_node[:half], llr_node[half:], u_left)
+        decode_node(llr_right, bit_offset + half)
+
+    decode_node(llr, 0)
+    return u_hat
 
 
 def sc_decode(llr_ch, frozen_bits):
