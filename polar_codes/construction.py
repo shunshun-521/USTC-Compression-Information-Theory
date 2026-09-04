@@ -28,19 +28,20 @@ def phi(x):
 
 def phi_inv(y):
     """
-    phi 函数的数值逆（二分法，区间 [0, 100]）
+    phi 函数的数值逆（二分法）
     """
     y = np.asarray(y, dtype=np.float64)
     scalar = y.ndim == 0
     if scalar:
         y = y.reshape(1)
-    lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
-    for _ in range(60):
+    y = np.clip(y, 1e-12, 1.0 - 1e-12)
+    lo = np.full_like(y, 1e-6)
+    hi = np.full_like(y, 1e4)
+    for _ in range(80):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
-        lo = np.where(pm < y, mid, lo)
-        hi = np.where(pm >= y, mid, hi)
+        lo = np.where(pm >= y, mid, lo)
+        hi = np.where(pm < y, mid, hi)
     result = (lo + hi) / 2.0
     return float(result[0]) if scalar else result
 

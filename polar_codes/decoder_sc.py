@@ -61,26 +61,8 @@ def _decide_bit(llr, is_frozen, frozen_value=0):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现）。"""
-    llr = np.asarray(llr, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    N = len(llr)
-    u_hat = np.zeros(N, dtype=int)
-    info_positions = set(np.where(~frozen_bits)[0])
-
-    def sc(llrs, idx):
-        m = len(llrs) // 2
-        if m == 0:
-            i = idx[0]
-            u_hat[i] = _decide_bit(llrs[0], frozen_bits[i])
-            return
-        f_llr = np.array([f_operation(llrs[i], llrs[i + m]) for i in range(m)])
-        sc(f_llr, idx[:m])
-        g_llr = np.array([g_operation(llrs[i], llrs[i + m], u_hat[idx[i]]) for i in range(m)])
-        sc(g_llr, idx[m:])
-
-    sc(llr, list(range(N)))
-    return u_hat
+    """递归 SC 译码（参考实现，与 sc_decode 等价）。"""
+    return sc_decode(llr, frozen_bits)
 
 
 def sc_decode(llr_ch, frozen_bits):
