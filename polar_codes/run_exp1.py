@@ -53,7 +53,7 @@ def main():
     DESIGN_EBN0 = 2.5
     MAX_FRAMES = 100000
     MIN_ERRORS = 100
-    EB_N0_RANGE = np.arange(0.0, 5.5, 0.25)
+    EB_N0_RANGE = np.arange(0.0, 8.5, 0.25)
 
     save_frozen_set_info(N_LIST, None, DESIGN_EBN0, 'results/frozen_sets.txt')
 
