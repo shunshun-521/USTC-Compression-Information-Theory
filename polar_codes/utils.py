@@ -57,14 +57,30 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
+        eb_n0 = 10 ** (eb_n0_db / 10.0)
+        es_n0 = eb_n0 * rate
+        if es_n0 <= 0:
+            capacities.append(0.0)
+            continue
+        sigma = 1.0 / np.sqrt(2.0 * es_n0)
+        h_cond = 0.5 * np.log2(2.0 * np.pi * np.e * sigma ** 2)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+        def p_y(y):
+            p0 = np.exp(-((y - 1.0) ** 2) / (2.0 * sigma ** 2))
+            p1 = np.exp(-((y + 1.0) ** 2) / (2.0 * sigma ** 2))
+            return (p0 + p1) / (2.0 * np.sqrt(2.0 * np.pi) * sigma)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        def entropy_y():
+            def integrand(y):
+                py = p_y(y)
+                if py < 1e-300:
+                    return 0.0
+                return -py * np.log2(py)
+
+            val, _ = integrate.quad(integrand, -12.0, 12.0)
+            return val
+
+        capacities.append(max(entropy_y() - h_cond, 0.0))
     return np.array(capacities)
 
 
