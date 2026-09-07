@@ -6,10 +6,10 @@ import math
 
 import numpy as np
 
-from encoder import bit_reversal_permutation, polar_encode
+from encoder import polar_encode
 
 
-def _f_min_sum(a, b, alpha):
+def _g_min_sum(a, b, alpha):
     return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
 
@@ -26,7 +26,6 @@ class BPDecoder:
         self.max_iter = max_iter
         self.alpha = alpha
         self.frozen_idx = np.where(self.frozen_bits)[0]
-        self.br = bit_reversal_permutation(N)
 
     def decode(self, llr_ch):
         """
@@ -34,7 +33,6 @@ class BPDecoder:
         返回：(u_hat, num_iters)
         """
         llr_natural = np.asarray(llr_ch, dtype=np.float64)
-        llr_internal = llr_natural[self.br]
 
         n = self.n
         N = self.N
@@ -43,7 +41,7 @@ class BPDecoder:
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
 
-        L[:, n] = llr_internal
+        L[:, n] = llr_natural
         R[:, 0] = 0.0
         R[self.frozen_idx, 0] = LARGE
 
@@ -54,20 +52,20 @@ class BPDecoder:
             for j in range(n - 1, -1, -1):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    L[i, j] = _f_min_sum(
-                        R[i, j + 1] + L[i + s, j + 1], L[i, j + 1], self.alpha
+                    L[i, j] = _g_min_sum(
+                        L[i, j + 1], L[i + s, j + 1] + R[i + s, j], self.alpha
                     )
-                    L[i + s, j] = _f_min_sum(
-                        R[i, j + 1], L[i, j + 1], self.alpha
+                    L[i + s, j] = _g_min_sum(
+                        R[i, j], L[i, j + 1], self.alpha
                     ) + L[i + s, j + 1]
 
             for j in range(0, n):
                 s = 1 << j
                 for i in range(0, N, 2 * s):
-                    R[i, j + 1] = _f_min_sum(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j], self.alpha
+                    R[i, j + 1] = _g_min_sum(
+                        R[i, j], L[i + s, j + 1] + R[i + s, j], self.alpha
                     )
-                    R[i + s, j + 1] = _f_min_sum(
+                    R[i + s, j + 1] = _g_min_sum(
                         R[i, j], L[i, j + 1], self.alpha
                     ) + R[i + s, j]
 
