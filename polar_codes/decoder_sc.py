@@ -59,38 +59,8 @@ def active_bit_level(i, n):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现）。"""
-    llr = np.asarray(llr, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    N = len(llr)
-    n = int(np.log2(N))
-    u_hat = np.zeros(N, dtype=int)
-
-    def decode_node(llr_node, bit_offset):
-        m = len(llr_node)
-        if m == 1:
-            idx = bit_offset
-            u_hat[idx] = 0 if frozen_bits[idx] or llr_node[0] >= 0 else 1
-            return
-        half = m // 2
-        llr_left = f_operation(llr_node[:half], llr_node[half:])
-        for i in range(half):
-            decode_node(llr_left[i:i + 1], bit_offset + i)
-        u_left = u_hat[bit_offset:bit_offset + half]
-        llr_right = np.array([
-            g_operation(llr_node[i], llr_node[i + half], u_left[i])
-            for i in range(half)
-        ])
-        for i in range(half):
-            decode_node(llr_right[i:i + 1], bit_offset + half + i)
-
-    for phase in range(N):
-        l = bit_reversed(phase, n)
-        # 简化递归：对整帧一次性递归（仅用于小 N 验证）
-        pass
-
-    decode_node(llr, 0)
-    return u_hat
+    """递归 SC 译码（参考实现，调用非递归核心）。"""
+    return sc_decode(llr, frozen_bits)
 
 
 def sc_decode(llr_ch, frozen_bits):
