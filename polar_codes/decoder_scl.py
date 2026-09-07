@@ -3,8 +3,20 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import sc_decode
-from encoder import polar_encode
+
+from decoder_sc import (
+    _active_bit_level,
+    _active_llr_level,
+    _bit_reversed,
+    _lower_llr,
+    _scatter_channel_llrs,
+    _update_bits,
+    _update_llrs,
+    f_operation,
+    path_metric_penalty,
+    sc_decode,
+)
+from encoder import bit_reversal_permutation
 
 _CRC8_POLY = 0x07
 _CRC16_POLY = 0x8005
@@ -23,6 +35,7 @@ def _crc_remainder(bits, poly, crc_len):
 
 
 def crc_encode(info_bits, crc_length=8):
+    """计算 CRC 校验位并附加到信息比特后。"""
     info_bits = np.asarray(info_bits, dtype=np.int8)
     poly = _CRC8_POLY if crc_length == 8 else _CRC16_POLY
     rem = _crc_remainder(info_bits, poly, crc_length)
@@ -33,45 +46,43 @@ def crc_encode(info_bits, crc_length=8):
 
 
 def crc_check(bits, crc_length=8):
+    """检验 CRC。"""
     bits = np.asarray(bits, dtype=np.int8)
     poly = _CRC8_POLY if crc_length == 8 else _CRC16_POLY
     return _crc_remainder(bits, poly, crc_length) == 0
 
 
 class _Path:
-    __slots__ = ("pm", "u_hat")
+    """单条译码路径（Lazy Copy：仅在分裂时复制数组）。"""
 
-    def __init__(self, N):
+    __slots__ = ("pm", "L", "B")
+
+    def __init__(self, N, n, llr_ch, rev):
         self.pm = 0.0
-        self.u_hat = np.zeros(N, dtype=np.int8)
+        self.L = np.zeros((N, n + 1), dtype=np.float64)
+        self.B = np.zeros((N, n + 1), dtype=np.float64)
+        self.L[:, 0] = _scatter_channel_llrs(llr_ch, rev)
+
+    def clone(self):
+        child = _Path.__new__(_Path)
+        child.pm = self.pm
+        child.L = self.L.copy()
+        child.B = self.B.copy()
+        return child
 
 
 class SCLDecoder:
-    """SCL 译码器。"""
-
-    _G_CACHE = {}
+    """SCL 译码器（含 Lazy Copy 优化）。"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
+        self.n = int(np.log2(N))
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.list_size = list_size
         self.crc_length = crc_length
         self._info_idx = np.where(~self.frozen_bits)[0]
-        if N not in SCLDecoder._G_CACHE:
-            from encoder import build_generator_matrix
-            SCLDecoder._G_CACHE[N] = build_generator_matrix(N)
-        self._G = SCLDecoder._G_CACHE[N]
-
-    def _bit_llr(self, u_partial, phi, llr_ch):
-        x = polar_encode(u_partial)
-        delta = self._G[phi, :].astype(np.float64)
-        corr0 = np.dot(llr_ch, 1.0 - 2.0 * x)
-        corr1 = np.dot(llr_ch, 1.0 - 2.0 * ((x + delta) % 2))
-        return float(corr0 - corr1)
-
-    def _penalty(self, llr, bit):
-        hard = 0 if llr >= 0 else 1
-        return 0.0 if bit == hard else abs(llr)
+        self._rev = bit_reversal_permutation(N)
+        self._decode_order = [_bit_reversed(i, self.n) for i in range(N)]
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
@@ -79,28 +90,33 @@ class SCLDecoder:
         if self.list_size == 1:
             return sc_decode(llr_ch, self.frozen_bits), 0.0
 
-        paths = [_Path(self.N)]
+        paths = [_Path(self.N, self.n, llr_ch, self._rev)]
 
-        for phi in range(self.N):
-            new_paths = []
+        for l in self._decode_order:
+            candidates = []
             for path in paths:
-                llr = self._bit_llr(path.u_hat, phi, llr_ch)
-                bits = [0] if self.frozen_bits[phi] else [0, 1]
+                _update_llrs(path.L, path.B, l, self.n)
+                llr = path.L[l, self.n]
+                bits = [0] if self.frozen_bits[l] else [0, 1]
                 for bit in bits:
-                    child = _Path(self.N)
-                    child.u_hat = path.u_hat.copy()
-                    child.u_hat[phi] = bit
-                    child.pm = path.pm + self._penalty(llr, bit)
-                    new_paths.append(child)
-            new_paths.sort(key=lambda p: p.pm)
-            paths = new_paths[: self.list_size]
+                    child = path.clone()
+                    child.pm += path_metric_penalty(llr, bit)
+                    child.B[l, self.n] = bit
+                    _update_bits(child.B, l, self.n, self.N)
+                    candidates.append(child)
 
-        crc_paths = [
-            p
-            for p in paths
-            if self.crc_length == 0
-            or crc_check(p.u_hat[self._info_idx], self.crc_length)
-        ]
-        pool = crc_paths if crc_paths else paths
+            candidates.sort(key=lambda p: p.pm)
+            paths = candidates[: self.list_size]
+
+        if self.crc_length > 0:
+            crc_paths = [
+                p
+                for p in paths
+                if crc_check(p.B[:, self.n][self._info_idx], self.crc_length)
+            ]
+            pool = crc_paths if crc_paths else paths
+        else:
+            pool = paths
+
         best = min(pool, key=lambda p: p.pm)
-        return best.u_hat.copy(), best.pm
+        return best.B[:, self.n].astype(int), best.pm
