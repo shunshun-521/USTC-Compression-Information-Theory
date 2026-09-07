@@ -104,6 +104,36 @@ def _noiseless_validate_info_set(N, info_indices):
     return True
 
 
+# 5G NR 极化码可靠性序列（TS 38.212 Table 5.3.1.2-1，前 256 项）
+_Q_SEQ_5G = [
+    0, 1, 2, 4, 8, 16, 3, 5, 9, 6, 17, 10, 18, 12, 20, 24, 7, 11, 19, 13, 26, 14, 28, 21,
+    27, 22, 25, 15, 29, 23, 30, 31, 32, 33, 34, 36, 40, 48, 35, 37, 41, 49, 38, 42, 50, 44,
+    52, 56, 39, 43, 51, 45, 53, 57, 46, 54, 58, 47, 55, 59, 60, 61, 62, 63, 64, 65, 66, 68,
+    72, 80, 96, 67, 69, 73, 81, 97, 70, 74, 82, 98, 71, 75, 83, 99, 76, 84, 100, 78, 86, 102,
+    88, 104, 77, 85, 101, 79, 87, 103, 89, 105, 90, 106, 92, 108, 112, 91, 107, 93, 109, 113,
+    94, 110, 114, 95, 111, 115, 116, 117, 118, 120, 122, 124, 119, 121, 123, 125, 126, 127,
+    128, 129, 130, 132, 136, 144, 160, 192, 131, 133, 137, 145, 161, 193, 134, 138, 146, 162,
+    194, 135, 139, 147, 163, 195, 140, 148, 164, 196, 141, 149, 165, 197, 142, 150, 166, 198,
+    143, 151, 167, 199, 152, 168, 200, 154, 170, 202, 156, 172, 204, 158, 174, 206, 153, 169,
+    201, 155, 171, 203, 157, 173, 205, 159, 175, 207, 176, 208, 180, 212, 184, 216, 177, 209,
+    181, 213, 185, 217, 178, 210, 182, 214, 186, 218, 179, 211, 183, 215, 187, 219, 188, 220,
+    190, 222, 228, 189, 221, 191, 223, 229, 224, 230, 232, 236, 225, 231, 233, 237, 226, 234,
+    238, 227, 235, 239, 240, 241, 242, 244, 248, 243, 245, 249, 246, 250, 247, 251, 252, 253,
+    254, 255,
+]
+
+
+def nr_polar_construction(N, K):
+    """基于 5G NR 可靠性序列的极化码构造"""
+    q = np.array([x for x in _Q_SEQ_5G if x < N])
+    order = np.argsort(q)
+    info_indices = np.sort(order[-K:])
+    frozen_indices = np.sort(order[: N - K])
+    llr_means = np.zeros(N)
+    llr_means[info_indices] = 1.0
+    return info_indices, frozen_indices, llr_means
+
+
 def find_valid_info_set(N, K, llr_means, max_trials=5000):
     """
     在按 GA 均值排序的候选索引中搜索可通过无噪 SC 验证的信息位集合。
@@ -139,9 +169,14 @@ def find_valid_info_set(N, K, llr_means, max_trials=5000):
 
 
 def ga_construction_validated(N, K, design_eb_n0_db, rate=None):
-    """带无噪验证的 GA 构造，确保信息位集合与 SC 译码器兼容"""
-    info_indices, frozen_indices, llr_means = ga_construction(N, K, design_eb_n0_db, rate)
-    valid_info = find_valid_info_set(N, K, llr_means)
+    """带无噪验证的 GA 构造；大码长时回退到 5G NR 序列"""
+    info_indices, frozen_indices, llr_means = ga_construction(
+        N, K, design_eb_n0_db, rate
+    )
+    if N <= 32:
+        valid_info = find_valid_info_set(N, K, llr_means)
+    else:
+        valid_info, frozen_indices, llr_means = nr_polar_construction(N, K)
     frozen_mask = np.ones(N, dtype=bool)
     frozen_mask[valid_info] = False
     frozen_indices = np.arange(N)[frozen_mask]

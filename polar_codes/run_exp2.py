@@ -23,7 +23,7 @@ def main():
 
     os.makedirs("results", exist_ok=True)
 
-    N = 512
+    N = 128
     RATE = 0.5
     K = N // 2
     DESIGN_EBN0 = 2.5

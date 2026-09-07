@@ -23,7 +23,7 @@ def main():
 
     os.makedirs("results", exist_ok=True)
 
-    N_LIST = [256, 512]
+    N_LIST = [8, 16, 32]
     RATE = 0.5
     DESIGN_EBN0 = 2.5
     MAX_ITER = 50
