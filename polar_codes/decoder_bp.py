@@ -40,13 +40,13 @@ class BPDecoder:
                 s = 2 ** (j - 1)
                 for i in range(0, N, 2 * s):
                     L[i, j - 1] = _ms_f(R[i, j] + L[i + s, j], L[i, j], self.alpha)
-                    L[i + s, j - 1] = _ms_f(R[i, j], L[i, j]) + L[i + s, j]
+                    L[i + s, j - 1] = _ms_f(R[i, j], L[i, j], self.alpha) + L[i + s, j]
 
             for j in range(1, n + 1):
                 s = 2 ** (j - 1)
                 for i in range(0, N, 2 * s):
                     R[i, j] = _ms_f(R[i + s, j] + L[i + s, j], R[i, j - 1], self.alpha)
-                    R[i + s, j] = _ms_f(R[i, j - 1], L[i, j]) + R[i + s, j]
+                    R[i + s, j] = _ms_f(R[i, j - 1], L[i, j], self.alpha) + R[i + s, j]
 
             for i in range(N):
                 u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
