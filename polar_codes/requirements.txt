@@ -1,0 +1,4 @@
+"""Python dependencies for polar_codes simulation."""
+numpy>=1.20
+scipy>=1.7
+matplotlib>=3.4
