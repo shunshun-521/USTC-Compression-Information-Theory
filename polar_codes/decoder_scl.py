@@ -152,7 +152,7 @@ class SCLDecoder:
             if self.crc_length > 0 and crc_check(path.u_hat, self.crc_length):
                 if best_crc is None or path.pm < best_crc.pm:
                     best_crc = path
-            if best_pm is None or path.pm < best_pm:
+            if best_pm is None or path.pm < best_pm.pm:
                 best_pm = path
 
         chosen = best_crc if best_crc is not None else best_pm

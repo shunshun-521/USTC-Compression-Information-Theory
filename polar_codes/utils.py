@@ -54,27 +54,39 @@ def load_results_csv(filepath):
     return results
 
 
+def _log2_one_plus_exp(x):
+    """数值稳定的 log2(1 + exp(x))。"""
+    return np.log2(1.0 + np.exp(-np.abs(x))) + np.maximum(x, 0.0) / np.log(2)
+
+
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
 
-    C = 1 - E_{y}[log2(1 + e^{-2*s*y})]，其中 s = SNR = 2R * 10^{Eb/N0/10}
+    对 BPSK (+1/-1) AWGN 信道，Es/N0 = R * Eb/N0（线性），
+    C = 1 - E_y[log2(1 + exp(-LLR(y)))]，LLR = 2y/sigma^2。
     """
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        es_n0 = rate * (10.0 ** (eb_n0_db / 10.0))
+        sigma2 = 1.0 / (2.0 * es_n0)
+        sigma = np.sqrt(sigma2)
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            p_pos = np.exp(-0.5 * ((y - 1.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+            p_neg = np.exp(-0.5 * ((y + 1.0) / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+            llr = 2.0 * y / sigma2
+            h_pos = _log2_one_plus_exp(-llr)
+            h_neg = _log2_one_plus_exp(llr)
+            return 0.5 * p_pos * h_pos + 0.5 * p_neg * h_neg
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
         capacities.append(1.0 - val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-1, 5), num_points=2000):
     """
     找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
     这是香农限，用于在 BLER 图中标注参考竖线。
