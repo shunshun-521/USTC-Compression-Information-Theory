@@ -5,7 +5,7 @@
 import numpy as np
 
 from encoder import bit_reversal_permutation, polar_encode
-from decoder_sc import f_operation
+from decoder_sc import f_operation_min_sum
 
 LARGE = 1e6
 
@@ -23,7 +23,7 @@ class BPDecoder:
         self.brp = bit_reversal_permutation(N)
 
     def _f_ms(self, x, y):
-        return self.alpha * f_operation(x, y)
+        return self.alpha * f_operation_min_sum(x, y)
 
     def _hard_bits(self, L, R):
         u_hat = np.zeros(self.N, dtype=int)

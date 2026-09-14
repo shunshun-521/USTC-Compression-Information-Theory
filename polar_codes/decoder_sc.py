@@ -10,11 +10,24 @@ from encoder import bit_reversal_permutation
 # ==================== 基本运算 ====================
 
 
+def _logdomain_sum(x, y):
+    if x > y:
+        return x + np.log1p(np.exp(y - x))
+    return y + np.log1p(np.exp(x - y))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    f 运算（对数域 box-plus，SC 译码标准实现）。
+    同时提供 min-sum 别名供 BP 译码器使用。
     """
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _logdomain_sum(La + Lb, 0.0) - _logdomain_sum(La, Lb)
+
+
+def f_operation_min_sum(La, Lb):
+    """min-sum 近似的 f 运算（用于 BP 译码器）。"""
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
 
 
