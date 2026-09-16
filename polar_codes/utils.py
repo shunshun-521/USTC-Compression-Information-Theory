@@ -53,32 +53,34 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    通过数值积分：C = 1 - (1/ln2) ∫ log2(1+e^{-2γt^2}) e^{-t^2}/√π dt
     """
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        gamma = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-y ** 2 / 2.0)
+        def integrand(t):
+            arg = -gamma * t ** 2
+            if arg < -50.0:
+                return 0.0
+            if arg > 50.0:
+                contrib = arg / np.log(2)
+            else:
+                contrib = np.log2(1.0 + np.exp(arg))
+            return contrib * np.exp(-t ** 2) / np.sqrt(np.pi)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -10.0, 10.0)
+        capacities.append(max(0.0, 1.0 - val))
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
-    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for i in range(len(eb_grid) - 1):
-            if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
-                t = (rate - caps[i]) / (caps[i + 1] - caps[i])
-                return eb_grid[i] + t * (eb_grid[i + 1] - eb_grid[i])
-        return eb_grid[idx]
-    return eb_grid[idx]
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=1000):
+    """
+    找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。
+    使用 BPSK 香农限解析式：Eb/N0 = (2^{2R}-1)/(2R)。
+    """
+    linear = (2 ** (2 * rate) - 1) / (2 * rate)
+    return float(10.0 * np.log10(linear))
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
