@@ -27,6 +27,7 @@ class BPDecoder:
         self.alpha = alpha
         self.llr_max = 19.3
         self.br = bit_reversal_permutation(N)
+        self._stage_cache = [self._stage_indices(s) for s in range(self.n)]
 
     def _stage_indices(self, stage):
         ind_range = np.arange(self.N // 2)
@@ -34,12 +35,6 @@ class BPDecoder:
         ind_2 = ind_1 + 2 ** stage
         ind_inv = np.argsort(np.concatenate([ind_1, ind_2]))
         return ind_1, ind_2, ind_inv
-
-    def _hard_bits(self, msg_l, msg_r):
-        total = msg_l[0] + msg_r[0]
-        u_hat = (total < 0).astype(int)
-        u_hat[self.frozen_bits] = 0
-        return u_hat
 
     def _check_early_stop(self, u_hat, llr_ch):
         x_hat = polar_encode(u_hat)
@@ -50,31 +45,32 @@ class BPDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         llr_dec = np.clip(llr_ch[self.br], -self.llr_max, self.llr_max)
 
-        msg_l_hist = []
-        msg_r_hist = []
-
         msg_r_in = np.zeros(self.N, dtype=np.float64)
         msg_r_in[self.frozen_pos] = self.llr_max
 
+        msg_l_prev = None
+        msg_l = np.zeros(self.N)
         num_iters = 0
         u_hat = np.zeros(self.N, dtype=int)
-        msg_l = [np.zeros(self.N) for _ in range(self.n + 1)]
+
+        half = self.N // 2
+        zeros_half = np.zeros(half)
 
         for it in range(self.max_iter):
             msg_r_it = [None] * (self.n + 1)
             msg_l_it = [None] * (self.n + 1)
 
             for stage in range(self.n):
-                ind_1, ind_2, ind_inv = self._stage_indices(stage)
+                ind_1, ind_2, ind_inv = self._stage_cache[stage]
 
                 if stage == self.n - 1:
                     l1_in = llr_dec[ind_1]
                     l2_in = llr_dec[ind_2]
                 elif it == 0:
-                    l1_in = np.zeros(self.N // 2)
-                    l2_in = np.zeros(self.N // 2)
+                    l1_in = zeros_half
+                    l2_in = zeros_half
                 else:
-                    l_in = msg_l_hist[it - 1][stage + 1]
+                    l_in = msg_l_prev[stage + 1]
                     l1_in = l_in[ind_1]
                     l2_in = l_in[ind_2]
 
@@ -88,11 +84,10 @@ class BPDecoder:
 
                 r1_out = _f_min_sum(r1_in, l2_in + r2_in, self.alpha)
                 r2_out = _f_min_sum(r1_in, l1_in, self.alpha) + r2_in
-                r_out = np.concatenate([r1_out, r2_out])[ind_inv]
-                msg_r_it[stage + 1] = r_out
+                msg_r_it[stage + 1] = np.concatenate([r1_out, r2_out])[ind_inv]
 
             for stage in range(self.n - 1, -1, -1):
-                ind_1, ind_2, ind_inv = self._stage_indices(stage)
+                ind_1, ind_2, ind_inv = self._stage_cache[stage]
 
                 if stage == self.n - 1:
                     l1_in = llr_dec[ind_1]
@@ -112,21 +107,18 @@ class BPDecoder:
 
                 l1_out = _f_min_sum(l1_in, l2_in + r2_in, self.alpha)
                 l2_out = _f_min_sum(r1_in, l1_in, self.alpha) + l2_in
-                l_out = np.concatenate([l1_out, l2_out])[ind_inv]
-                msg_l_it[stage] = l_out
+                msg_l_it[stage] = np.concatenate([l1_out, l2_out])[ind_inv]
 
-            msg_l_hist.append(msg_l_it)
-            msg_r_hist.append(msg_r_it)
-            msg_l = msg_l_it
+            msg_l_prev = msg_l_it
+            msg_l = msg_l_it[0]
             num_iters = it + 1
 
-            total = msg_l[0] + msg_r_in
+            total = msg_l + msg_r_in
             u_hat = (total < 0).astype(int)
             u_hat[self.frozen_bits] = 0
-            if self._check_early_stop(u_hat, llr_ch):
-                break
 
-        total = msg_l[0] + msg_r_in
-        u_hat = (total < 0).astype(int)
-        u_hat[self.frozen_bits] = 0
+            if (it + 1) % 5 == 0 or it == self.max_iter - 1:
+                if self._check_early_stop(u_hat, llr_ch):
+                    break
+
         return u_hat, num_iters
