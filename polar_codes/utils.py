@@ -59,34 +59,45 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """计算 BPSK 离散输入信道容量（bits/channel use）"""
+    """计算 BPSK-AWGN 信道容量（bits/channel use）"""
     capacities = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
+        eb_lin = 10.0 ** (eb_n0_db / 10.0)
+        sigma = 1.0 / np.sqrt(2.0 * rate * eb_lin)
+        norm = 1.0 / np.sqrt(2.0 * np.pi * sigma ** 2)
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            p_plus = norm * np.exp(-0.5 * ((y - 1.0) / sigma) ** 2)
+            p_minus = norm * np.exp(-0.5 * ((y + 1.0) / sigma) ** 2)
+            py = 0.5 * (p_plus + p_minus)
+            if py < 1e-300:
+                return 0.0
+            term = 0.0
+            if p_plus > 0:
+                term += 0.5 * p_plus * np.log2(p_plus / py)
+            if p_minus > 0:
+                term += 0.5 * p_minus * np.log2(p_minus / py)
+            return term
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        capacities.append(1.0 - val)
+        val, _ = integrate.quad(integrand, -15.0 * sigma - 5.0, 15.0 * sigma + 5.0)
+        capacities.append(val)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
     idx = np.searchsorted(caps, rate)
     if idx == 0:
-        return eb_grid[0]
+        return float(eb_grid[0])
     if idx >= len(eb_grid):
-        return eb_grid[-1]
+        return float(eb_grid[-1])
     c0, c1 = caps[idx - 1], caps[idx]
     e0, e1 = eb_grid[idx - 1], eb_grid[idx]
     if c1 == c0:
-        return e0
-    return e0 + (rate - c0) * (e1 - e0) / (c1 - c0)
+        return float(e0)
+    return float(e0 + (rate - c0) * (e1 - e0) / (c1 - c0))
 
 
 def plot_bler_curves(
