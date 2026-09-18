@@ -17,10 +17,15 @@ class BPDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
         self.max_iter = max_iter
         self.alpha = alpha
-        self._large = 1e6
+        self._large = 1e7
 
     def _f_ms(self, a, b):
         return self.alpha * f_operation(a, b)
+
+    def _g_soft(self, la, lb, u_llr):
+        """软 g 运算，u_llr 为左子树比特的软 LLR"""
+        p1 = 1.0 / (1.0 + np.exp(u_llr))
+        return la * (1.0 - 2.0 * p1) + lb
 
     def decode(self, llr_ch):
         """
@@ -34,52 +39,40 @@ class BPDecoder:
         n = self.n
         N = self.N
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_bits, 0] = self._large
+        L = np.zeros((n + 1, N), dtype=np.float64)
+        L[n, :] = llr_ch
+        u_llr = np.zeros(N, dtype=np.float64)
+        u_llr[self.frozen_bits] = self._large
 
         num_iters = self.max_iter
 
         for it in range(1, self.max_iter + 1):
-            for j in range(n, 0, -1):
-                step = 1 << (j - 1)
+            for layer in range(n - 1, -1, -1):
+                step = 1 << layer
                 for i in range(0, N, 2 * step):
-                    L[i, j - 1] = self._f_ms(
-                        R[i, j] + L[i + step, j],
-                        L[i, j],
+                    L[layer, i] = self._f_ms(L[layer + 1, i], L[layer + 1, i + step])
+                    L[layer, i + step] = self._g_soft(
+                        L[layer + 1, i],
+                        L[layer + 1, i + step],
+                        u_llr[i],
                     )
-                    L[i + step, j - 1] = self._f_ms(
-                        R[i, j],
-                        L[i, j],
-                    ) + L[i + step, j]
 
-            for j in range(0, n):
-                step = 1 << j
-                for i in range(0, N, 2 * step):
-                    R[i, j + 1] = self._f_ms(
-                        R[i + step, j] + L[i + step, j + 1],
-                        R[i, j],
-                    )
-                    R[i + step, j + 1] = self._f_ms(
-                        R[i, j],
-                        L[i, j + 1],
-                    ) + R[i + step, j]
+            for i in range(N):
+                if self.frozen_bits[i]:
+                    u_llr[i] = self._large
+                else:
+                    u_llr[i] = L[0, i]
 
-            u_hat = self._hard_decision(L, R)
+            u_hat = (u_llr < 0).astype(int)
+            u_hat[self.frozen_bits] = 0
+
             if self._check_early_stop(u_hat, llr_ch):
                 num_iters = it
                 break
 
-        u_hat = self._hard_decision(L, R)
-        return u_hat, num_iters
-
-    def _hard_decision(self, L, R):
-        total = L[:, 0] + R[:, 0]
-        u_hat = (total < 0).astype(int)
+        u_hat = (u_llr < 0).astype(int)
         u_hat[self.frozen_bits] = 0
-        return u_hat
+        return u_hat, num_iters
 
     def _check_early_stop(self, u_hat, llr_ch):
         x_hat = polar_encode(u_hat)
