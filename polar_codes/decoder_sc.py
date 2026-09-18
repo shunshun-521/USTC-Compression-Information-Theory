@@ -58,8 +58,45 @@ def _active_bit_level(i, n):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现，与 sc_decode 等价）"""
-    return sc_decode(llr, frozen_bits)
+    """递归 SC 译码（参考实现）"""
+    N = len(llr)
+    n = int(np.log2(N))
+    frozen_bits = np.asarray(frozen_bits, dtype=bool)
+    L = np.zeros((N, n + 1), dtype=np.float64)
+    B = np.zeros((N, n + 1), dtype=int)
+    L[:, 0] = llr.astype(np.float64)
+    u_hat = np.zeros(N, dtype=int)
+
+    def decode_bit(stage, i):
+        l = _bit_reversed(i, n)
+        for s in range(n - _active_llr_level(l, n), n):
+            block_size = 1 << (s + 1)
+            branch_size = block_size // 2
+            for j in range(l, N, block_size):
+                if j % block_size < branch_size:
+                    L[j, s + 1] = f_operation(L[j, s], L[j + branch_size, s])
+                else:
+                    L[j, s + 1] = g_operation(
+                        L[j - branch_size, s], L[j, s], B[j - branch_size, s + 1]
+                    )
+        if l in set(np.where(frozen_bits)[0]):
+            B[l, n] = 0
+        else:
+            B[l, n] = 0 if L[l, n] >= 0 else 1
+        u_hat[l] = B[l, n]
+        if l >= N / 2:
+            for s in range(n, n - _active_bit_level(l, n), -1):
+                block_size = 1 << s
+                branch_size = block_size // 2
+                for j in range(l, -1, -block_size):
+                    if j % block_size >= branch_size:
+                        B[j - branch_size, s - 1] = (B[j, s] + B[j - branch_size, s]) % 2
+                        B[j, s - 1] = B[j, s]
+        if stage + 1 < N:
+            decode_bit(stage + 1, stage + 1)
+
+    decode_bit(0, 0)
+    return u_hat
 
 
 def precompute_sc_indices(N):
