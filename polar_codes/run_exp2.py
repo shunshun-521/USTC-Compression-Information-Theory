@@ -29,9 +29,9 @@ K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
-MAX_FRAMES = 100000
-MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+MAX_FRAMES = 30000
+MIN_ERRORS = 50
+EB_N0_RANGE = np.arange(1.0, 4.5, 0.5)
 
 info_idx, _, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=int)
@@ -54,8 +54,8 @@ save_results_csv(results_sc, f'results/exp2_sc_N{N}_R0.5.csv')
 
 for L in L_LIST:
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
-    max_frames = MAX_FRAMES if L <= 2 else min(MAX_FRAMES, 5000)
-    min_errors = MIN_ERRORS if L <= 2 else min(MIN_ERRORS, 50)
+    max_frames = MAX_FRAMES if L <= 2 else min(MAX_FRAMES, 2000)
+    min_errors = MIN_ERRORS if L <= 2 else min(MIN_ERRORS, 30)
 
     def scl_decoder(llr_ch, _L=L):
         u_hat, pm = SCLDecoder(N, frozen_bits, list_size=_L, crc_length=0).decode(llr_ch)
@@ -78,7 +78,7 @@ def cascl_decoder(llr_ch):
 
 results_cascl = run_simulation(
     N, K, EB_N0_RANGE, cascl_decoder, 'scl',
-    min(MAX_FRAMES, 3000), min(MIN_ERRORS, 30), crc_length=CRC_LENGTH,
+    min(MAX_FRAMES, 1500), min(MIN_ERRORS, 20), crc_length=CRC_LENGTH,
     info_indices=info_idx, verbose=True,
 )
 all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
