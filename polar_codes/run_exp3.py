@@ -25,6 +25,7 @@ os.makedirs('results', exist_ok=True)
 run_unit_tests()
 
 N_LIST = [256, 512]
+EB_N0_RANGE_BP = np.array([1.0, 1.5, 2.0, 2.5, 3.0, 3.5])
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
@@ -56,8 +57,10 @@ for N in N_LIST:
         return u, None
 
     print(f'\n实验三 SCL: N={N}')
+    scl_snr = EB_N0_RANGE if N <= 256 else np.array([1.0, 2.0, 3.0])
+    scl_frames = MAX_FRAMES if N <= 256 else 300
     r_scl = run_simulation(
-        N, K, EB_N0_RANGE, scl_d, 'scl', MAX_FRAMES, MIN_ERRORS,
+        N, K, scl_snr, scl_d, 'scl', scl_frames, min(MIN_ERRORS, 20),
         info_indices=info_idx, verbose=True,
     )
     all_results['SCL (L=4)'] = r_scl
@@ -71,7 +74,7 @@ for N in N_LIST:
 
     print(f'\n实验三 BP: N={N}')
     r_bp = run_simulation(
-        N, K, EB_N0_RANGE, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
+        N, K, EB_N0_RANGE_BP, bp_d, 'bp', MAX_FRAMES, MIN_ERRORS,
         info_indices=info_idx, verbose=True,
     )
     all_results[f'BP (max_iter={MAX_ITER})'] = r_bp

@@ -28,7 +28,8 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
+L_LIST = [2, 4]
+EB_N0_RANGE_SCL_HEAVY = np.array([1.0, 2.0, 3.0])
 MAX_FRAMES = 10000
 MIN_ERRORS = 30
 EB_N0_RANGE = np.array([1.0, 1.5, 2.0, 2.5, 3.0, 3.5])
@@ -54,15 +55,16 @@ save_results_csv(results_sc, f'results/exp2_sc_N{N}_R0.5.csv')
 
 for L in L_LIST:
     print(f"\nSCL 仿真: N={N}, K={K}, L={L}")
-    max_frames = MAX_FRAMES if L <= 2 else min(MAX_FRAMES, 800)
-    min_errors = MIN_ERRORS if L <= 2 else min(MIN_ERRORS, 20)
+    snr_list = EB_N0_RANGE if L <= 2 else EB_N0_RANGE_SCL_HEAVY
+    max_frames = MAX_FRAMES if L <= 2 else 200
+    min_errors = MIN_ERRORS if L <= 2 else 15
 
     def scl_decoder(llr_ch, _L=L):
         u_hat, pm = SCLDecoder(N, frozen_bits, list_size=_L, crc_length=0).decode(llr_ch)
         return u_hat, None
 
     results = run_simulation(
-        N, K, EB_N0_RANGE, scl_decoder, 'scl',
+        N, K, snr_list, scl_decoder, 'scl',
         max_frames, min_errors, info_indices=info_idx, verbose=True,
     )
     label = f'SCL (L={L})'
@@ -71,7 +73,8 @@ for L in L_LIST:
     if L == 4:
         save_results_csv(results, f'results/exp2_scl_N{N}_R0.5.csv')
 
-print(f'\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}')
+print(f'\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH} (精简信噪比点)')
+CASCL_EB_N0 = np.array([1.5, 2.0, 2.5, 3.0])
 
 
 def cascl_decoder(llr_ch):
@@ -80,8 +83,8 @@ def cascl_decoder(llr_ch):
 
 
 results_cascl = run_simulation(
-    N, K, EB_N0_RANGE, cascl_decoder, 'scl',
-    min(MAX_FRAMES, 600), min(MIN_ERRORS, 15), crc_length=CRC_LENGTH,
+    N, K, CASCL_EB_N0, cascl_decoder, 'scl',
+    200, 15, crc_length=CRC_LENGTH,
     info_indices=info_idx, verbose=True,
 )
 all_results[f'CA-SCL (L=8, CRC={CRC_LENGTH})'] = results_cascl
