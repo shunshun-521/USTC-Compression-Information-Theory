@@ -4,13 +4,8 @@
 """
 import numpy as np
 
-from decoder_sc import _depermute_llr
+from decoder_sc import _depermute_llr, f_operation
 from encoder import polar_encode
-
-
-def _f_min_sum(a, b, alpha):
-    """min-sum 近似的 f 运算。"""
-    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
 
 
 class BPDecoder:
@@ -25,6 +20,9 @@ class BPDecoder:
         self.frozen_idx = np.where(self.frozen_bits)[0]
         self.LARGE = 1e6
 
+    def _f(self, a, b):
+        return self.alpha * f_operation(a, b)
+
     def decode(self, llr_ch):
         """
         主译码函数。
@@ -35,14 +33,14 @@ class BPDecoder:
         """
         n = self.n
         N = self.N
-        llr_ch = _depermute_llr(np.asarray(llr_ch, dtype=np.float64))
+        llr_raw = np.asarray(llr_ch, dtype=np.float64)
+        llr_ch = _depermute_llr(llr_raw)
 
         L = np.zeros((N, n + 1), dtype=np.float64)
         R = np.zeros((N, n + 1), dtype=np.float64)
 
         L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_idx, 0] = self.LARGE
+        R[:, :] = 0.0
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
@@ -56,14 +54,12 @@ class BPDecoder:
                     for k in range(s):
                         idx = i + k
                         idx2 = idx + s
-                        L[idx, j - 1] = _f_min_sum(
+                        L[idx, j - 1] = self._f(
                             R[idx, j] + L[idx2, j],
                             L[idx, j],
-                            self.alpha,
                         )
                         L[idx2, j - 1] = (
-                            _f_min_sum(R[idx, j], L[idx, j], self.alpha)
-                            + L[idx2, j]
+                            self._f(R[idx, j], L[idx, j]) + L[idx2, j]
                         )
 
             for j in range(0, n):
@@ -72,29 +68,29 @@ class BPDecoder:
                     for k in range(s):
                         idx = i + k
                         idx2 = idx + s
-                        R[idx, j + 1] = _f_min_sum(
+                        R[idx, j + 1] = self._f(
                             R[idx2, j] + L[idx2, j + 1],
                             R[idx, j],
-                            self.alpha,
                         )
                         R[idx2, j + 1] = (
-                            _f_min_sum(R[idx, j], L[idx, j + 1], self.alpha)
-                            + R[idx2, j]
+                            self._f(R[idx, j], L[idx, j + 1]) + R[idx2, j]
                         )
 
             for i in range(N):
-                u_hat[i] = 0 if self.frozen_bits[i] else (
-                    0 if (L[i, 0] + R[i, 0]) >= 0 else 1
-                )
+                if self.frozen_bits[i]:
+                    u_hat[i] = 0
+                else:
+                    u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
 
             x_hat = polar_encode(u_hat)
-            hard_ch = (llr_ch < 0).astype(int)
+            hard_ch = (llr_raw < 0).astype(int)
             if np.array_equal(x_hat, hard_ch):
                 break
 
         for i in range(N):
-            u_hat[i] = 0 if self.frozen_bits[i] else (
-                0 if (L[i, 0] + R[i, 0]) >= 0 else 1
-            )
+            if self.frozen_bits[i]:
+                u_hat[i] = 0
+            else:
+                u_hat[i] = 0 if (L[i, 0] + R[i, 0]) >= 0 else 1
 
         return u_hat, num_iters
