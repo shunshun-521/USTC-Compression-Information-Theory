@@ -28,9 +28,9 @@ N_LIST = [256, 512]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
-MAX_FRAMES = 30000
-MIN_ERRORS = 50
-EB_N0_RANGE = np.arange(1.0, 4.5, 0.5)
+MAX_FRAMES = 10000
+MIN_ERRORS = 30
+EB_N0_RANGE = np.array([1.0, 1.5, 2.0, 2.5, 3.0, 3.5])
 
 for N in N_LIST:
     K = N // 2
