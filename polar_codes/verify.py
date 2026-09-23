@@ -1,0 +1,142 @@
+"""极化码模块数值正确性校验"""
+import sys
+
+import numpy as np
+
+from channel import awgn_channel, bpsk_modulate, compute_llr, eb_n0_to_sigma
+from construction import ga_construction
+from decoder_bp import BPDecoder
+from decoder_sc import sc_decode, sc_decode_recursive
+from decoder_scl import SCLDecoder, crc_check, crc_encode
+from encoder import polar_encode, polar_encode_matrix
+from simulation import run_simulation
+
+
+def test_encoder():
+    u = np.array([1, 0, 1, 1])
+    x = polar_encode(u)
+    xm = polar_encode_matrix(u)
+    expected = np.array([1, 1, 0, 1])
+    assert np.array_equal(x, expected), f"编码器错误: {x}"
+    assert np.array_equal(x, xm), f"编码器与矩阵不一致: {x} vs {xm}"
+    print(f"PASS encoder: u={u} -> x={x}")
+
+
+def test_ga_construction():
+    info8, frozen8, _ = ga_construction(8, 4, 2.5)
+    assert len(info8) == 4 and len(frozen8) == 4
+    info256, _, _ = ga_construction(256, 128, 2.5)
+    print(f"PASS GA: N=8 info={info8}, frozen={frozen8}")
+    print(f"      N=256 info[:20]={info256[:20]}")
+
+
+def test_sc_lossless():
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    rng = np.random.default_rng(0)
+    for _ in range(100):
+        payload = rng.integers(0, 2, size=K)
+        u = np.zeros(N, dtype=int)
+        u[info_idx] = payload
+        x = polar_encode(u)
+        llr = np.where(x == 0, 100.0, -100.0)
+        u_hat = sc_decode(llr, frozen_bits)
+        assert np.array_equal(u_hat[info_idx], payload)
+
+    print("PASS SC lossless @ Eb/N0=10dB, 100 frames")
+
+
+def test_sc_recursive_match():
+    N = 32
+    info_idx, _, _ = ga_construction(N, N // 2, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    rng = np.random.default_rng(1)
+    sigma = eb_n0_to_sigma(5.0, 0.5)
+    for _ in range(20):
+        payload = rng.integers(0, 2, size=N // 2)
+        u = np.zeros(N, dtype=int)
+        u[info_idx] = payload
+        llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
+        u1 = sc_decode(llr, frozen_bits)
+        u2 = sc_decode_recursive(llr, frozen_bits)
+        assert np.array_equal(u1, u2)
+    print("PASS SC recursive == non-recursive")
+
+
+def test_scl_l1_equals_sc():
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    rng = np.random.default_rng(2)
+    sigma = eb_n0_to_sigma(6.0, 0.5)
+    scl = SCLDecoder(N, frozen_bits, list_size=1)
+    for _ in range(50):
+        payload = rng.integers(0, 2, size=K)
+        u = np.zeros(N, dtype=int)
+        u[info_idx] = payload
+        llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
+        u_sc = sc_decode(llr, frozen_bits)
+        u_scl, _ = scl.decode(llr)
+        assert np.array_equal(u_sc, u_scl)
+    print("PASS SCL L=1 == SC")
+
+
+def test_crc():
+    info = np.array([1, 0, 1, 1, 0, 0, 1, 0], dtype=np.int8)
+    coded = crc_encode(info, 8)
+    assert crc_check(coded, 8)
+    coded_bad = coded.copy()
+    coded_bad[0] ^= 1
+    assert not crc_check(coded_bad, 8)
+    print("PASS CRC encode/check")
+
+
+def test_bp_quick():
+    N, K = 64, 32
+    info_idx, _, _ = ga_construction(N, K, 2.5)
+    frozen_bits = np.ones(N, dtype=int)
+    frozen_bits[info_idx] = 0
+    bp = BPDecoder(N, frozen_bits, max_iter=50)
+    rng = np.random.default_rng(3)
+    sigma = eb_n0_to_sigma(8.0, 0.5)
+    ok = 0
+    for _ in range(30):
+        payload = rng.integers(0, 2, size=K)
+        u = np.zeros(N, dtype=int)
+        u[info_idx] = payload
+        llr = compute_llr(awgn_channel(bpsk_modulate(polar_encode(u)), sigma, rng), sigma)
+        u_hat, _ = bp.decode(llr)
+        if np.array_equal(u_hat[info_idx], payload):
+            ok += 1
+    assert ok >= 20, f"BP too many errors at high SNR: {ok}/30"
+    print(f"PASS BP high-SNR: {ok}/30 correct")
+
+
+def main():
+    tests = [
+        test_encoder,
+        test_ga_construction,
+        test_sc_lossless,
+        test_sc_recursive_match,
+        test_scl_l1_equals_sc,
+        test_crc,
+        test_bp_quick,
+    ]
+    failed = 0
+    for t in tests:
+        try:
+            t()
+        except Exception as e:
+            failed += 1
+            print(f"FAIL {t.__name__}: {e}")
+    if failed:
+        sys.exit(1)
+    print(f"\nAll {len(tests)} tests passed.")
+
+
+if __name__ == "__main__":
+    main()
