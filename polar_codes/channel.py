@@ -29,8 +29,7 @@ def compute_llr(y, sigma):
 def eb_n0_to_sigma(eb_n0_db, rate):
     """
     将 Eb/N0 (dB) 转换为 AWGN 噪声标准差 sigma。
-    SNR = Eb/N0 * 2R（线性）
-    sigma = 1 / sqrt(SNR) = 1 / sqrt(2R * 10^{Eb/N0/10})
+    对 BPSK（0->+1, 1->-1）与 LLR=2y/sigma^2 约定：
+    sigma^2 = R / (10^{Eb/N0/10})
     """
-    snr = 2.0 * rate * (10 ** (eb_n0_db / 10.0))
-    return 1.0 / np.sqrt(snr)
+    return np.sqrt(rate / (10 ** (eb_n0_db / 10.0)))
