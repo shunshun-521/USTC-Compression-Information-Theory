@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -52,32 +51,36 @@ def load_results_csv(filepath):
 def compute_bpsk_capacity(eb_n0_db_list, rate):
     """
     计算 BPSK 离散输入信道容量（bits/channel use）。
+    通过数值积分计算互信息 I(X;Y)。
     """
+    y = np.linspace(-10, 10, 20001)
+    dy = y[1] - y[0]
     capacities = []
+
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1 + np.exp(-2 * snr * y)) * np.exp(-y ** 2 / 2)
-
-        integral, _ = integrate.quad(integrand, -np.inf, np.inf)
-        capacity = 1 - integral / np.sqrt(2 * np.pi)
-        capacities.append(capacity)
+        eb_lin = 10 ** (eb_n0_db / 10.0)
+        sigma = np.sqrt(1.0 / (2 * rate * eb_lin))
+        p_y = np.zeros_like(y)
+        for xs in (1.0, -1.0):
+            p_y += 0.5 * np.exp(-(y - xs) ** 2 / (2 * sigma ** 2)) / np.sqrt(
+                2 * np.pi * sigma ** 2
+            )
+        mi = 0.0
+        for xs in (1.0, -1.0):
+            py_x = np.exp(-(y - xs) ** 2 / (2 * sigma ** 2)) / np.sqrt(
+                2 * np.pi * sigma ** 2
+            )
+            mi += 0.5 * np.sum(py_x * np.log2((py_x + 1e-300) / (p_y + 1e-300))) * dy
+        capacities.append(mi)
     return np.array(capacities)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=2000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(eb_grid, rate)
     idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        for eb in np.linspace(eb_n0_range[0], eb_n0_range[1], 5000):
-            cap = compute_bpsk_capacity([eb], rate)[0]
-            if cap >= rate:
-                return eb
-        return eb_n0_range[1]
-    return eb_grid[idx]
+    return float(eb_grid[idx])
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
