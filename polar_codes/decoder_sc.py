@@ -63,14 +63,6 @@ def _prepare_channel_llr(llr_ch):
     return np.asarray(llr_ch, dtype=np.float64)[br]
 
 
-def sc_decode_recursive(llr_ch, frozen_bits):
-    """
-    递归 SC 译码（参考实现）。
-    采用与 sc_decode 相同的惰性 LLR 算法，结果一致。
-    """
-    return sc_decode(llr_ch, frozen_bits)
-
-
 def precompute_sc_indices(N):
     """预计算非递归 SC 译码所需的辅助向量"""
     n = int(math.log2(N))
@@ -112,3 +104,11 @@ def sc_decode(llr_ch, frozen_bits):
             s[0, phi] = u_hat[phi]
 
     return u_hat
+
+
+def sc_decode_recursive(llr_ch, frozen_bits):
+    """
+    递归 SC 译码（参考实现）。
+    内部调用惰性 LLR 非递归实现，结果与 sc_decode 一致。
+    """
+    return sc_decode(llr_ch, frozen_bits)
