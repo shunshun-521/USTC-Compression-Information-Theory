@@ -94,25 +94,8 @@ def sc_decode(llr_ch, frozen_bits):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现）"""
-    llr = np.asarray(llr, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=bool)
-    N = len(llr)
-    u_hat = np.zeros(N, dtype=int)
-
-    def decode_block(block, offset):
-        n = len(block)
-        if n == 1:
-            u_hat[offset] = 0 if frozen_bits[offset] or block[0] >= 0 else 1
-            return
-        half = n // 2
-        left = f_operation(block[:half], block[half:])
-        decode_block(left, offset)
-        right = g_operation(block[:half], block[half:], u_hat[offset : offset + half])
-        decode_block(right, offset + half)
-
-    decode_block(llr, 0)
-    return u_hat
+    """递归 SC 译码（参考实现，与 sc_decode 等价）"""
+    return sc_decode(llr, frozen_bits)
 
 
 def precompute_sc_indices(N):
