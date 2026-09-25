@@ -1,0 +1,105 @@
+/workspace/polar_codes/utils.py:79: RuntimeWarning: overflow encountered in exp
+  return np.log2(1 + np.exp(-2 * s * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:79: RuntimeWarning: invalid value encountered in scalar multiply
+  return np.log2(1 + np.exp(-2 * s * y)) * np.exp(-y ** 2 / 2)
+/workspace/polar_codes/utils.py:81: IntegrationWarning: The occurrence of roundoff error is detected, which prevents 
+  the requested tolerance from being achieved.  The error may be 
+  underestimated.
+  val, _ = integrate.quad(integrand, -np.inf, np.inf)
+Running unit tests...
+  [PASS] Encoder test
+  [PASS] SC decode test (N=64, 100 frames)
+  [PASS] SC recursive consistency
+All unit tests passed.
+
+
+============================================================
+SC 仿真: N=256, K=128, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=4.9156e-01 | Errors=100 | Frames=100 | AvgTime=1.64ms
+  Eb/N0=0.25dB | BLER=1.0000e+00 | BER=4.9133e-01 | Errors=100 | Frames=100 | AvgTime=1.62ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=5.0234e-01 | Errors=100 | Frames=100 | AvgTime=1.61ms
+  Eb/N0=0.75dB | BLER=1.0000e+00 | BER=4.9656e-01 | Errors=100 | Frames=100 | AvgTime=1.63ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=5.0961e-01 | Errors=100 | Frames=100 | AvgTime=1.66ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=5.0508e-01 | Errors=100 | Frames=100 | AvgTime=1.64ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9969e-01 | Errors=100 | Frames=100 | AvgTime=1.65ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9602e-01 | Errors=100 | Frames=100 | AvgTime=1.69ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=5.0094e-01 | Errors=100 | Frames=100 | AvgTime=1.65ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9773e-01 | Errors=100 | Frames=100 | AvgTime=1.68ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9617e-01 | Errors=100 | Frames=100 | AvgTime=1.62ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.8594e-01 | Errors=100 | Frames=100 | AvgTime=1.63ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.7930e-01 | Errors=100 | Frames=100 | AvgTime=1.67ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.8641e-01 | Errors=100 | Frames=100 | AvgTime=1.72ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.9227e-01 | Errors=100 | Frames=100 | AvgTime=1.66ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.8633e-01 | Errors=100 | Frames=100 | AvgTime=1.70ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.8000e-01 | Errors=100 | Frames=100 | AvgTime=1.72ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.6719e-01 | Errors=100 | Frames=100 | AvgTime=1.67ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.7180e-01 | Errors=100 | Frames=100 | AvgTime=1.69ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.5984e-01 | Errors=100 | Frames=100 | AvgTime=1.70ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.3445e-01 | Errors=100 | Frames=100 | AvgTime=1.70ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.2750e-01 | Errors=100 | Frames=100 | AvgTime=1.68ms
+
+============================================================
+SC 仿真: N=512, K=256, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=5.0102e-01 | Errors=100 | Frames=100 | AvgTime=3.39ms
+  Eb/N0=0.25dB | BLER=1.0000e+00 | BER=5.0012e-01 | Errors=100 | Frames=100 | AvgTime=3.36ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=4.9645e-01 | Errors=100 | Frames=100 | AvgTime=3.28ms
+  Eb/N0=0.75dB | BLER=1.0000e+00 | BER=5.0078e-01 | Errors=100 | Frames=100 | AvgTime=3.23ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=5.0211e-01 | Errors=100 | Frames=100 | AvgTime=3.28ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=4.9707e-01 | Errors=100 | Frames=100 | AvgTime=3.17ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9906e-01 | Errors=100 | Frames=100 | AvgTime=3.11ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=5.0523e-01 | Errors=100 | Frames=100 | AvgTime=3.21ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9820e-01 | Errors=100 | Frames=100 | AvgTime=3.18ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=4.9375e-01 | Errors=100 | Frames=100 | AvgTime=3.17ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9910e-01 | Errors=100 | Frames=100 | AvgTime=3.08ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=4.9512e-01 | Errors=100 | Frames=100 | AvgTime=3.14ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.9547e-01 | Errors=100 | Frames=100 | AvgTime=3.07ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.9168e-01 | Errors=100 | Frames=100 | AvgTime=3.10ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.9328e-01 | Errors=100 | Frames=100 | AvgTime=3.12ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=4.8824e-01 | Errors=100 | Frames=100 | AvgTime=3.22ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.9188e-01 | Errors=100 | Frames=100 | AvgTime=3.03ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.8418e-01 | Errors=100 | Frames=100 | AvgTime=3.08ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.8434e-01 | Errors=100 | Frames=100 | AvgTime=3.13ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.8379e-01 | Errors=100 | Frames=100 | AvgTime=3.07ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.6547e-01 | Errors=100 | Frames=100 | AvgTime=3.14ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.6625e-01 | Errors=100 | Frames=100 | AvgTime=3.21ms
+
+============================================================
+SC 仿真: N=1024, K=512, R=0.5
+============================================================
+  Eb/N0=0.00dB | BLER=1.0000e+00 | BER=4.9604e-01 | Errors=100 | Frames=100 | AvgTime=6.24ms
+  Eb/N0=0.25dB | BLER=1.0000e+00 | BER=4.9549e-01 | Errors=100 | Frames=100 | AvgTime=6.15ms
+  Eb/N0=0.50dB | BLER=1.0000e+00 | BER=5.0166e-01 | Errors=100 | Frames=100 | AvgTime=6.13ms
+  Eb/N0=0.75dB | BLER=1.0000e+00 | BER=4.9947e-01 | Errors=100 | Frames=100 | AvgTime=6.17ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.9945e-01 | Errors=100 | Frames=100 | AvgTime=6.21ms
+  Eb/N0=1.25dB | BLER=1.0000e+00 | BER=5.0238e-01 | Errors=100 | Frames=100 | AvgTime=6.14ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.9764e-01 | Errors=100 | Frames=100 | AvgTime=6.15ms
+  Eb/N0=1.75dB | BLER=1.0000e+00 | BER=4.9820e-01 | Errors=100 | Frames=100 | AvgTime=6.11ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.9656e-01 | Errors=100 | Frames=100 | AvgTime=6.12ms
+  Eb/N0=2.25dB | BLER=1.0000e+00 | BER=5.0016e-01 | Errors=100 | Frames=100 | AvgTime=6.14ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.9781e-01 | Errors=100 | Frames=100 | AvgTime=6.12ms
+  Eb/N0=2.75dB | BLER=1.0000e+00 | BER=5.0088e-01 | Errors=100 | Frames=100 | AvgTime=6.16ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=5.0365e-01 | Errors=100 | Frames=100 | AvgTime=6.13ms
+  Eb/N0=3.25dB | BLER=1.0000e+00 | BER=4.9992e-01 | Errors=100 | Frames=100 | AvgTime=6.05ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.9760e-01 | Errors=100 | Frames=100 | AvgTime=6.04ms
+  Eb/N0=3.75dB | BLER=1.0000e+00 | BER=5.0137e-01 | Errors=100 | Frames=100 | AvgTime=6.49ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.9697e-01 | Errors=100 | Frames=100 | AvgTime=6.10ms
+  Eb/N0=4.25dB | BLER=1.0000e+00 | BER=4.9492e-01 | Errors=100 | Frames=100 | AvgTime=6.10ms
+  Eb/N0=4.50dB | BLER=1.0000e+00 | BER=4.8691e-01 | Errors=100 | Frames=100 | AvgTime=6.12ms
+  Eb/N0=4.75dB | BLER=1.0000e+00 | BER=4.8744e-01 | Errors=100 | Frames=100 | AvgTime=6.13ms
+  Eb/N0=5.00dB | BLER=1.0000e+00 | BER=4.8074e-01 | Errors=100 | Frames=100 | AvgTime=6.37ms
+  Eb/N0=5.25dB | BLER=1.0000e+00 | BER=4.8387e-01 | Errors=100 | Frames=100 | AvgTime=6.20ms
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp1.py", line 107, in <module>
+    shannon_db = find_capacity_limit(RATE)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/utils.py", line 101, in find_capacity_limit
+    result = optimize.brentq(objective, eb_n0_range[0], eb_n0_range[1])
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/scipy/optimize/_zeros_py.py", line 858, in brentq
+    r = _zeros._brentq(f, a, b, xtol, rtol, maxiter, args, full_output, disp)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ubuntu/.local/lib/python3.12/site-packages/scipy/optimize/_zeros_py.py", line 115, in f_raise
+    raise err
+ValueError: The function value at x=-5.0 is NaN; solver cannot continue.
