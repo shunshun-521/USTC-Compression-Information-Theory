@@ -19,7 +19,7 @@ def polar_encode(u):
         u: 长度为 N 的源序列（信息位 + 冻结位）
 
     返回：
-        x: 长度为 N 的码字（x = u @ F^{\otimes n} mod 2）
+        x: 长度为 N 的码字（x = u @ F^⊗n mod 2）
 
     实现：蝶形（butterfly）递归结构
         - 每层：u[i] ^= u[i + step]（step = 1, 2, 4, ...）

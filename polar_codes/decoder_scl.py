@@ -3,7 +3,7 @@
 支持 CRC 辅助（CA-SCL）
 """
 import numpy as np
-from decoder_sc import f_operation, g_operation
+from decoder_sc import f_operation, g_operation, sc_decode
 
 
 CRC8_POLY = 0x07
@@ -45,7 +45,7 @@ def crc_check(bits, crc_length=8):
 
 
 def _subtree_up(u_partial):
-    """计算子树重编码部分和 u_hat_up"""
+    """子树重编码部分和"""
     u = np.asarray(u_partial, dtype=int).copy()
     if len(u) == 1:
         return u
@@ -80,6 +80,11 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
+
+        if self.list_size == 1 and self.crc_length == 0:
+            u_hat = sc_decode(llr_ch, self.frozen_bits)
+            return u_hat, 0.0
+
         paths = [{"pm": 0.0, "u_hat": np.zeros(self.N, dtype=int)}]
 
         for phi in range(self.N):
@@ -108,7 +113,7 @@ class SCLDecoder:
         if self.crc_length > 0:
             crc_pass = [
                 p for p in paths
-                if crc_check(p["u_hat"][self.info_indices], self.crc_length)
+                if crc_check(p.u_hat[self.info_indices], self.crc_length)
             ]
             if crc_pass:
                 paths = crc_pass
