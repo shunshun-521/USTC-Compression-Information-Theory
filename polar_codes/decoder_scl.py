@@ -13,9 +13,6 @@ from decoder_sc import (
     f_operation,
     g_operation,
 )
-from encoder import bit_reversal_permutation
-
-
 CRC8_POLY = 0x07
 CRC16_POLY = 0x8005
 
@@ -76,7 +73,6 @@ class SCLDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=int)
         self.list_size = list_size
         self.crc_length = crc_length
-        self.br = bit_reversal_permutation(N)
 
     def _update_llrs(self, path, l):
         for s in range(self.n - _active_llr_level(l, self.n), self.n):
