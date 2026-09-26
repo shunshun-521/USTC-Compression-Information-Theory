@@ -62,18 +62,27 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y * y)
+            a = 2.0 * snr * y
+            term = np.logaddexp(0.0, -a) / np.log(2.0)
+            return term * np.exp(-0.5 * y * y)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -50.0, 50.0)
         caps.append(1.0 - val / np.sqrt(2.0 * np.pi))
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=2000):
     grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    return float(grid[idx])
+    diff = caps - rate
+    cross = np.where(np.diff(np.sign(diff)))[0]
+    if len(cross) == 0:
+        idx = int(np.argmin(np.abs(diff)))
+        return float(grid[idx])
+    i = int(cross[0])
+    x0, x1 = grid[i], grid[i + 1]
+    y0, y1 = caps[i] - rate, caps[i + 1] - rate
+    return float(x0 - y0 * (x1 - x0) / (y1 - y0))
 
 
 def plot_bler_curves(results_dict, title, save_path, shannon_limit_db=None,
