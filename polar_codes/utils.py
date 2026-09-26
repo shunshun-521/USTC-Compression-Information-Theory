@@ -62,7 +62,8 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb / 10.0))
 
         def integrand(y):
-            a = 2.0 * snr * y
+            # 与 BPSK-AWGN 互信息等价的稳定形式（snr = 2R·10^{Eb/N0/10}）
+            a = snr * y * y
             term = np.logaddexp(0.0, -a) / np.log(2.0)
             return term * np.exp(-0.5 * y * y)
 
