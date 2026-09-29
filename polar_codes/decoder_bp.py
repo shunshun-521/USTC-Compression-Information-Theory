@@ -4,7 +4,6 @@
 """
 import numpy as np
 from encoder import polar_encode
-from decoder_sc import upper_llr
 
 
 def _f_min_sum(a, b, alpha):
@@ -12,7 +11,7 @@ def _f_min_sum(a, b, alpha):
 
 
 class BPDecoder:
-    """BP 译码器"""
+    """BP 译码器（L/R[layer, bit]）"""
 
     def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
         self.N = N
@@ -27,38 +26,44 @@ class BPDecoder:
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
         n, N = self.n, self.N
 
-        L = np.zeros((N, n + 1), dtype=np.float64)
-        R = np.zeros((N, n + 1), dtype=np.float64)
-        L[:, n] = llr_ch
-        R[:, 0] = 0.0
-        R[self.frozen_idx, 0] = self.LARGE
+        L = np.zeros((n + 1, N), dtype=np.float64)
+        R = np.zeros((n + 1, N), dtype=np.float64)
+        L[n, :] = llr_ch
+        R[0, :] = 0.0
+        R[0, self.frozen_idx] = self.LARGE
 
         num_iters = 0
         u_hat = np.zeros(N, dtype=int)
 
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
-            for j in range(n, 0, -1):
-                step = 2 ** (j - 1)
-                for i in range(0, N, 2 * step):
-                    s = step
-                    La = R[i, j - 1] + L[i + s, j]
-                    Lb = L[i, j]
-                    L[i, j - 1] = _f_min_sum(La, Lb, self.alpha)
-                    L[i + s, j - 1] = _f_min_sum(R[i, j - 1], L[i, j], self.alpha) + L[i + s, j]
+            for lam in range(n, 0, -1):
+                step = 2 ** (lam - 1)
+                for phi in range(0, N, 2 * step):
+                    for j in range(phi, phi + step):
+                        a = R[lam - 1, j] + L[lam, j + step]
+                        b = L[lam, j]
+                        L[lam - 1, j] = _f_min_sum(a, b, self.alpha)
+                        L[lam - 1, j + step] = (
+                            _f_min_sum(R[lam - 1, j], L[lam, j], self.alpha)
+                            + L[lam, j + step]
+                        )
 
-            # 左到右更新 R
-            for j in range(1, n + 1):
-                step = 2 ** (j - 1)
-                for i in range(0, N, 2 * step):
-                    s = step
-                    R[i, j] = _f_min_sum(
-                        R[i + s, j - 1] + L[i + s, j], R[i, j - 1], self.alpha
-                    )
-                    R[i + s, j] = _f_min_sum(R[i, j - 1], L[i, j], self.alpha) + R[i + s, j - 1]
+            for lam in range(0, n):
+                step = 2 ** lam
+                for phi in range(0, N, 2 * step):
+                    for j in range(phi, phi + step):
+                        R[lam + 1, j] = _f_min_sum(
+                            R[lam, j + step] + L[lam + 1, j + step],
+                            R[lam, j],
+                            self.alpha,
+                        )
+                        R[lam + 1, j + step] = (
+                            _f_min_sum(R[lam, j], L[lam + 1, j], self.alpha)
+                            + R[lam, j + step]
+                        )
 
             num_iters = it
-            total = L[:, 0] + R[:, 0]
+            total = L[0, :] + R[0, :]
             u_hat = (total < 0).astype(int)
             u_hat[self.frozen_idx] = 0
 
@@ -67,7 +72,7 @@ class BPDecoder:
             if np.array_equal(x_hat, hard_x):
                 break
 
-        total = L[:, 0] + R[:, 0]
+        total = L[0, :] + R[0, :]
         u_hat = (total < 0).astype(int)
         u_hat[self.frozen_idx] = 0
         return u_hat, num_iters

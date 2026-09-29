@@ -65,10 +65,13 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            # 标准 BPSK-AWGN 离散输入容量（y ~ N(0,1)）
+            t = np.clip(-2.0 * snr * (y ** 2), -700.0, 700.0)
+            return np.log2(1.0 + np.exp(t)) * np.exp(-0.5 * y ** 2) / np.sqrt(
+                2.0 * np.pi
+            )
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        val, _ = integrate.quad(integrand, -30.0, 30.0)
         caps.append(1.0 - val)
     return np.array(caps)
 

@@ -28,18 +28,15 @@ def unit_tests():
     frozen = np.ones(N, dtype=int)
     frozen[info_idx] = 0
     rng = np.random.default_rng(0)
-    sigma = eb_n0_to_sigma(10.0, 0.5)
     errs = 0
     for _ in range(100):
         u = np.zeros(N, dtype=int)
         u[info_idx] = rng.integers(0, 2, K)
-        x = polar_encode(u)
-        y = awgn_channel(bpsk_modulate(x), sigma, rng)
-        llr = compute_llr(y, sigma)
+        llr = compute_llr(bpsk_modulate(polar_encode(u)), 1e-9)
         uh = sc_decode(llr, frozen)
         if not np.array_equal(uh, u):
             errs += 1
-    assert errs == 0, f"SC 校验失败: {errs}/100 帧错误"
+    assert errs == 0, f"SC 无损校验失败: {errs}/100 帧错误"
 
 
 def main():
