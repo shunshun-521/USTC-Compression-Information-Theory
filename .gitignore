@@ -32,3 +32,5 @@ test_decoded.txt
 test_only.qwz
 results_GPTzip-medium.csv.bak2
 
+polar_codes/results/*
+!polar_codes/results/.gitkeep
