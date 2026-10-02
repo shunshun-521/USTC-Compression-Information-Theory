@@ -3,7 +3,6 @@ import csv
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import integrate
 
 _CRC8_POLY = 0x07
 _CRC16_POLY = 0x8005
@@ -98,38 +97,35 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
+    """BPSK 离散输入信道容量（Monte Carlo 估计）。"""
     caps = []
     for eb in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb / 10.0))
-
-        def integrand(y):
-            z = -2.0 * snr * y
-            if z > 40:
-                term = 0.0
-            elif z < -40:
-                term = z / np.log(2.0)
-            else:
-                term = np.log2(1.0 + np.exp(z))
-            return term * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -20.0, 20.0)
-        val /= np.sqrt(2.0 * np.pi)
-        caps.append(max(0.0, min(1.0, 1.0 - val)))
+        # 对称 BPSK BI-AWGN：C ≈ 1 - E[log2(1+exp(-2*snr*Y))], Y~N(0,1)
+        y = np.linspace(-8.0, 8.0, 8001)
+        w = np.exp(-0.5 * y * y)
+        w /= np.sum(w)
+        z = -2.0 * snr * y
+        term = np.log2(1.0 + np.exp(np.clip(z, -80, 80)))
+        caps.append(float(np.clip(1.0 - np.sum(term * w), 0.0, 1.0)))
     return np.array(caps)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+    """使 log2(1+2R*Eb/N0) = R 的 Eb/N0（BPSK 常用 Shannon 参考线）。"""
     lo, hi = eb_n0_range
-    c_lo = compute_bpsk_capacity([lo], rate)[0]
-    c_hi = compute_bpsk_capacity([hi], rate)[0]
-    if c_lo > rate:
+
+    def awgn_spectral(rate_val, eb_db):
+        snr = 2.0 * rate_val * (10.0 ** (eb_db / 10.0))
+        return np.log2(1.0 + snr)
+
+    if awgn_spectral(rate, lo) > rate:
         return float(lo)
-    if c_hi < rate:
+    if awgn_spectral(rate, hi) < rate:
         return float(hi)
-    for _ in range(60):
+    for _ in range(80):
         mid = (lo + hi) / 2.0
-        c_mid = compute_bpsk_capacity([mid], rate)[0]
-        if c_mid >= rate:
+        if awgn_spectral(rate, mid) >= rate:
             hi = mid
         else:
             lo = mid
