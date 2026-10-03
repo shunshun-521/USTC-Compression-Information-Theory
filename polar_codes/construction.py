@@ -30,9 +30,9 @@ def phi_inv(y):
     phi 函数的数值逆（二分法，区间 [0, 100]）
     """
     y = np.asarray(y, dtype=np.float64)
-    y = np.clip(y, 1e-12, phi(np.array([100.0]))[0])
+    y = np.clip(y, 1e-12, phi(np.array([10000.0]))[0])
     lo = np.zeros_like(y)
-    hi = np.full_like(y, 100.0)
+    hi = np.full_like(y, 10000.0)
     for _ in range(60):
         mid = (lo + hi) / 2.0
         pm = phi(mid)
@@ -69,8 +69,10 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     for _ in range(n):
         m_new = np.empty(2 * len(m), dtype=np.float64)
         ph = phi(m)
-        m_new[1::2] = phi_inv(1.0 - (1.0 - ph) ** 2)
-        m_new[0::2] = 2.0 * m
+        bad = phi_inv(1.0 - (1.0 - ph) ** 2)
+        for i in range(len(m)):
+            m_new[2 * i] = 2.0 * m[i]
+            m_new[2 * i + 1] = bad[i]
         m = m_new
 
     llr_means = m
