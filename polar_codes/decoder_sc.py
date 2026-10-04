@@ -39,3 +39,35 @@ def sc_decode(llr_ch, frozen_bits):
 def sc_decode_recursive(llr, frozen_bits):
     """递归 SC（与 L=1 SCL 等价）"""
     return sc_decode(llr, frozen_bits)[0]
+
+
+def precompute_sc_indices(N):
+    """
+    非递归 SC 预计算索引（保留接口；当前实现使用树递归 SCL L=1）。
+    """
+    import math
+
+    n = int(math.log2(N))
+    llr_layer_vec = []
+    bit_layer_vec = []
+    for phi in range(N):
+        layers = []
+        for l in range(n):
+            if ((phi >> l) & 1) == 0:
+                layers = list(range(l, n))
+                break
+        if not layers:
+            layers = list(range(n))
+        llr_layer_vec.append(layers)
+        if phi == 0:
+            bit_layers = []
+        else:
+            t = phi
+            cnt = 0
+            while (t & 1) == 1:
+                t >>= 1
+                cnt += 1
+            bit_layers = list(range(cnt))
+        bit_layer_vec.append(bit_layers)
+    lambda_offset = [1 << i for i in range(n + 1)]
+    return lambda_offset, llr_layer_vec, bit_layer_vec
