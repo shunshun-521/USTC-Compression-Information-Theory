@@ -1,0 +1,29 @@
+validations: OK
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.8223e-01 | Errors=40 | Frames=40 | AvgTime=4.54ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.6484e-01 | Errors=40 | Frames=40 | AvgTime=4.52ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.7363e-01 | Errors=40 | Frames=40 | AvgTime=4.50ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=4.5293e-01 | Errors=40 | Frames=40 | AvgTime=4.52ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=4.5195e-01 | Errors=40 | Frames=40 | AvgTime=4.51ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=4.5977e-01 | Errors=40 | Frames=40 | AvgTime=4.59ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=4.2148e-01 | Errors=40 | Frames=40 | AvgTime=4.52ms
+  Eb/N0=1.00dB | BLER=1.0000e+00 | BER=4.4590e-01 | Errors=40 | Frames=40 | AvgTime=26.17ms
+  Eb/N0=1.50dB | BLER=1.0000e+00 | BER=4.2852e-01 | Errors=40 | Frames=40 | AvgTime=26.02ms
+  Eb/N0=2.00dB | BLER=1.0000e+00 | BER=4.3477e-01 | Errors=40 | Frames=40 | AvgTime=25.99ms
+  Eb/N0=2.50dB | BLER=1.0000e+00 | BER=3.9922e-01 | Errors=40 | Frames=40 | AvgTime=26.04ms
+  Eb/N0=3.00dB | BLER=1.0000e+00 | BER=3.9355e-01 | Errors=40 | Frames=40 | AvgTime=25.92ms
+  Eb/N0=3.50dB | BLER=1.0000e+00 | BER=3.5020e-01 | Errors=40 | Frames=40 | AvgTime=26.07ms
+  Eb/N0=4.00dB | BLER=1.0000e+00 | BER=3.2422e-01 | Errors=40 | Frames=40 | AvgTime=26.34ms
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp3.py", line 66, in <module>
+    r_bp = run_simulation(
+           ^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/simulation.py", line 61, in run_simulation
+    u_hat, aux = decoder(llr)
+                 ^^^^^^^^^^^^
+  File "/workspace/polar_codes/run_exp3.py", line 63, in bp_d
+    u_hat, num_iters = bp_decoder.decode(llr_ch)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/polar_codes/decoder_bp.py", line 42, in decode
+    L[i, j - 1] = self._f_min(R[i, j] + L[i + s, j + 1], L[i, j + 1])
+                                        ~^^^^^^^^^^^^^^
+IndexError: index 9 is out of bounds for axis 1 with size 9
