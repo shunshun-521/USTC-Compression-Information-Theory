@@ -21,7 +21,7 @@ class BPDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        extrinsic = np.zeros(N, dtype=np.float64)
+        extrinsic = np.zeros(self.N, dtype=np.float64)
         u_hat = np.zeros(self.N, dtype=np.int64)
         num_iters = 0
 
