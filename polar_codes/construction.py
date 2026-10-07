@@ -72,9 +72,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
         half = len(m)
         m_new = np.empty(2 * half, dtype=np.float64)
         ph = phi(m)
-        m_new[0::2] = phi_inv(1.0 - (1.0 - ph) ** 2)
-        m_new[1::2] = 2.0 * m
-        m = m_new
+        m = np.concatenate([phi_inv(1.0 - (1.0 - ph) ** 2), 2.0 * m])
 
     llr_means = m
     info_indices = np.argsort(-llr_means)[:K]
