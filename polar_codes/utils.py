@@ -66,18 +66,18 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     eb_n0_db_list = np.atleast_1d(eb_n0_db_list)
     caps = []
     for eb in eb_n0_db_list:
+        # Es/N0（每信道符号），BPSK：Es=1，Eb/N0 与 R 的关系见 channel.eb_n0_to_sigma
         snr = 2.0 * rate * (10.0 ** (eb / 10.0))
 
         def integrand(y):
-            t = -2.0 * snr * y
-            # log2(1+exp(t)) 的稳定形式
+            t = -snr * (y ** 2)
             ll = np.where(t > 0, t + np.log2(1.0 + np.exp(-t)), np.log2(1.0 + np.exp(t)))
             return ll * np.exp(-0.5 * y * y)
 
-        ys = np.linspace(-12, 12, 40000)
+        ys = np.linspace(-10, 10, 30000)
         pdf = np.exp(-0.5 * ys * ys) / np.sqrt(2.0 * np.pi)
         val = np.trapezoid(integrand(ys) * pdf, ys)
-        caps.append(1.0 - val)
+        caps.append(max(0.0, 1.0 - val))
     return np.array(caps)
 
 
