@@ -65,29 +65,49 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb / 10.0))
 
         def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y ** 2)
+            t = -2.0 * snr * y
+            # 数值稳定的 log2(1 + exp(t))
+            log1pexp = np.maximum(t, 0.0) + np.log1p(np.exp(-np.abs(t)))
+            return (log1pexp / np.log(2.0)) * np.exp(-0.5 * y * y)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
+        val, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
         val /= np.sqrt(2.0 * np.pi)
         caps.append(1.0 - val)
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
-    """找到使 BPSK 容量等于码率 R 的 Eb/N0（dB）"""
-    from scipy import optimize
+def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=800):
+    """
+    找到使 BPSK 信道互信息等于码率 R 的 Eb/N0（dB）。
+    采用 ±1 等概 BPSK-AWGN 的数值互信息积分。
+    """
+    from scipy import integrate, optimize
+
+    def mutual_info(eb_db):
+        gamma = 10 ** (eb_db / 10.0) * 2.0 * rate
+
+        def integrand(y):
+            a = np.exp(-0.5 * (y - np.sqrt(gamma)) ** 2)
+            b = np.exp(-0.5 * (y + np.sqrt(gamma)) ** 2)
+            s = a + b
+            s = np.maximum(s, 1e-300)
+            p1 = a / s
+            p0 = 1.0 - p1
+            h = 0.0
+            for p in (p0, p1):
+                p = np.clip(p, 1e-15, 1.0 - 1e-15)
+                h -= p * np.log2(p)
+            return h * s / np.sqrt(2.0 * np.pi)
+
+        hy, _ = integrate.quad(integrand, -np.inf, np.inf, limit=200)
+        return 1.0 - hy
 
     eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-
+    caps = np.array([mutual_info(eb) for eb in eb_grid])
     for i in range(len(eb_grid) - 1):
         if (caps[i] - rate) * (caps[i + 1] - rate) <= 0:
             return float(
-                optimize.brentq(
-                    lambda eb: compute_bpsk_capacity(eb, rate)[0] - rate,
-                    eb_grid[i],
-                    eb_grid[i + 1],
-                )
+                optimize.brentq(lambda eb: mutual_info(eb) - rate, eb_grid[i], eb_grid[i + 1])
             )
     return float(eb_grid[np.argmin(np.abs(caps - rate))])
 
