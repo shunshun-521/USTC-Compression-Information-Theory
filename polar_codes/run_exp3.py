@@ -120,4 +120,9 @@ for N in N_LIST:
     plt.savefig(f"results/fig3_bp_N{N}_iters.pdf")
     plt.close()
 
+import shutil
+
+shutil.copy("results/fig3_bp_N256_bler.png", "results/fig3_bp_bler.png")
+shutil.copy("results/fig3_bp_N256_bler.pdf", "results/fig3_bp_bler.pdf")
+
 print("\n实验三完成。")
