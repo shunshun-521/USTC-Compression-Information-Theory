@@ -90,7 +90,9 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     return info_indices, frozen_indices, llr_means
 
 
-def _refine_info_indices(N, K, ranked_indices, rng=None, trials=2000):
+def _refine_info_indices(N, K, ranked_indices, rng=None, trials=None):
+    if trials is None:
+        trials = 2000 if N <= 32 else (400 if N <= 128 else 150)
     """
     在 GA 排序基础上贪心筛选与当前 SC 译码器兼容的信息位集合。
     若无法凑满 K，则按 GA 顺序补齐（保证长度为 K）。
