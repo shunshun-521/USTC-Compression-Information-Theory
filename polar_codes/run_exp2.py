@@ -28,7 +28,11 @@ RATE = 0.5
 K = N // 2
 DESIGN_EBN0 = 2.5
 CRC_LENGTH = 8
-L_LIST = [2, 4, 8]
+L_LIST = [
+    int(x)
+    for x in os.environ.get("POLAR_L_LIST", "2,4,8").split(",")
+    if x.strip()
+]
 MAX_FRAMES = int(os.environ.get("POLAR_MAX_FRAMES", "100000"))
 MIN_ERRORS = int(os.environ.get("POLAR_MIN_ERRORS", "100"))
 EB_N0_RANGE = np.arange(
@@ -79,28 +83,29 @@ for L in L_LIST:
     if L == 4:
         save_results_csv(results, f"results/exp2_scl_N{N}_R0.5.csv")
 
-print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
+if os.environ.get("POLAR_SKIP_CASCL", "0") == "1":
+    print("\n跳过 CA-SCL（POLAR_SKIP_CASCL=1）")
+else:
+    print(f"\nCA-SCL 仿真: N={N}, K={K}, L=8, CRC={CRC_LENGTH}")
 
+    def cascl_decoder(llr_ch):
+        u_hat, _ = SCLDecoder(N, fb, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
+        return u_hat, None
 
-def cascl_decoder(llr_ch):
-    u_hat, _ = SCLDecoder(N, fb, list_size=8, crc_length=CRC_LENGTH).decode(llr_ch)
-    return u_hat, None
-
-
-results_cascl = run_simulation(
-    N,
-    K,
-    EB_N0_RANGE,
-    cascl_decoder,
-    "scl",
-    MAX_FRAMES,
-    MIN_ERRORS,
-    crc_length=CRC_LENGTH,
-    info_indices=info_idx,
-    verbose=True,
-)
-all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
-save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
+    results_cascl = run_simulation(
+        N,
+        K,
+        EB_N0_RANGE,
+        cascl_decoder,
+        "scl",
+        MAX_FRAMES,
+        MIN_ERRORS,
+        crc_length=CRC_LENGTH,
+        info_indices=info_idx,
+        verbose=True,
+    )
+    all_results[f"CA-SCL (L=8, CRC={CRC_LENGTH})"] = results_cascl
+    save_results_csv(results_cascl, f"results/exp2_cascl_L8_N{N}_R0.5.csv")
 
 shannon_db = find_capacity_limit(RATE)
 plot_bler_curves(

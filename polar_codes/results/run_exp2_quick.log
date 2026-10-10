@@ -1,0 +1,9 @@
+单元测试通过。
+
+SC 基线 (L=1)
+  Eb/N0=1.00dB | BLER=7.4074e-01 | BER=2.3568e-01 | Errors=20 | Frames=27 | AvgTime=3.62ms
+  Eb/N0=2.00dB | BLER=1.1561e-01 | BER=2.8721e-02 | Errors=20 | Frames=173 | AvgTime=3.72ms
+  Eb/N0=3.00dB | BLER=6.0000e-03 | BER=8.9844e-04 | Errors=3 | Frames=500 | AvgTime=3.63ms
+
+SCL 仿真: N=512, K=256, L=4
+  Eb/N0=1.00dB | BLER=3.3333e-01 | BER=8.0273e-02 | Errors=20 | Frames=60 | AvgTime=11967.52ms

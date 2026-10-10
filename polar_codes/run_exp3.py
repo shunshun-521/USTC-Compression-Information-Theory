@@ -24,7 +24,11 @@ print("单元测试通过。\n")
 
 os.makedirs("results", exist_ok=True)
 
-N_LIST = [256, 512]
+N_LIST = [
+    int(x)
+    for x in os.environ.get("POLAR_N_LIST", "256,512").split(",")
+    if x.strip()
+]
 RATE = 0.5
 DESIGN_EBN0 = 2.5
 MAX_ITER = 50
@@ -54,15 +58,16 @@ for N in N_LIST:
     all_results["SC"] = r_sc
     save_results_csv(r_sc, f"results/exp3_sc_N{N}_R0.5.csv")
 
-    def scl_d(llr_ch):
-        u, _ = SCLDecoder(N, fb, list_size=4).decode(llr_ch)
-        return u, None
+    if os.environ.get("POLAR_SKIP_SCL", "0") != "1":
+        def scl_d(llr_ch):
+            u, _ = SCLDecoder(N, fb, list_size=4).decode(llr_ch)
+            return u, None
 
-    r_scl = run_simulation(
-        N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
-    )
-    all_results["SCL (L=4)"] = r_scl
-    save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
+        r_scl = run_simulation(
+            N, K, EB_N0_RANGE, scl_d, "scl", MAX_FRAMES, MIN_ERRORS, info_indices=info_idx
+        )
+        all_results["SCL (L=4)"] = r_scl
+        save_results_csv(r_scl, f"results/exp3_scl_N{N}_R0.5.csv")
 
     bp_decoder = BPDecoder(N, fb, max_iter=MAX_ITER)
 
