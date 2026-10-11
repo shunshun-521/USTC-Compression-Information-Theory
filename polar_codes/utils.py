@@ -63,7 +63,7 @@ def _bpsk_capacity_per_snr(snr_linear):
     """C(snr) for BPSK-AWGN (bits per channel use)."""
 
     def integrand(y):
-        z = np.clip(-2.0 * snr_linear * y, -80.0, 80.0)
+        z = np.clip(-2.0 * snr_linear * y * y, -80.0, 80.0)
         return np.log2(1.0 + np.exp(z)) * np.exp(-0.5 * y * y)
 
     val, _ = integrate.quad(integrand, -12.0, 12.0, limit=200)
