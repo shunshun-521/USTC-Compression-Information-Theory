@@ -74,17 +74,19 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 6), num_points=400):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
     grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
     caps = compute_bpsk_capacity(grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(grid) - 1:
-        return float(grid[idx])
-    x0, x1 = grid[idx - 1], grid[idx + 1]
-    c0, c1 = caps[idx - 1], caps[idx + 1]
+    diff = caps - rate
+    crossing = np.where(np.diff(np.signbit(diff)))[0]
+    if len(crossing) == 0:
+        return float(grid[int(np.argmin(np.abs(diff)))])
+    i = int(crossing[0])
+    x0, x1 = grid[i], grid[i + 1]
+    c0, c1 = caps[i], caps[i + 1]
     if c1 == c0:
-        return float(grid[idx])
+        return float(x0)
     return float(x0 + (rate - c0) * (x1 - x0) / (c1 - c0))
 
 
