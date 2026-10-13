@@ -63,9 +63,5 @@ class SCLDecoder:
         return best["u"], best["pm"]
 
     def _bit_llr(self, llr, u_prefix, phi):
-        """用冻结未来比特的 SC 判决近似当前 LLR。"""
-        frozen = self.frozen_bits.copy()
-        frozen[:phi] = True
-        frozen[phi] = False
-        u_tmp = sc_decode(llr, frozen)
-        return 10.0 if u_tmp[phi] == 0 else -10.0
+        """当前比特的软信息（译码域 LLR）。"""
+        return float(channel_llr_to_decoder(llr)[phi])

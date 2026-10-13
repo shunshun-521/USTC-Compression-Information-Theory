@@ -5,7 +5,6 @@
 import math
 import numpy as np
 from encoder import bit_reversal_permutation
-from parity import get_parity_matrix, minsum_bp_decode
 
 
 def f_operation(La, Lb):
@@ -100,15 +99,8 @@ def sc_decode(llr_ch, frozen_bits, info_indices=None):
     if np.min(np.abs(llr_ch)) > 5.0:
         return sc_decode_noiseless_check(llr_ch, frozen_bits)
 
-    if info_indices is None:
-        info_indices = np.where(~frozen_bits)[0]
-    info_tuple = tuple(int(i) for i in info_indices)
-    H = get_parity_matrix(len(llr_ch), info_tuple)
-    x_hat = minsum_bp_decode(H, llr_ch, max_iter=120)
-    rev = bit_reversal_permutation(len(llr_ch))
-    u_hat = _butterfly_bits(x_hat[rev])
-    u_hat[frozen_bits] = 0
-    return u_hat
+    llr = channel_llr_to_decoder(llr_ch)
+    return sc_decode_recursive(llr, frozen_bits)
 
 
 def sc_decode_noiseless_check(llr_ch, frozen_bits):
