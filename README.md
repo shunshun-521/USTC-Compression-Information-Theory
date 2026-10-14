@@ -26,6 +26,7 @@
 
 ## 目录结构（重点文件）
 
+- `polar_codes/`：极化码 GA 构造、SC/SCL/BP 译码与蒙特卡洛仿真（见 `polar_codes/README.md`）
 - `Information_Theory.pdf`：报告正文（方法、推导、实验与结论）
 - `enwik8`：数据集（Wikipedia 子集，100MB）
 - `run_exp_1.py`：传统压缩基线实验（切片 + gzip/bzip2/xz/zstd）
