@@ -4,6 +4,7 @@
 """
 import math
 import numpy as np
+
 from encoder import polar_encode
 from decoder_sc import f_operation
 
@@ -36,21 +37,27 @@ class BPDecoder:
         num_iters = 0
         for it in range(1, self.max_iter + 1):
             num_iters = it
-            for j in range(n, 0, -1):
-                s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    L[i, j - 1] = self._f_ms(
-                        R[i, j] + L[i + s, j], L[i, j]
-                    )
-                    L[i + s, j - 1] = self._f_ms(R[i, j], L[i, j]) + L[i + s, j]
+            for j in range(n - 1, -1, -1):
+                step = 1 << j
+                for block in range(0, N, 2 * step):
+                    for i in range(block, block + step):
+                        L[i, j] = self._f_ms(
+                            R[i, j] + L[i + step, j + 1], L[i, j + 1]
+                        )
+                        L[i + step, j] = self._f_ms(
+                            R[i, j], L[i, j + 1]
+                        ) + L[i + step, j + 1]
 
             for j in range(0, n):
-                s = 1 << j
-                for i in range(0, N, 2 * s):
-                    R[i, j + 1] = self._f_ms(
-                        R[i + s, j] + L[i + s, j + 1], R[i, j]
-                    )
-                    R[i + s, j + 1] = self._f_ms(R[i, j], L[i, j + 1]) + R[i + s, j]
+                step = 1 << j
+                for block in range(0, N, 2 * step):
+                    for i in range(block, block + step):
+                        R[i, j + 1] = self._f_ms(
+                            R[i + step, j] + L[i + step, j + 1], R[i, j]
+                        )
+                        R[i + step, j + 1] = self._f_ms(
+                            R[i, j], L[i, j + 1]
+                        ) + R[i + step, j]
 
             total = L[:, 0] + R[:, 0]
             u_hat = (total < 0).astype(int)
