@@ -3,7 +3,6 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
 
 from construction import ga_construction
 
@@ -68,11 +67,9 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
         snr = 2.0 * rate * (10.0 ** (eb_db / 10.0))
         s = np.sqrt(snr)
 
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
+        y = np.linspace(-12.0, 12.0, 20000)
+        integrand = np.log2(1.0 + np.exp(-2.0 * s * y)) * np.exp(-0.5 * y * y)
+        val = np.trapz(integrand, y) / np.sqrt(2.0 * np.pi)
         caps.append(1.0 - val)
     return np.array(caps)
 
