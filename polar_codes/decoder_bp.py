@@ -37,56 +37,33 @@ class BPDecoder:
         R[:, 0] = 0.0
         R[self.frozen_bits, 0] = self.LARGE
 
+        frozen = self.frozen_bits
         num_iters = self.max_iter
+        x_hard = (llr_ch < 0).astype(np.int32)
+
         for it in range(1, self.max_iter + 1):
-            # 右到左更新 L
             for j in range(n, 0, -1):
                 s = 1 << (j - 1)
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx_u = i + k
-                        idx_v = i + k + s
-                        L[idx_u, j - 1] = self._f_min_sum(
-                            R[idx_u, j] + L[idx_v, j], L[idx_u, j]
-                        )
-                        L[idx_v, j - 1] = self._f_min_sum(
-                            R[idx_u, j], L[idx_u, j]
-                        ) + L[idx_v, j]
+                for base in range(0, N, 2 * s):
+                    u = np.arange(base, base + s)
+                    v = u + s
+                    L[u, j - 1] = self._f_min_sum(R[u, j] + L[v, j], L[u, j])
+                    L[v, j - 1] = self._f_min_sum(R[u, j], L[u, j]) + L[v, j]
 
-            # 左到右更新 R
             for j in range(0, n):
                 s = 1 << j
-                for i in range(0, N, 2 * s):
-                    for k in range(s):
-                        idx_u = i + k
-                        idx_v = i + k + s
-                        R[idx_u, j + 1] = self._f_min_sum(
-                            R[idx_v, j] + L[idx_v, j + 1], R[idx_u, j]
-                        )
-                        R[idx_v, j + 1] = self._f_min_sum(
-                            R[idx_u, j], L[idx_u, j + 1]
-                        ) + R[idx_v, j]
+                for base in range(0, N, 2 * s):
+                    u = np.arange(base, base + s)
+                    v = u + s
+                    R[u, j + 1] = self._f_min_sum(R[v, j] + L[v, j + 1], R[u, j])
+                    R[v, j + 1] = self._f_min_sum(R[u, j], L[u, j + 1]) + R[v, j]
 
-            # 早停
             total = L[:, 0] + R[:, 0]
-            u_hat = np.zeros(N, dtype=np.int32)
-            for i in range(N):
-                if self.frozen_bits[i]:
-                    u_hat[i] = 0
-                else:
-                    u_hat[i] = 0 if total[i] >= 0 else 1
-            x_hat = polar_encode(u_hat)
-            x_hard = (llr_ch < 0).astype(np.int32)
-            if np.array_equal(x_hat, x_hard):
+            u_hat = np.where(frozen, 0, (total < 0).astype(np.int32))
+            if np.array_equal(polar_encode(u_hat), x_hard):
                 num_iters = it
                 break
 
         total = L[:, 0] + R[:, 0]
-        u_hat = np.zeros(N, dtype=np.int32)
-        for i in range(N):
-            if self.frozen_bits[i]:
-                u_hat[i] = 0
-            else:
-                u_hat[i] = 0 if total[i] >= 0 else 1
-
+        u_hat = np.where(frozen, 0, (total < 0).astype(np.int32))
         return u_hat, num_iters
