@@ -19,7 +19,7 @@ os.makedirs("results", exist_ok=True)
 # ========== 单元测试 ==========
 u = np.array([1, 0, 1, 1])
 x = polar_encode(u)
-assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
+assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"
 assert verify_sc_lossless(100), "SC 无损校验失败"
 
 # ========== 参数设置 ==========

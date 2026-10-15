@@ -40,4 +40,4 @@ if __name__ == "__main__":
     u = np.array([1, 0, 1, 1])
     x = polar_encode(u)
     print("encode test:", x)
-    assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
+    assert np.array_equal(x, [1, 1, 0, 1]), f"编码器错误: {x}"

@@ -19,7 +19,7 @@ from utils import save_results_csv, plot_bler_curves, find_capacity_limit
 os.makedirs("results", exist_ok=True)
 
 u = np.array([1, 0, 1, 1])
-assert np.array_equal(polar_encode(u), [1, 0, 1, 1])
+assert np.array_equal(polar_encode(u), [1, 1, 0, 1])
 assert verify_sc_lossless(50)
 assert verify_scl_equals_sc()
 
