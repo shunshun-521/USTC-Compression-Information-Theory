@@ -15,12 +15,6 @@ def bit_reversed(x, n):
     return result
 
 
-def _logdomain_sum(x, y):
-    if x > y:
-        return x + np.log1p(np.exp(y - x))
-    return y + np.log1p(np.exp(x - y))
-
-
 def f_operation(La, Lb):
     """min-sum 近似的 f / upper LLR。"""
     return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
