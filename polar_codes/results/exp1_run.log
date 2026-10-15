@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp1.py", line 15, in <module>
+    from utils import save_results_csv, plot_bler_curves, save_frozen_set_info, find_capacity_limit
+  File "/workspace/polar_codes/utils.py", line 6, in <module>
+    from scipy import integrate
+ModuleNotFoundError: No module named 'scipy'
+Traceback (most recent call last):
+  File "/workspace/polar_codes/run_exp1.py", line 22, in <module>
+    assert np.array_equal(x, [1, 0, 1, 1]), f"编码器错误: {x}"
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 编码器错误: [1 1 0 1]
