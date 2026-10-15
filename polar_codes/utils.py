@@ -3,9 +3,18 @@ import csv
 import os
 
 import numpy as np
-from scipy import integrate
-
 from construction import ga_construction
+
+
+def _log2_1_plus_exp_neg(a):
+    """数值稳定的 log2(1 + exp(-a))。"""
+    a = np.asarray(a, dtype=np.float64)
+    out = np.empty_like(a)
+    pos = a >= 0
+    out[pos] = np.log2(1.0 + np.exp(-np.clip(a[pos], 0, 700)))
+    an = a[~pos]
+    out[~pos] = (-an + np.log(1.0 + np.exp(np.clip(an, -700, 0)))) / np.log(2.0)
+    return out
 
 
 def save_results_csv(results, filepath):
@@ -58,37 +67,33 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """BPSK 离散输入信道容量（bits/channel use）。"""
+    """BPSK 离散输入信道容量（bits/channel use），与 channel.py 的 sigma 定义一致。"""
     caps = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            return np.log2(1.0 + np.exp(-2.0 * snr * y)) * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2.0 * np.pi)
-        caps.append(1.0 - val)
+        eb_lin = 10.0 ** (eb_n0_db / 10.0)
+        sigma = 1.0 / np.sqrt(2.0 * rate * eb_lin)
+        y = np.linspace(-1.0 - 8.0 * sigma, 1.0 + 8.0 * sigma, 8001)
+        # 0 -> +1, 1 -> -1
+        p0 = np.exp(-0.5 * ((y - 1.0) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+        p1 = np.exp(-0.5 * ((y + 1.0) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+        py = 0.5 * (p0 + p1)
+        hy = -np.trapezoid(py * np.log2(np.clip(py, 1e-300, None)), y)
+        hy_given_x = 0.5 * np.log2(2 * np.pi * np.e * sigma ** 2)
+        caps.append(hy - hy_given_x)
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-5, 20), num_points=1000):
+def find_capacity_limit(rate, eb_n0_range=(-2, 8), num_points=200):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(eb_grid) - 1:
-        # 二分细化
-        lo, hi = eb_n0_range[0], eb_n0_range[1]
-        for _ in range(50):
-            mid = (lo + hi) / 2.0
-            c = compute_bpsk_capacity([mid], rate)[0]
-            if c > rate:
-                lo = mid
-            else:
-                hi = mid
-        return (lo + hi) / 2.0
-    return eb_grid[idx]
+    lo, hi = eb_n0_range[0], eb_n0_range[1]
+    for _ in range(40):
+        mid = (lo + hi) / 2.0
+        c = compute_bpsk_capacity([mid], rate)[0]
+        if c > rate:
+            hi = mid
+        else:
+            lo = mid
+    return (lo + hi) / 2.0
 
 
 def plot_bler_curves(
