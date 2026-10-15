@@ -91,7 +91,7 @@ def sc_decode(llr_ch, frozen_bits):
     n = int(math.log2(N))
 
     L = np.full((N, n + 1), np.nan, dtype=np.float64)
-    B = np.full((N, n + 1), np.nan)
+    B = np.zeros((N, n + 1), dtype=np.float64)
     L[:, 0] = llr_ch
 
     def update_llrs(l):

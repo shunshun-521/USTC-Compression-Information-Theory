@@ -52,7 +52,7 @@ class _PathState:
 
     def __init__(self, N, n, llr_ch):
         self.L = np.full((N, n + 1), np.nan, dtype=np.float64)
-        self.B = np.full((N, n + 1), np.nan)
+        self.B = np.zeros((N, n + 1), dtype=np.float64)
         self.L[:, 0] = llr_ch
         self.pm = 0.0
 
