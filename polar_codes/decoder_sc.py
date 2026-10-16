@@ -17,29 +17,24 @@ def _bit_reversed(x, n):
 
 
 def _logdomain_sum(x, y):
-    if x > y:
-        return x + np.log1p(np.exp(y - x))
-    return y + np.log1p(np.exp(x - y))
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    return np.maximum(x, y) + np.log1p(np.exp(-np.abs(x - y)))
 
 
 def f_operation(l1, l2):
-    """f 运算（对数域 box-plus，用于 SC）。"""
-    if np.isinf(l1) and not np.isinf(l2):
-        return l2
-    if np.isinf(l2) and not np.isinf(l1):
-        return l1
-    if np.isinf(l1) and np.isinf(l2):
-        return np.inf
+    """f 运算（对数域 box-plus，用于 SC，支持向量化）。"""
+    l1 = np.asarray(l1, dtype=np.float64)
+    l2 = np.asarray(l2, dtype=np.float64)
     return _logdomain_sum(l1 + l2, 0.0) - _logdomain_sum(l1, l2)
 
 
 def g_operation(l1, l2, u_hat):
-    """g 运算（对数域）。"""
-    if u_hat == 0:
-        if np.isinf(l1) or np.isinf(l2):
-            return np.inf
-        return l1 + l2
-    return l1 - l2
+    """g 运算（对数域，支持向量化 u_hat）。"""
+    l1 = np.asarray(l1, dtype=np.float64)
+    l2 = np.asarray(l2, dtype=np.float64)
+    u_hat = np.asarray(u_hat, dtype=np.int8)
+    return np.where(u_hat == 0, l1 + l2, l1 - l2)
 
 
 def _active_llr_level(i, n):
@@ -125,8 +120,21 @@ def sc_decode(llr_ch, frozen_bits):
 
 
 def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC（与主实现保持一致，用于交叉验证）。"""
-    return sc_decode(llr, frozen_bits)
+    """递归 SC 译码（参考实现）。"""
+    llr = np.asarray(llr, dtype=np.float64)
+    frozen_bits = np.asarray(frozen_bits, dtype=bool)
+    N = len(llr)
+    if N == 1:
+        if frozen_bits[0]:
+            return np.array([0], dtype=np.int8)
+        return np.array([0 if llr[0] >= 0 else 1], dtype=np.int8)
+
+    half = N // 2
+    llr_left = f_operation(llr[:half], llr[half:])
+    u_left = sc_decode_recursive(llr_left, frozen_bits[:half])
+    llr_right = g_operation(llr[:half], llr[half:], u_left)
+    u_right = sc_decode_recursive(llr_right, frozen_bits[half:])
+    return np.concatenate([u_left, u_right])
 
 
 def sc_decode_fast(llr_ch, frozen_bits):
