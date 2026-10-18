@@ -62,35 +62,33 @@ class SCLDecoder:
         if len(indices) == 1:
             i = indices[0]
             new_paths = []
-            for pm, dec in paths:
+            for pm, dec, _enc in paths:
                 if self.frozen_bits[i]:
                     bit = 0
                     pm2 = self._pm_update(pm, llr[0], 0)
+                    d = dec.copy()
+                    d[i] = bit
+                    new_paths.append((pm2, d, [bit]))
                 else:
                     for bit in (0, 1):
                         pm2 = self._pm_update(pm, llr[0], bit)
                         d = dec.copy()
                         d[i] = bit
-                        new_paths.append((pm2, d))
-                    continue
-                d = dec.copy()
-                d[i] = bit
-                new_paths.append((pm2, d))
+                        new_paths.append((pm2, d, [bit]))
             new_paths.sort(key=lambda x: x[0])
             return new_paths[: self.list_size]
 
         half = len(indices) // 2
         left_llr = f_operation(llr[:half], llr[half:])
         paths = self._scl_rec(left_llr, indices[:half], paths)
-        expanded = []
-        for pm, dec in paths:
-            left_bits = np.array([dec[i] for i in indices[:half]], dtype=int)
-            right_llr = g_operation(llr[:half], llr[half:], left_bits)
-            expanded.append((pm, dec, right_llr))
         merged = []
-        for pm, dec, right_llr in expanded:
-            sub = self._scl_rec(right_llr, indices[half:], [(pm, dec)])
-            merged.extend(sub)
+        for pm, dec, enc_left in paths:
+            left_bits = np.asarray(enc_left, dtype=int)
+            right_llr = g_operation(llr[:half], llr[half:], left_bits)
+            sub_paths = self._scl_rec(right_llr, indices[half:], [(pm, dec, enc_left)])
+            for pm2, dec2, enc_right in sub_paths:
+                combined = [enc_left[i] ^ enc_right[i] for i in range(half)] + enc_right
+                merged.append((pm2, dec2, combined))
         merged.sort(key=lambda x: x[0])
         return merged[: self.list_size]
 
@@ -100,19 +98,21 @@ class SCLDecoder:
             return u, 0.0
 
         llr_dec = channel_llr_to_decode_domain(llr_ch)
-        paths = self._scl_rec(llr_dec, list(range(self.N)), [(0.0, {})])
+        paths = self._scl_rec(llr_dec, list(range(self.N)), [(0.0, {}, [])])
+
         if self.crc_length > 0:
             info_pos = np.where(~self.frozen_bits)[0]
             valid = []
-            for pm, dec in paths:
+            for pm, dec, _enc in paths:
                 u = np.zeros(self.N, dtype=int)
                 for i, v in dec.items():
                     u[i] = v
                 if crc_check(u[info_pos], self.crc_length):
-                    valid.append((pm, dec))
+                    valid.append((pm, dec, _enc))
             if valid:
                 paths = valid
-        pm, dec = min(paths, key=lambda x: x[0])
+
+        pm, dec, _enc = min(paths, key=lambda x: x[0])
         u_hat = np.zeros(self.N, dtype=int)
         for i, v in dec.items():
             u_hat[i] = v
