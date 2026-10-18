@@ -1,0 +1,74 @@
+"""
+极化码 BP（置信传播）译码器
+基于因子图，使用 min-sum 近似，含早停机制
+"""
+import math
+import numpy as np
+from encoder import polar_encode
+from decoder_sc import f_operation
+
+
+class BPDecoder:
+    """BP 译码器（min-sum，含早停）。"""
+
+    def __init__(self, N, frozen_bits, max_iter=50, alpha=0.9375):
+        self.N = N
+        self.n = int(math.log2(N))
+        self.frozen_bits = np.asarray(frozen_bits, dtype=bool)
+        self.max_iter = max_iter
+        self.alpha = alpha
+        self._large = 1e6
+
+    def _f_ms(self, a, b):
+        return self.alpha * f_operation(a, b)
+
+    def decode(self, llr_ch):
+        llr_ch = np.asarray(llr_ch, dtype=np.float64)
+        n = self.n
+        N = self.N
+
+        L = np.zeros((N, n + 1))
+        R = np.zeros((N, n + 1))
+        L[:, n] = llr_ch
+        R[:, 0] = 0.0
+        R[self.frozen_bits, 0] = self._large
+
+        def hard_bits():
+            total = L[:, 0] + R[:, 0]
+            u = (total < 0).astype(int)
+            u[self.frozen_bits] = 0
+            return u
+
+        num_iters = self.max_iter
+        for it in range(1, self.max_iter + 1):
+            for j in range(n, 0, -1):
+                step = 1 << (j - 1)
+                for i in range(0, N, step * 2):
+                    for k in range(step):
+                        idx = i + k
+                        idx2 = idx + step
+                        L[idx, j - 1] = self._f_ms(
+                            R[idx, j] + L[idx2, j], L[idx, j]
+                        )
+                        L[idx2, j - 1] = self._f_ms(R[idx, j], L[idx, j]) + L[idx2, j]
+
+            for j in range(1, n + 1):
+                step = 1 << (j - 1)
+                for i in range(0, N, step * 2):
+                    for k in range(step):
+                        idx = i + k
+                        idx2 = idx + step
+                        R[idx, j] = self._f_ms(
+                            R[idx2, j] + L[idx2, j], R[idx, j - 1]
+                        )
+                        R[idx2, j] = self._f_ms(R[idx, j - 1], L[idx, j]) + R[idx2, j - 1]
+
+            u_hat = hard_bits()
+            x_hat = polar_encode(u_hat)
+            ch_hard = (llr_ch < 0).astype(int)
+            if np.array_equal(x_hat, ch_hard):
+                num_iters = it
+                break
+
+        u_hat = hard_bits()
+        return u_hat, num_iters
