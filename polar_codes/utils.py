@@ -52,43 +52,37 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """BPSK 离散输入信道容量（bits/channel use）。"""
-    from scipy import integrate
-
+    """
+    BPSK-AWGN 信道容量近似（bits/channel use）。
+    采用与 channel.py 一致的 SNR 定义：SNR = 2*R*Eb/N0。
+    """
     caps = []
     for eb_db in eb_n0_db_list:
         snr = 2.0 * rate * (10.0 ** (eb_db / 10.0))
-
-        def integrand(y):
-            t = -2.0 * snr * y
-            # 数值稳定：log2(1+exp(t)) = log2(1+exp(t)) 分段
-            if t > 0:
-                log_term = t / np.log(2.0) + np.log1p(np.exp(-t)) / np.log(2.0)
-            else:
-                log_term = np.log1p(np.exp(t)) / np.log(2.0)
-            return log_term * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -10.0, 10.0, limit=200)
-        caps.append(1.0 - val / np.sqrt(2.0 * np.pi))
+        caps.append(np.log2(1.0 + snr))
     return np.array(caps)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=400):
-    """找到使 BPSK 容量等于码率 R 的 Eb/N0（dB）。"""
-    grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
+def find_capacity_limit(rate, eb_n0_range=(-5, 15), num_points=800):
+    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
+    from scipy.optimize import brentq
+
+    def gap(eb_db):
+        return float(compute_bpsk_capacity([eb_db], rate)[0] - rate)
+
+    lo, hi = eb_n0_range
+    grid = np.linspace(lo, hi, num_points)
     caps = compute_bpsk_capacity(grid, rate)
-    idx = int(np.argmin(np.abs(caps - rate)))
-    if caps[idx] < rate and idx + 1 < len(grid):
-        x0, x1 = grid[idx], grid[idx + 1]
-        c0, c1 = caps[idx], caps[idx + 1]
-    elif idx > 0:
-        x0, x1 = grid[idx - 1], grid[idx]
-        c0, c1 = caps[idx - 1], caps[idx]
-    else:
-        return float(grid[idx])
-    if c1 == c0:
-        return float(x1)
-    return float(x0 + (rate - c0) * (x1 - x0) / (c1 - c0))
+    idx = np.where(caps >= rate)[0]
+    if len(idx) == 0:
+        return float(hi)
+    if idx[0] == 0:
+        return float(grid[0])
+    a, b = grid[idx[0] - 1], grid[idx[0]]
+    try:
+        return float(brentq(gap, a, b))
+    except ValueError:
+        return float(b)
 
 
 def plot_bler_curves(
