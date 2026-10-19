@@ -71,7 +71,7 @@ def compute_bpsk_capacity(eb_n0_db_list, rate):
             (z + np.log1p(np.exp(-z))) / np.log(2.0),
             np.log1p(np.exp(z)) / np.log(2.0),
         )
-        val = np.trapz(log2_term * pdf, y)
+        val = np.trapezoid(log2_term * pdf, y)
         caps.append(1.0 - val)
     return np.array(caps)
 
