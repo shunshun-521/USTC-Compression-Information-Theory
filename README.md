@@ -37,6 +37,7 @@
 - `results_GPTzip-medium.csv`：GPTzip + GPT-2 medium 结果
 - `results_qwen.csv`：Qwen2.5-0.5B 结果
 - `results_all.csv`：由 `plot_all.py` 合并生成
+- `polar_codes/`：极化码 GA 构造、SC/SCL/BP 译码与蒙特卡洛仿真（见 `polar_codes/README.md`）
 
 ---
 
