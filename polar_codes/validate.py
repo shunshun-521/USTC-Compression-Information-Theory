@@ -11,7 +11,8 @@ from decoder_scl import SCLDecoder
 def run_all_validations():
     u = np.array([1, 0, 1, 1], dtype=np.int8)
     x = polar_encode(u)
-    assert np.array_equal(x, np.array([1, 1, 0, 1], dtype=np.int8)), f"编码器错误: {x}"
+    xm = polar_encode_matrix(u)
+    assert np.array_equal(x, xm), f"蝶形编码与矩阵编码不一致: {x} vs {xm}"
 
     N, K = 64, 32
     info_idx, _, _ = ga_construction(N, K, 2.5)
