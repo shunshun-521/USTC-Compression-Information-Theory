@@ -11,6 +11,7 @@ Python（NumPy/SciPy）实现的极化码 GA 构造、SC/SCL/CA-SCL/BP 译码与
 - `decoder_bp.py` — 基于校验矩阵的 min-sum BP
 - `simulation.py` — 蒙特卡洛主循环
 - `run_exp1.py` / `run_exp2.py` / `run_exp3.py` — 实验脚本
+- `validate.py` — 编码与译码一致性校验
 
 ## 运行
 
