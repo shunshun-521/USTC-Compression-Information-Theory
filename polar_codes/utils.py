@@ -59,39 +59,19 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """BPSK 离散输入信道容量（bits/channel use）"""
-    caps = []
-    for eb_n0_db in eb_n0_db_list:
-        snr = 2.0 * rate * (10.0 ** (eb_n0_db / 10.0))
-
-        def integrand(y):
-            z = -2.0 * snr * y
-            z = np.clip(z, -700.0, 700.0)
-            t = 1.0 + np.exp(z)
-            return np.log2(t) * np.exp(-0.5 * y * y)
-
-        val, _ = integrate.quad(integrand, -20.0, 20.0, limit=200)
-        val /= np.sqrt(2.0 * np.pi)
-        caps.append(1.0 - val)
-    return np.asarray(caps)
+    """
+    AWGN 信道容量（bits/channel use）参考曲线 C = 0.5*log2(1 + SNR)，
+    SNR = 2*R*Eb/N0（BPSK 每比特能量换算）。
+    """
+    eb = 10.0 ** (np.asarray(eb_n0_db_list, dtype=np.float64) / 10.0)
+    snr = 2.0 * rate * eb
+    return 0.5 * np.log2(1.0 + snr)
 
 
-def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=1000):
-    """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）"""
-    grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(grid, rate)
-    idx = np.argmin(np.abs(caps - rate))
-    if idx == 0 or idx == len(grid) - 1:
-        return float(grid[idx])
-    lo, hi = grid[idx - 1], grid[idx + 1]
-    for _ in range(40):
-        mid = (lo + hi) / 2.0
-        c_mid = compute_bpsk_capacity([mid], rate)[0]
-        if c_mid < rate:
-            lo = mid
-        else:
-            hi = mid
-    return (lo + hi) / 2.0
+def find_capacity_limit(rate, eb_n0_range=(-2, 10), num_points=200):
+    """找到使 AWGN 容量等于码率 R 的 Eb/N0（dB），用作 BLER 图香农参考线"""
+    snr_lin = (2.0 ** (2.0 * rate) - 1.0) / (2.0 * rate)
+    return float(10.0 * np.log10(max(snr_lin, 1e-12)))
 
 
 def plot_bler_curves(
