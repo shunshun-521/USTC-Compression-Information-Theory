@@ -7,17 +7,29 @@ import numpy as np
 from encoder import bit_reversal_permutation
 
 
+def _log_sum_exp(a, b):
+    """ln(exp(a) + exp(b))，向量化。"""
+    a = np.asarray(a, dtype=np.float64)
+    b = np.asarray(b, dtype=np.float64)
+    m = np.maximum(a, b)
+    return m + np.log1p(np.exp(-np.abs(a - b)))
+
+
 def f_operation(La, Lb):
     """
-    min-sum 近似的 f 运算：
-    f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
+    SC 译码 f 运算（对数域精确形式）。
+    f(l1, l2) = lse(l1 + l2, 0) - lse(l1, l2)
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    La = np.asarray(La, dtype=np.float64)
+    Lb = np.asarray(Lb, dtype=np.float64)
+    return _log_sum_exp(La + Lb, 0.0) - _log_sum_exp(La, Lb)
 
 
 def g_operation(La, Lb, u_hat):
     """g 运算：g(La, Lb, u_hat) = (1 - 2*u_hat) * La + Lb"""
-    return (1.0 - 2.0 * u_hat) * La + Lb
+    u = np.asarray(u_hat, dtype=np.float64)
+    u = np.where(np.isnan(u), 0.0, u)
+    return (1.0 - 2.0 * u) * La + Lb
 
 
 def _bit_reversed(i, n):
@@ -119,9 +131,4 @@ def sc_decode(llr_ch, frozen_bits):
     非递归 SC 译码主函数。
     信道 LLR 为自然顺序（与编码后的码字 x 对应），输出 u_hat 亦为自然顺序。
     """
-    llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=int)
-    N = len(llr_ch)
-    brp = bit_reversal_permutation(N)
-    frozen_idx = np.where(frozen_bits == 1)[0]
-    return _scd_core(llr_ch[brp], frozen_idx, N)
+    return sc_decode_recursive(llr_ch, frozen_bits)
