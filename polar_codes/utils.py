@@ -59,28 +59,24 @@ def load_results_csv(filepath):
 
 
 def compute_bpsk_capacity(eb_n0_db_list, rate):
-    """BPSK 离散输入信道容量（bits/channel use）。"""
+    """BPSK 离散输入信道容量（bits/channel use），数值积分。"""
     caps = []
     for eb_n0_db in eb_n0_db_list:
-        snr = 2 * rate * (10 ** (eb_n0_db / 10.0))
-        s = np.sqrt(snr)
+        gamma = rate * (10 ** (eb_n0_db / 10.0))  # Es/N0
 
         def integrand(y):
-            z = -2 * s * y
-            # numerically stable log2(1 + exp(z))
-            log_term = np.where(z > 0, z / np.log(2) + np.log1p(np.exp(-z)) / np.log(2), np.log1p(np.exp(z)) / np.log(2))
-            return log_term * np.exp(-y ** 2 / 2)
+            # C = 1 - E[log2(1 + exp(-2*gamma*y^2))] with standard AWGN moment
+            t = 1.0 + np.exp(-2.0 * gamma * y * y)
+            return np.log2(t) * np.exp(-y * y / 2.0)
 
-        val, _ = integrate.quad(integrand, -np.inf, np.inf)
-        val /= np.sqrt(2 * np.pi)
-        caps.append(1 - val)
+        val, _ = integrate.quad(integrand, 0.0, np.inf)
+        val /= np.sqrt(2.0 * np.pi)
+        caps.append(max(0.0, 1.0 - 2.0 * val))
     return np.array(caps)
 
 
 def find_capacity_limit(rate, eb_n0_range=(-2, 12), num_points=1000):
     """找到使 BPSK 信道容量等于码率 R 的 Eb/N0（dB）。"""
-    eb_grid = np.linspace(eb_n0_range[0], eb_n0_range[1], num_points)
-    caps = compute_bpsk_capacity(eb_grid, rate)
     lo, hi = eb_n0_range[0], eb_n0_range[1]
     for _ in range(60):
         mid = (lo + hi) / 2
