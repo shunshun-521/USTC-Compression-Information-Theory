@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
+os.makedirs(os.path.join(os.path.dirname(__file__), "results"), exist_ok=True)
 from tests_validate import test_encoder, test_scl_l1_equals_sc
 
 test_encoder()
@@ -30,7 +31,7 @@ CRC_LENGTH = 8
 L_LIST = [2, 4, 8]
 MAX_FRAMES = 100000
 MIN_ERRORS = 100
-EB_N0_RANGE = np.arange(1.0, 5.5, 0.25)
+EB_N0_RANGE = np.arange(2.0, 7.0, 0.25)
 
 info_idx, frozen_idx, _ = ga_construction(N, K, DESIGN_EBN0)
 frozen_bits = np.ones(N, dtype=bool)
