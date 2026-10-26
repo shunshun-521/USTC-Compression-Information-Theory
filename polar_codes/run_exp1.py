@@ -7,6 +7,7 @@ import sys
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(__file__))
+os.makedirs(os.path.join(os.path.dirname(__file__), "results"), exist_ok=True)
 from tests_validate import test_encoder, test_sc_lossless, test_sc_recursive_match
 
 test_encoder()
