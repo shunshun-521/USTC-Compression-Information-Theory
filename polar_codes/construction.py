@@ -58,7 +58,7 @@ def ga_construction(N, K, design_eb_n0_db, rate=None):
     n = int(np.log2(N))
     assert 2 ** n == N, "N must be a power of 2"
 
-    sigma = 1.0 / np.sqrt(2 * rate) * 10 ** (-design_eb_n0_db / 20)
+    sigma = 1.0 / np.sqrt(2 * rate * (10 ** (design_eb_n0_db / 10.0)))
     m0 = 2.0 / (sigma ** 2)
 
     m = np.array([m0], dtype=np.float64)
