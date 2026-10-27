@@ -20,6 +20,13 @@ from utils import (
 
 os.makedirs("results", exist_ok=True)
 
+from validate import test_encoder, test_sc_lossless, test_scl_l1_equals_sc
+
+test_encoder()
+test_sc_lossless()
+test_scl_l1_equals_sc()
+print("单元测试通过。\n")
+
 N_LIST = [256, 512, 1024]
 if os.environ.get("POLAR_SKIP_N1024", "").lower() in ("1", "true", "yes"):
     N_LIST = [n for n in N_LIST if n != 1024]
