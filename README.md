@@ -18,6 +18,7 @@
 
 ## 你会在这里找到什么
 
+- **`polar_codes/`**：极化码（GA 构造、SC/SCL/CA-SCL/BP 译码）蒙特卡洛仿真；运行 `python3 validate.py` 校验后执行 `run_exp1.py` / `run_exp2.py` / `run_exp3.py`
 - **可复现实验脚本**：切片数据、跑传统压缩、跑 LLM 压缩、汇总 CSV、绘图
 - **实验结果文件**：`results*.csv` 与 `fig*.png`
 - **模型与数据目录**：`gpt2_models/`、`gpt2_medium_models/`、`qwen25_05b_models/`、`data/` 等
