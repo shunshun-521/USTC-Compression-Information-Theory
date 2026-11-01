@@ -38,6 +38,8 @@ EB_N0_RANGE = np.arange(
 
 if os.environ.get("POLAR_SKIP_N1024", "0") == "1":
     N_LIST = [n for n in N_LIST if n != 1024]
+if os.environ.get("POLAR_N_ONLY"):
+    N_LIST = [int(x) for x in os.environ["POLAR_N_ONLY"].split(",")]
 
 save_frozen_set_info(N_LIST, None, DESIGN_EBN0, "results/frozen_sets.txt", rate=RATE)
 
