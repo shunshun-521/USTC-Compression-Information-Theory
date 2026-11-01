@@ -9,7 +9,9 @@ from encoder import polar_encode, bit_reversal_permutation
 
 def _boxplus_min_sum(a, b, alpha=0.9375):
     """min-sum 近似的 box-plus 运算"""
-    return alpha * np.sign(a) * np.sign(b) * np.minimum(np.abs(a), np.abs(b))
+    sa = np.where(a >= 0, 1.0, -1.0)
+    sb = np.where(b >= 0, 1.0, -1.0)
+    return alpha * sa * sb * np.minimum(np.abs(a), np.abs(b))
 
 
 class BPDecoder:

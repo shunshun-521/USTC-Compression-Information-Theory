@@ -3,15 +3,17 @@
 支持 CRC 辅助（CA-SCL）
 """
 import math
+
 import numpy as np
-from encoder import bit_reversal_permutation
+
 from decoder_sc import (
+    _active_bit_level,
+    _active_llr_level,
+    _bit_reversed,
     f_operation,
     g_operation,
-    _active_llr_level,
-    _active_bit_level,
-    _bit_reversed,
 )
+from encoder import bit_reversal_permutation
 
 
 def _crc_generator(crc_length):
@@ -30,7 +32,7 @@ def _crc_remainder(bits, crc_length):
         if msg[i] == 1:
             for j in range(n):
                 msg[i + j] ^= gen[j]
-    return msg[-(n - 1):]
+    return msg[-(n - 1) :]
 
 
 def crc_encode(info_bits, crc_length=8):
@@ -63,7 +65,7 @@ class _Path:
 
 
 class SCLDecoder:
-    """SCL 译码器"""
+    """SCL 译码器（Lazy Copy：路径分裂时复制 L/B 数组）"""
 
     def __init__(self, N, frozen_bits, list_size=4, crc_length=0):
         self.N = N
@@ -71,7 +73,7 @@ class SCLDecoder:
         self.frozen_bits = np.asarray(frozen_bits, dtype=int)
         self.frozen_idx = set(np.where(self.frozen_bits == 1)[0])
         self.info_idx = np.where(self.frozen_bits == 0)[0]
-        self.list_size = list_size
+        self.list_size = max(1, list_size)
         self.crc_length = crc_length
         self.brp = bit_reversal_permutation(N)
 
@@ -104,10 +106,8 @@ class SCLDecoder:
 
     def decode(self, llr_ch):
         llr_ch = np.asarray(llr_ch, dtype=np.float64)
-        llr = llr_ch[self.brp].copy()
-
         init = _Path(self.N, self.n)
-        init.L[:, 0] = llr
+        init.L[:, 0] = llr_ch[self.brp]
         paths = [init]
 
         for phi in range(self.N):
@@ -150,12 +150,8 @@ class SCLDecoder:
 
         best = paths[0]
         if self.crc_length > 0:
-            crc_pass = [p for p in paths if self._crc_pass(p)]
+            crc_pass = [p for p in paths if crc_check(p.u_hat[self.info_idx], self.crc_length)]
             if crc_pass:
                 best = min(crc_pass, key=lambda p: p.pm)
 
         return best.u_hat, best.pm
-
-    def _crc_pass(self, path):
-        info_bits = path.u_hat[self.info_idx]
-        return crc_check(info_bits, self.crc_length)

@@ -3,7 +3,9 @@
 提供递归版本（参考实现）和非递归版本（高效实现）
 """
 import math
+
 import numpy as np
+
 from encoder import bit_reversal_permutation
 
 
@@ -12,7 +14,9 @@ def f_operation(La, Lb):
     min-sum 近似的 f 运算：
     f(La, Lb) ≈ sign(La) * sign(Lb) * min(|La|, |Lb|)
     """
-    return np.sign(La) * np.sign(Lb) * np.minimum(np.abs(La), np.abs(Lb))
+    sa = np.where(La >= 0, 1.0, -1.0)
+    sb = np.where(Lb >= 0, 1.0, -1.0)
+    return sa * sb * np.minimum(np.abs(La), np.abs(Lb))
 
 
 def g_operation(La, Lb, u_hat):
@@ -48,16 +52,19 @@ def _active_bit_level(i, n):
     return min(count, n)
 
 
-def _scd_core(llr, frozen_indices, N):
-    """SCD 核心算法（参考 polar-codes 库）"""
+def _scd_core(llr_natural, frozen_indices, N):
+    """
+    非递归 SCD 核心（Permuted SC，与含比特倒序的编码器配套）。
+    llr_natural: 与信道输出 x 同序的 LLR；内部使用 llr[brp] 初始化。
+    """
     n = int(math.log2(N))
     frozen = set(frozen_indices)
+    brp = bit_reversal_permutation(N)
     L = np.full((N, n + 1), np.nan, dtype=np.float64)
     B = np.full((N, n + 1), np.nan)
-    L[:, 0] = llr
+    L[:, 0] = llr_natural[brp]
 
-    for phi in range(N):
-        l = _bit_reversed(phi, n)
+    for l in [_bit_reversed(i, n) for i in range(N)]:
         for s in range(n - _active_llr_level(l, n), n):
             block_size = 2 ** (s + 1)
             branch_size = block_size // 2
@@ -70,12 +77,10 @@ def _scd_core(llr, frozen_indices, N):
                         L[j, s],
                         B[j - branch_size, s + 1],
                     )
-
         if l in frozen:
             B[l, n] = 0
         else:
             B[l, n] = 0 if L[l, n] >= 0 else 1
-
         if l >= N // 2:
             for s in range(n, n - _active_bit_level(l, n), -1):
                 block_size = 2 ** s
@@ -84,22 +89,25 @@ def _scd_core(llr, frozen_indices, N):
                     if j % block_size >= branch_size:
                         B[j - branch_size, s - 1] = int(B[j, s]) ^ int(B[j - branch_size, s])
                         B[j, s - 1] = B[j, s]
-
     return B[:, n].astype(int)
 
 
-def sc_decode_recursive(llr, frozen_bits):
-    """递归 SC 译码（参考实现，内部调用 SCD 核心）"""
-    llr = np.asarray(llr, dtype=np.float64)
+def sc_decode(llr_ch, frozen_bits):
+    """非递归 SC 译码（主实现）。"""
+    llr_ch = np.asarray(llr_ch, dtype=np.float64)
     frozen_bits = np.asarray(frozen_bits, dtype=int)
-    N = len(llr)
-    brp = bit_reversal_permutation(N)
+    N = len(llr_ch)
     frozen_idx = np.where(frozen_bits == 1)[0]
-    return _scd_core(llr[brp], frozen_idx, N)
+    return _scd_core(llr_ch, frozen_idx, N)
+
+
+def sc_decode_recursive(llr, frozen_bits):
+    """递归 SC 译码（与 sc_decode 共用同一 SCD 核心，便于对照验证）。"""
+    return sc_decode(llr, frozen_bits)
 
 
 def precompute_sc_indices(N):
-    """预计算非递归 SC 译码所需的辅助向量"""
+    """预计算非递归 SC 辅助索引（供文档/扩展使用）。"""
     n = int(math.log2(N))
     lambda_offset = [1 << i for i in range(n + 1)]
     llr_layer_vec = []
@@ -112,16 +120,3 @@ def precompute_sc_indices(N):
             bit_layers = list(range(n, n - _active_bit_level(l, n), -1))
         bit_layer_vec.append(bit_layers)
     return lambda_offset, llr_layer_vec, bit_layer_vec
-
-
-def sc_decode(llr_ch, frozen_bits):
-    """
-    非递归 SC 译码主函数。
-    信道 LLR 为自然顺序（与编码后的码字 x 对应），输出 u_hat 亦为自然顺序。
-    """
-    llr_ch = np.asarray(llr_ch, dtype=np.float64)
-    frozen_bits = np.asarray(frozen_bits, dtype=int)
-    N = len(llr_ch)
-    brp = bit_reversal_permutation(N)
-    frozen_idx = np.where(frozen_bits == 1)[0]
-    return _scd_core(llr_ch[brp], frozen_idx, N)
